@@ -211,7 +211,7 @@ export default function App() {
             <form onSubmit={handleCitySearch} className="flex gap-1 flex-1">
               <input
                 type="text"
-                placeholder="Search location (e.g. Bhadravathi)"
+                placeholder="Search location (e.g. 577301 or City Name)"
                 value={searchCity}
                 onChange={(e) => setSearchCity(e.target.value)}
                 className="p-1 px-2 border rounded text-sm bg-white text-gray-800 w-full"
