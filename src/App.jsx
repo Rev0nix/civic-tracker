@@ -14,14 +14,12 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Dynamic map panning based strictly on device location
-function RecenterMap({ location }) {
+// Helper component to explicitly pan the Leaflet view when coordinates update
+function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
-    if (location) {
-      map.setView([location.lat, location.lng], 14);
-    }
-  }, [location, map]);
+    map.setView(center, 14);
+  }, [center, map]);
   return null;
 }
 
@@ -42,7 +40,7 @@ export default function App() {
           setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         },
         (err) => console.error('Device Geolocation error:', err),
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true, timeout: 10000 }
       );
     }
     fetchIssues();
@@ -163,14 +161,14 @@ export default function App() {
       {/* Interactive Map */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-4 text-gray-800">Interactive Issue Map</h2>
-        <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm">
+        <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100 flex items-center justify-center">
           {location ? (
             <MapContainer center={[location.lat, location.lng]} zoom={14} style={{ height: '100%', width: '100%' }}>
+              <ChangeView center={[location.lat, location.lng]} />
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <RecenterMap location={location} />
               {filteredIssues.map((issue) => {
                 const coords = parsePoint(issue.location);
                 if (!coords) return null;
@@ -186,9 +184,7 @@ export default function App() {
               })}
             </MapContainer>
           ) : (
-            <div className="h-full w-full flex items-center justify-center bg-gray-100 text-gray-500 font-medium">
-              Detecting device location...
-            </div>
+            <p className="text-gray-500 font-medium">Fetching current device location...</p>
           )}
         </div>
       </div>
