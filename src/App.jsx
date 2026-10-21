@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix default Leaflet marker icon issue in React
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
@@ -14,6 +13,17 @@ let DefaultIcon = L.icon({
   iconAnchor: [12, 41],
 });
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// Helper component to auto-pan the map whenever location updates
+function RecenterMap({ location }) {
+  const map = useMap();
+  useEffect(() => {
+    if (location) {
+      map.setView([location.lat, location.lng], 14);
+    }
+  }, [location, map]);
+  return null;
+}
 
 export default function App() {
   const [title, setTitle] = useState('');
@@ -43,7 +53,6 @@ export default function App() {
     if (!error) setIssues(data);
   };
 
-  // Helper to parse POSTGIS POINT string: "POINT(lng lat)"
   const parsePoint = (pointStr) => {
     if (!pointStr) return null;
     const match = pointStr.match(/POINT\(([^ ]+) ([^ ]+)\)/);
@@ -98,13 +107,14 @@ export default function App() {
     ? issues
     : issues.filter((i) => i.category_id === parseInt(filterCategory));
 
-  const mapCenter = location ? [location.lat, location.lng] : [12.9716, 77.5946];
+  // Default fallback to Bhadravathi, Shivamogga coordinates
+  const bhadravathiCoords = [13.8412, 75.7022];
+  const mapCenter = location ? [location.lat, location.lng] : bhadravathiCoords;
 
   return (
     <div className="max-w-4xl mx-auto p-6 font-sans">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Civic Issue Tracker</h1>
 
-      {/* Submission Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
         <h2 className="text-xl font-semibold text-gray-700">Report a New Issue</h2>
         
@@ -160,6 +170,7 @@ export default function App() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <RecenterMap location={location} />
             {filteredIssues.map((issue) => {
               const coords = parsePoint(issue.location);
               if (!coords) return null;
@@ -177,7 +188,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Filter Options */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-gray-800">Reported Civic Issues</h2>
         <select
@@ -193,7 +203,6 @@ export default function App() {
         </select>
       </div>
 
-      {/* Issue Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredIssues.map((issue) => (
           <div key={issue.id} className="p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between">
