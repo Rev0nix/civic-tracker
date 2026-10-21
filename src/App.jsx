@@ -14,7 +14,7 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Helper component to auto-pan the map whenever location updates
+// Dynamic map panning based strictly on device location
 function RecenterMap({ location }) {
   const map = useMap();
   useEffect(() => {
@@ -38,8 +38,11 @@ export default function App() {
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => console.error('Geolocation error:', err)
+        (pos) => {
+          setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        (err) => console.error('Device Geolocation error:', err),
+        { enableHighAccuracy: true }
       );
     }
     fetchIssues();
@@ -62,7 +65,7 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!location) return alert('Please enable location access to submit an issue.');
+    if (!location) return alert('Device location access is required to submit an issue.');
     setLoading(true);
 
     try {
@@ -106,10 +109,6 @@ export default function App() {
   const filteredIssues = filterCategory === 'all'
     ? issues
     : issues.filter((i) => i.category_id === parseInt(filterCategory));
-
-  // Default fallback to Bhadravathi, Shivamogga coordinates
-  const bhadravathiCoords = [13.8412, 75.7022];
-  const mapCenter = location ? [location.lat, location.lng] : bhadravathiCoords;
 
   return (
     <div className="max-w-4xl mx-auto p-6 font-sans">
@@ -165,26 +164,32 @@ export default function App() {
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-4 text-gray-800">Interactive Issue Map</h2>
         <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm">
-          <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <RecenterMap location={location} />
-            {filteredIssues.map((issue) => {
-              const coords = parsePoint(issue.location);
-              if (!coords) return null;
-              return (
-                <Marker key={issue.id} position={[coords.lat, coords.lng]}>
-                  <Popup>
-                    <strong>{issue.title}</strong>
-                    <p>{issue.description}</p>
-                    <span className="text-xs text-gray-500">Status: {issue.status}</span>
-                  </Popup>
-                </Marker>
-              );
-            })}
-          </MapContainer>
+          {location ? (
+            <MapContainer center={[location.lat, location.lng]} zoom={14} style={{ height: '100%', width: '100%' }}>
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <RecenterMap location={location} />
+              {filteredIssues.map((issue) => {
+                const coords = parsePoint(issue.location);
+                if (!coords) return null;
+                return (
+                  <Marker key={issue.id} position={[coords.lat, coords.lng]}>
+                    <Popup>
+                      <strong>{issue.title}</strong>
+                      <p>{issue.description}</p>
+                      <span className="text-xs text-gray-500">Status: {issue.status}</span>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          ) : (
+            <div className="h-full w-full flex items-center justify-center bg-gray-100 text-gray-500 font-medium">
+              Detecting device location...
+            </div>
+          )}
         </div>
       </div>
 
