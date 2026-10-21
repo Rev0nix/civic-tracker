@@ -14,7 +14,7 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Force Leaflet map view update when location changes
+// Dynamic map view controller
 function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -32,15 +32,17 @@ export default function App() {
   const [categoryId, setCategoryId] = useState('1');
   const [file, setFile] = useState(null);
   const [location, setLocation] = useState(null);
-  const [locStatus, setLocStatus] = useState('Detecting location...');
+  const [searchCity, setSearchCity] = useState('');
+  const [locStatus, setLocStatus] = useState('Acquiring live location...');
   const [issues, setIssues] = useState([]);
   const [filterCategory, setFilterCategory] = useState('all');
   const [loading, setLoading] = useState(false);
 
-  const getCurrentLocation = () => {
-    setLocStatus('Fetching GPS coordinates...');
+  // Request high-accuracy device location
+  const requestDeviceLocation = () => {
+    setLocStatus('Syncing live GPS...');
     if (!navigator.geolocation) {
-      setLocStatus('Geolocation is not supported by your browser.');
+      setLocStatus('Geolocation not supported by browser.');
       return;
     }
 
@@ -48,18 +50,22 @@ export default function App() {
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setLocation(coords);
-        setLocStatus(`GPS Locked: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
+        setLocStatus(`GPS Active: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
       },
       (err) => {
-        console.error('GPS error:', err);
-        setLocStatus(`Location Error: ${err.message}`);
+        console.warn('Geolocation error:', err.message);
+        setLocStatus('Location access limited. Use search or drag the pin below.');
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
     );
   };
 
   useEffect(() => {
-    getCurrentLocation();
+    requestDeviceLocation();
     fetchIssues();
   }, []);
 
@@ -71,6 +77,26 @@ export default function App() {
     if (!error) setIssues(data);
   };
 
+  const handleCitySearch = async (e) => {
+    e.preventDefault();
+    if (!searchCity.trim()) return;
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchCity)}`
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const newCoords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        setLocation(newCoords);
+        setLocStatus(`Location Set: ${data[0].display_name}`);
+      } else {
+        alert('City/Area not found. Please try a different location name.');
+      }
+    } catch (err) {
+      alert('Error searching for location.');
+    }
+  };
+
   const parsePoint = (pointStr) => {
     if (!pointStr) return null;
     const match = pointStr.match(/POINT\(([^ ]+) ([^ ]+)\)/);
@@ -80,7 +106,7 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!location) return alert('Location access is required to submit an issue.');
+    if (!location) return alert('Location is required to submit an issue.');
     setLoading(true);
 
     try {
@@ -113,7 +139,7 @@ export default function App() {
       setDescription('');
       setFile(null);
       fetchIssues();
-      alert('Issue submitted successfully!');
+      alert('Civic issue submitted successfully!');
     } catch (err) {
       alert(err.message);
     } finally {
@@ -178,14 +204,30 @@ export default function App() {
 
       {/* Interactive Map Header */}
       <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
           <h2 className="text-2xl font-bold text-gray-800">Interactive Issue Map</h2>
-          <button
-            onClick={getCurrentLocation}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold py-1 px-3 rounded"
-          >
-            📍 Refresh GPS Location
-          </button>
+          
+          <div className="flex gap-2 w-full md:w-auto">
+            <form onSubmit={handleCitySearch} className="flex gap-1 flex-1">
+              <input
+                type="text"
+                placeholder="Search location (e.g. Bhadravathi)"
+                value={searchCity}
+                onChange={(e) => setSearchCity(e.target.value)}
+                className="p-1 px-2 border rounded text-sm bg-white text-gray-800 w-full"
+              />
+              <button type="submit" className="bg-blue-600 text-white text-xs px-3 py-1 rounded font-medium">
+                Search
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={requestDeviceLocation}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold py-1 px-2 rounded whitespace-nowrap"
+            >
+              📍 GPS Auto
+            </button>
+          </div>
         </div>
         <p className="text-xs text-blue-600 font-medium mb-3">{locStatus}</p>
 
@@ -197,12 +239,22 @@ export default function App() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              {/* User Current Position Marker */}
-              <Marker position={[location.lat, location.lng]}>
-                <Popup>📍 Your Current Location</Popup>
+              {/* Draggable Pin for User's Active Position */}
+              <Marker
+                position={[location.lat, location.lng]}
+                draggable={true}
+                eventHandlers={{
+                  dragend: (e) => {
+                    const pos = e.target.getLatLng();
+                    setLocation({ lat: pos.lat, lng: pos.lng });
+                    setLocStatus(`Pin position set: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`);
+                  },
+                }}
+              >
+                <Popup>📍 Drag this pin to fine-tune exact issue location</Popup>
               </Marker>
 
-              {/* Reported Issues Markers */}
+              {/* Existing Reported Issues Markers */}
               {filteredIssues.map((issue) => {
                 const coords = parsePoint(issue.location);
                 if (!coords) return null;
@@ -218,7 +270,7 @@ export default function App() {
               })}
             </MapContainer>
           ) : (
-            <p className="text-gray-500 font-medium">Waiting for GPS coordinates...</p>
+            <p className="text-gray-500 font-medium">Detecting device position...</p>
           )}
         </div>
       </div>
