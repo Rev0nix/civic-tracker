@@ -14,11 +14,14 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Helper component to explicitly pan the Leaflet view when coordinates update
+// Force Leaflet map view update when location changes
 function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, 14);
+    if (center) {
+      map.setView(center, 14);
+      map.invalidateSize();
+    }
   }, [center, map]);
   return null;
 }
@@ -29,20 +32,34 @@ export default function App() {
   const [categoryId, setCategoryId] = useState('1');
   const [file, setFile] = useState(null);
   const [location, setLocation] = useState(null);
+  const [locStatus, setLocStatus] = useState('Detecting location...');
   const [issues, setIssues] = useState([]);
   const [filterCategory, setFilterCategory] = useState('all');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        },
-        (err) => console.error('Device Geolocation error:', err),
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
+  const getCurrentLocation = () => {
+    setLocStatus('Fetching GPS coordinates...');
+    if (!navigator.geolocation) {
+      setLocStatus('Geolocation is not supported by your browser.');
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setLocation(coords);
+        setLocStatus(`GPS Locked: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
+      },
+      (err) => {
+        console.error('GPS error:', err);
+        setLocStatus(`Location Error: ${err.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
+  useEffect(() => {
+    getCurrentLocation();
     fetchIssues();
   }, []);
 
@@ -63,7 +80,7 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!location) return alert('Device location access is required to submit an issue.');
+    if (!location) return alert('Location access is required to submit an issue.');
     setLoading(true);
 
     try {
@@ -112,6 +129,7 @@ export default function App() {
     <div className="max-w-4xl mx-auto p-6 font-sans">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Civic Issue Tracker</h1>
 
+      {/* Form Section */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
         <h2 className="text-xl font-semibold text-gray-700">Report a New Issue</h2>
         
@@ -158,9 +176,19 @@ export default function App() {
         </button>
       </form>
 
-      {/* Interactive Map */}
+      {/* Interactive Map Header */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Interactive Issue Map</h2>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-2xl font-bold text-gray-800">Interactive Issue Map</h2>
+          <button
+            onClick={getCurrentLocation}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-semibold py-1 px-3 rounded"
+          >
+            📍 Refresh GPS Location
+          </button>
+        </div>
+        <p className="text-xs text-blue-600 font-medium mb-3">{locStatus}</p>
+
         <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100 flex items-center justify-center">
           {location ? (
             <MapContainer center={[location.lat, location.lng]} zoom={14} style={{ height: '100%', width: '100%' }}>
@@ -169,6 +197,12 @@ export default function App() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
+              {/* User Current Position Marker */}
+              <Marker position={[location.lat, location.lng]}>
+                <Popup>📍 Your Current Location</Popup>
+              </Marker>
+
+              {/* Reported Issues Markers */}
               {filteredIssues.map((issue) => {
                 const coords = parsePoint(issue.location);
                 if (!coords) return null;
@@ -184,11 +218,12 @@ export default function App() {
               })}
             </MapContainer>
           ) : (
-            <p className="text-gray-500 font-medium">Fetching current device location...</p>
+            <p className="text-gray-500 font-medium">Waiting for GPS coordinates...</p>
           )}
         </div>
       </div>
 
+      {/* Issues Listing */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-gray-800">Reported Civic Issues</h2>
         <select
