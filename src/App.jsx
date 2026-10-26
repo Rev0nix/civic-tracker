@@ -4,21 +4,19 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Utility to create custom SVG markers based on category and status
 const createCustomIcon = (categoryId, status) => {
-  let color = '#3B82F6'; // Default Blue
+  let color = '#3B82F6';
 
   if (status === 'Resolved') {
-    color = '#10B981'; // Green for resolved
+    color = '#10B981';
   } else if (status === 'In Progress') {
-    color = '#F59E0B'; // Orange/Yellow for work in progress
+    color = '#F59E0B';
   } else {
-    // Colors by category for newly submitted issues
     switch (parseInt(categoryId)) {
-      case 1: color = '#EF4444'; break; // Red - Roads & Potholes
-      case 2: color = '#EAB308'; break; // Yellow - Street Lighting
-      case 3: color = '#06B6D4'; break; // Cyan - Water & Drainage
-      case 4: color = '#8B5CF6'; break; // Purple - Sanitation & Garbage
+      case 1: color = '#EF4444'; break;
+      case 2: color = '#EAB308'; break;
+      case 3: color = '#06B6D4'; break;
+      case 4: color = '#8B5CF6'; break;
       default: color = '#3B82F6';
     }
   }
@@ -37,7 +35,6 @@ const createCustomIcon = (categoryId, status) => {
   });
 };
 
-// Distinct User Position Icon
 const userIcon = L.divIcon({
   className: 'user-leaflet-icon',
   html: `
@@ -474,66 +471,90 @@ export default function App() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredIssues.map((issue) => (
-            <div key={issue.id} className="p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{issue.title}</h3>
-                  <span className={`text-xs font-semibold px-2.5 py-0.5 rounded ${
-                    issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                    issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {issue.status}
-                  </span>
-                </div>
-                <p className="text-gray-600 mb-3">{issue.description}</p>
-              </div>
+          {filteredIssues.map((issue) => {
+            const coords = parsePoint(issue.location);
+            const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
 
-              <div>
-                {issue.photo_url && (
-                  <img
-                    src={issue.photo_url}
-                    alt="Proof"
-                    className="w-full h-40 object-cover rounded-md mb-3"
-                  />
-                )}
-
-                <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                  <button
-                    onClick={() => handleUpvote(issue.id, issue.upvotes)}
-                    className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded transition"
-                  >
-                    👍 Upvote ({issue.upvotes || 0})
-                  </button>
+            return (
+              <div key={issue.id} className="p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900">{issue.title}</h3>
+                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded ${
+                      issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                      issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {issue.status}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 mb-3">{issue.description}</p>
                 </div>
 
-                {isAdmin && (
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 mt-2">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs font-semibold text-gray-600">Update Status:</label>
-                      <select
-                        value={issue.status}
-                        onChange={(e) => handleStatusChange(issue.id, e.target.value)}
-                        className="p-1 border rounded text-xs bg-gray-50 text-gray-800"
-                      >
-                        <option value="Submitted">Submitted</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
-                      </select>
+                <div>
+                  {issue.photo_url && (
+                    <img
+                      src={issue.photo_url}
+                      alt="Proof"
+                      className="w-full h-40 object-cover rounded-md mb-3"
+                    />
+                  )}
+
+                  {/* READABLE LOCATION DETAILS FOR ADMIN / CITIZENS */}
+                  {coords && (
+                    <div className="bg-gray-50 p-2.5 rounded border border-gray-200 mb-3 text-xs flex justify-between items-center">
+                      <span className="font-mono text-gray-700">
+                        📍 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                      </span>
+                      {googleMapsUrl && (
+                        <a
+                          href={googleMapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline font-semibold"
+                        >
+                          Open in Google Maps ↗
+                        </a>
+                      )}
                     </div>
+                  )}
 
+                  <div className="flex justify-between items-center py-2 border-t border-gray-100">
                     <button
-                      onClick={() => handleDelete(issue.id)}
-                      className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2.5 py-1 rounded font-medium"
+                      onClick={() => handleUpvote(issue.id, issue.upvotes)}
+                      className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded transition"
                     >
-                      Delete
+                      👍 Upvote ({issue.upvotes || 0})
                     </button>
                   </div>
-                )}
+
+                  {isAdmin && (
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 mt-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-semibold text-gray-600">Update Status:</label>
+                        <select
+                          value={issue.status}
+                          onChange={(e) => handleStatusChange(issue.id, e.target.value)}
+                          className="p-1 border rounded text-xs bg-gray-50 text-gray-800"
+                        >
+                          <option value="Submitted">Submitted</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Resolved">Resolved</option>
+                        </select>
+                      </div>
+
+                      <button
+                        onClick={() => handleDelete(issue.id)}
+                        className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2.5 py-1 rounded font-medium"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
