@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
 const categoryNames = {
   1: 'Roads & Potholes',
@@ -7,6 +10,47 @@ const categoryNames = {
   3: 'Water & Drainage',
   4: 'Sanitation & Garbage',
 };
+
+const createCustomIcon = (categoryId, status) => {
+  let color = '#3B82F6';
+
+  if (status === 'Resolved') {
+    color = '#10B981';
+  } else if (status === 'In Progress') {
+    color = '#F59E0B';
+  } else {
+    switch (parseInt(categoryId)) {
+      case 1: color = '#EF4444'; break;
+      case 2: color = '#EAB308'; break;
+      case 3: color = '#06B6D4'; break;
+      case 4: color = '#8B5CF6'; break;
+      default: color = '#3B82F6';
+    }
+  }
+
+  const svgMarker = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="32" height="32">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+    </svg>`;
+
+  return L.divIcon({
+    className: 'custom-leaflet-icon',
+    html: svgMarker,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
+};
+
+const userIcon = L.divIcon({
+  className: 'user-leaflet-icon',
+  html: `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#2563EB" width="28" height="28">
+      <circle cx="12" cy="12" r="8" fill="#2563EB" stroke="#FFFFFF" stroke-width="3"/>
+    </svg>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
 
 const getDeviceId = () => {
   let deviceId = localStorage.getItem('civic_tracker_device_id');
@@ -48,6 +92,17 @@ const parseLocation = (loc) => {
   }
   return null;
 };
+
+function ChangeView({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.setView(center, 16);
+      map.invalidateSize();
+    }
+  }, [center, map]);
+  return null;
+}
 
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -468,6 +523,53 @@ export default function App() {
           </button>
         </form>
       )}
+
+      {/* Main Interactive Map View (Restored at Top) */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-1">Interactive Issue Map</h2>
+        <div className="flex gap-4 text-xs font-semibold mb-3 text-gray-600">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Roads</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span> Lighting</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span> Water</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-500 inline-block"></span> Sanitation</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Resolved</span>
+        </div>
+
+        <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100 flex items-center justify-center">
+          {location ? (
+            <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+              <ChangeView center={[location.lat, location.lng]} />
+              <TileLayer
+                attribution='&copy; OpenStreetMap contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <Marker position={[location.lat, location.lng]} icon={userIcon}>
+                <Popup>📍 Your Device Location</Popup>
+              </Marker>
+
+              {filteredIssues.map((issue) => {
+                const coords = parseLocation(issue.location);
+                if (!coords) return null;
+                return (
+                  <Marker
+                    key={issue.id}
+                    position={[coords.lat, coords.lng]}
+                    icon={createCustomIcon(issue.category_id, issue.status)}
+                  >
+                    <Popup>
+                      <strong>{issue.title}</strong>
+                      <p>{issue.description}</p>
+                      <span className="text-xs text-gray-500">Upvotes: 👍 {issue.upvotes || 0}</span>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          ) : (
+            <p className="text-gray-500 font-medium">Acquiring live location...</p>
+          )}
+        </div>
+      </div>
 
       {/* List Header & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
