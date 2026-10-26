@@ -14,7 +14,6 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Helper function to get or generate a unique Device ID
 const getDeviceId = () => {
   let deviceId = localStorage.getItem('civic_tracker_device_id');
   if (!deviceId) {
@@ -70,7 +69,7 @@ export default function App() {
       );
       return () => navigator.geolocation.clearWatch(watchId);
     }
-  }, [isAdmin]); // Re-fetch when switching between Admin and Device view
+  }, [isAdmin]);
 
   const fetchIssues = async () => {
     let query = supabase
@@ -78,7 +77,6 @@ export default function App() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    // Citizens only see issues created by their device; Admins see all issues
     if (!isAdmin) {
       query = query.eq('device_id', deviceId);
     }
@@ -121,7 +119,8 @@ export default function App() {
           location: pointLocation,
           category_id: parseInt(categoryId),
           status: 'Submitted',
-          device_id: deviceId, // Store current device ID
+          device_id: deviceId,
+          upvotes: 0,
         },
       ]);
 
@@ -136,6 +135,20 @@ export default function App() {
       alert(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Upvote Feature Function
+  const handleUpvote = async (id, currentUpvotes) => {
+    const { error } = await supabase
+      .from('issues')
+      .update({ upvotes: (currentUpvotes || 0) + 1 })
+      .eq('id', id);
+
+    if (error) {
+      alert('Could not upvote: ' + error.message);
+    } else {
+      fetchIssues();
     }
   };
 
@@ -302,7 +315,7 @@ export default function App() {
                     <Popup>
                       <strong>{issue.title}</strong>
                       <p>{issue.description}</p>
-                      <span className="text-xs text-gray-500">Status: {issue.status}</span>
+                      <span className="text-xs text-gray-500">Upvotes: 👍 {issue.upvotes || 0}</span>
                     </Popup>
                   </Marker>
                 );
@@ -378,8 +391,19 @@ export default function App() {
                   />
                 )}
 
+                {/* Upvote Control */}
+                <div className="flex justify-between items-center py-2 border-t border-gray-100">
+                  <button
+                    onClick={() => handleUpvote(issue.id, issue.upvotes)}
+                    className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded transition"
+                  >
+                    👍 Upvote ({issue.upvotes || 0})
+                  </button>
+                </div>
+
+                {/* Admin Controls */}
                 {isAdmin && (
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 mt-2">
                     <div className="flex items-center gap-2">
                       <label className="text-xs font-semibold text-gray-600">Update Status:</label>
                       <select
