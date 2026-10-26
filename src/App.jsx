@@ -86,13 +86,10 @@ export default function App() {
   
   // Data State
   const [issues, setIssues] = useState([]);
-  const [addresses, setAddresses] = useState({});
+  const [detailedLocations, setDetailedLocations] = useState({});
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
-  
-  // Modal Details State
-  const [selectedIssue, setSelectedIssue] = useState(null);
 
   const deviceId = getDeviceId();
 
@@ -139,7 +136,7 @@ export default function App() {
     const { data, error } = await query;
     if (!error && data) {
       setIssues(data);
-      resolveAddresses(data);
+      fetchDetailedAddresses(data);
     }
   };
 
@@ -150,25 +147,40 @@ export default function App() {
     return { lng: parseFloat(match[1]), lat: parseFloat(match[2]) };
   };
 
-  const resolveAddresses = async (issueList) => {
-    const newAddresses = {};
+  // Fetch Full Encoded Address Details for Each Report Card
+  const fetchDetailedAddresses = async (issueList) => {
+    const locationsMap = {};
     for (const issue of issueList) {
       const coords = parsePoint(issue.location);
-      if (coords && !addresses[issue.id]) {
+      if (coords && !detailedLocations[issue.id]) {
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`);
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18&addressdetails=1`
+          );
           const data = await res.json();
           if (data && data.display_name) {
-            newAddresses[issue.id] = data.display_name;
+            locationsMap[issue.id] = {
+              fullAddress: data.display_name,
+              lat: coords.lat.toFixed(6),
+              lng: coords.lng.toFixed(6),
+            };
           } else {
-            newAddresses[issue.id] = `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+            locationsMap[issue.id] = {
+              fullAddress: 'Encoded Location Signal Received',
+              lat: coords.lat.toFixed(6),
+              lng: coords.lng.toFixed(6),
+            };
           }
         } catch {
-          newAddresses[issue.id] = `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+          locationsMap[issue.id] = {
+            fullAddress: 'Location Coordinates Encoded',
+            lat: coords.lat.toFixed(6),
+            lng: coords.lng.toFixed(6),
+          };
         }
       }
     }
-    setAddresses((prev) => ({ ...prev, ...newAddresses }));
+    setDetailedLocations((prev) => ({ ...prev, ...locationsMap }));
   };
 
   const handleSubmit = async (e) => {
@@ -231,27 +243,13 @@ export default function App() {
       .update({ status: newStatus })
       .eq('id', id);
 
-    if (error) {
-      alert('Failed to update status: ' + error.message);
-    } else {
-      if (selectedIssue && selectedIssue.id === id) {
-        setSelectedIssue((prev) => ({ ...prev, status: newStatus }));
-      }
-      fetchIssues();
-    }
+    if (error) alert('Failed to update status: ' + error.message);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this issue report?')) return;
     const { error } = await supabase.from('issues').delete().eq('id', id);
-    if (error) {
-      alert('Failed to delete issue: ' + error.message);
-    } else {
-      if (selectedIssue && selectedIssue.id === id) {
-        setSelectedIssue(null);
-      }
-      fetchIssues();
-    }
+    if (error) alert('Failed to delete issue: ' + error.message);
   };
 
   const exportToCSV = () => {
@@ -300,8 +298,6 @@ export default function App() {
   const inProgressCount = issues.filter(i => i.status === 'In Progress').length;
   const resolvedCount = issues.filter(i => i.status === 'Resolved').length;
   const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
-
-  const selectedCoords = selectedIssue ? parsePoint(selectedIssue.location) : null;
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans">
@@ -467,9 +463,6 @@ export default function App() {
                     key={issue.id}
                     position={[coords.lat, coords.lng]}
                     icon={createCustomIcon(issue.category_id, issue.status)}
-                    eventHandlers={{
-                      click: () => setSelectedIssue(issue),
-                    }}
                   >
                     <Popup>
                       <strong>{issue.title}</strong>
@@ -488,12 +481,9 @@ export default function App() {
 
       {/* List Header & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            {isAdmin ? 'Manage All Civic Reports' : 'My Device Reports'}
-          </h2>
-          <p className="text-xs text-gray-500 mt-0.5">💡 Tip: Double-click any report card to open full details view</p>
-        </div>
+        <h2 className="text-2xl font-bold text-gray-800">
+          {isAdmin ? 'Manage All Civic Reports' : 'My Device Reports'}
+        </h2>
 
         <div className="flex gap-2">
           <select
@@ -529,21 +519,20 @@ export default function App() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredIssues.map((issue) => {
+            const locData = detailedLocations[issue.id];
             const coords = parsePoint(issue.location);
-            const addressText = addresses[issue.id] || (coords ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 'Resolving address...');
+            const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
 
             return (
-              <div
-                key={issue.id}
-                onDoubleClick={() => setSelectedIssue(issue)}
-                className="p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between hover:border-blue-500 transition cursor-pointer group"
-                title="Double-click to open full report modal"
-              >
+              <div key={issue.id} className="p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition">
-                      {issue.title}
-                    </h3>
+                    <div>
+                      <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">
+                        {categoryNames[issue.category_id] || 'Civic Issue'}
+                      </span>
+                      <h3 className="text-lg font-semibold text-gray-900">{issue.title}</h3>
+                    </div>
                     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded ${
                       issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
                       issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
@@ -552,7 +541,7 @@ export default function App() {
                       {issue.status}
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-3 line-clamp-2">{issue.description}</p>
+                  <p className="text-gray-600 mb-3">{issue.description}</p>
                 </div>
 
                 <div>
@@ -564,42 +553,45 @@ export default function App() {
                     />
                   )}
 
-                  {coords && (
-                    <div className="bg-gray-50 p-2.5 rounded border border-gray-200 mb-3 text-xs flex flex-col gap-1">
-                      <div className="flex items-start gap-1 text-gray-700 font-medium">
-                        <span>📍 Location:</span>
-                        <span className="truncate">{addressText}</span>
-                      </div>
+                  {/* ENCODED DETAILED LOCATION BOX ON EVERY REPORT CARD */}
+                  <div className="bg-blue-50/60 p-3 rounded-md border border-blue-100 mb-3 text-xs flex flex-col gap-1.5">
+                    <div className="flex items-start gap-1.5 text-blue-900 font-semibold">
+                      <span>📍 Encoded Location:</span>
                     </div>
-                  )}
+                    <p className="text-gray-800 font-medium leading-relaxed bg-white p-2 rounded border border-blue-100">
+                      {locData ? locData.fullAddress : (coords ? `Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)}` : 'Resolving encoded location...')}
+                    </p>
+                    {coords && (
+                      <div className="flex justify-between items-center pt-1 text-[11px] font-mono text-gray-600">
+                        <span>GPS: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>
+                        {googleMapsUrl && (
+                          <a
+                            href={googleMapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 font-sans font-semibold hover:underline"
+                          >
+                            Open Google Maps ↗
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex justify-between items-center py-2 border-t border-gray-100">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUpvote(issue.id, issue.upvotes);
-                      }}
+                      onClick={() => handleUpvote(issue.id, issue.upvotes)}
                       className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded transition"
                     >
                       👍 Upvote ({issue.upvotes || 0})
                     </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedIssue(issue);
-                      }}
-                      className="text-blue-600 hover:underline text-xs font-semibold"
-                    >
-                      🔍 Full Details ↗
-                    </button>
+                    <span className="text-[11px] text-gray-400">
+                      {new Date(issue.created_at).toLocaleDateString()}
+                    </span>
                   </div>
 
                   {isAdmin && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 mt-2"
-                    >
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 mt-2">
                       <div className="flex items-center gap-2">
                         <label className="text-xs font-semibold text-gray-600">Update Status:</label>
                         <select
@@ -625,119 +617,6 @@ export default function App() {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* FULL DETAILS MODAL POPUP */}
-      {selectedIssue && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
-          onClick={() => setSelectedIssue(null)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 relative max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedIssue(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none"
-            >
-              &times;
-            </button>
-
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-4 mb-4 pr-6">
-              <div>
-                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                  {categoryNames[selectedIssue.category_id] || 'General Civic Issue'}
-                </span>
-                <h2 className="text-2xl font-bold text-gray-900 mt-1">{selectedIssue.title}</h2>
-              </div>
-              <span className={`text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap ${
-                selectedIssue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                selectedIssue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                'bg-yellow-100 text-yellow-800'
-              }`}>
-                {selectedIssue.status}
-              </span>
-            </div>
-
-            {/* Full Photo */}
-            {selectedIssue.photo_url && (
-              <img
-                src={selectedIssue.photo_url}
-                alt="Proof"
-                className="w-full max-h-72 object-cover rounded-lg mb-4 border border-gray-200"
-              />
-            )}
-
-            {/* Full Description */}
-            <div className="mb-4">
-              <h4 className="text-xs font-bold uppercase text-gray-500 mb-1">Detailed Description</h4>
-              <p className="text-gray-800 bg-gray-50 p-3 rounded-md border border-gray-100 whitespace-pre-wrap">
-                {selectedIssue.description || 'No detailed description provided.'}
-              </p>
-            </div>
-
-            {/* Exact Location Section */}
-            {selectedCoords && (
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
-                <h4 className="text-xs font-bold uppercase text-gray-500 mb-2">Exact Location Details</h4>
-                <p className="text-sm font-medium text-gray-800 mb-2">
-                  📍 {addresses[selectedIssue.id] || 'Resolving address...'}
-                </p>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-gray-600 bg-white p-2 rounded border border-gray-200">
-                  <span>Coordinates: Lat {selectedCoords.lat.toFixed(6)}, Lng {selectedCoords.lng.toFixed(6)}</span>
-                  <a
-                    href={`https://www.google.com/maps?q=${selectedCoords.lat},${selectedCoords.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-sans text-xs px-3 py-1 rounded font-semibold inline-block"
-                  >
-                    Open Google Maps ↗
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Meta Details */}
-            <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 pt-2 border-t border-gray-100 mb-4">
-              <div>
-                <span className="font-semibold block text-gray-500">Submitted On:</span>
-                {new Date(selectedIssue.created_at).toLocaleString()}
-              </div>
-              <div>
-                <span className="font-semibold block text-gray-500">Community Priority:</span>
-                👍 {selectedIssue.upvotes || 0} Upvotes
-              </div>
-            </div>
-
-            {/* Admin Controls inside Modal */}
-            {isAdmin && (
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200 bg-gray-50 -mx-6 -mb-6 p-4 rounded-b-xl">
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-semibold text-gray-700">Update Issue Status:</label>
-                  <select
-                    value={selectedIssue.status}
-                    onChange={(e) => handleStatusChange(selectedIssue.id, e.target.value)}
-                    className="p-1.5 border rounded text-xs bg-white text-gray-800 font-semibold"
-                  >
-                    <option value="Submitted">Submitted</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
-                  </select>
-                </div>
-
-                <button
-                  onClick={() => handleDelete(selectedIssue.id)}
-                  className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-semibold"
-                >
-                  Delete Report
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       )}
     </div>
