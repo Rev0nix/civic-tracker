@@ -86,7 +86,7 @@ export default function App() {
   
   // Data State
   const [issues, setIssues] = useState([]);
-  const [detailedLocations, setDetailedLocations] = useState({});
+  const [addresses, setAddresses] = useState({});
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
@@ -139,7 +139,7 @@ export default function App() {
     const { data, error } = await query;
     if (!error && data) {
       setIssues(data);
-      fetchDetailedAddresses(data);
+      resolveAddresses(data);
     }
   };
 
@@ -150,39 +150,32 @@ export default function App() {
     return { lng: parseFloat(match[1]), lat: parseFloat(match[2]) };
   };
 
-  const fetchDetailedAddresses = async (issueList) => {
-    const locationsMap = {};
+  // Safe reverse-geocoding with fallback to lat/lng string
+  const resolveAddresses = async (issueList) => {
+    const newAddresses = {};
     for (const issue of issueList) {
       const coords = parsePoint(issue.location);
-      if (coords && !detailedLocations[issue.id]) {
+      if (coords && !addresses[issue.id]) {
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18`
           );
-          const data = await res.json();
-          if (data && data.display_name) {
-            locationsMap[issue.id] = {
-              fullAddress: data.display_name,
-              lat: coords.lat.toFixed(6),
-              lng: coords.lng.toFixed(6),
-            };
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.display_name) {
+              newAddresses[issue.id] = data.display_name;
+            } else {
+              newAddresses[issue.id] = `Latitude: ${coords.lat.toFixed(6)}, Longitude: ${coords.lng.toFixed(6)}`;
+            }
           } else {
-            locationsMap[issue.id] = {
-              fullAddress: `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
-              lat: coords.lat.toFixed(6),
-              lng: coords.lng.toFixed(6),
-            };
+            newAddresses[issue.id] = `Latitude: ${coords.lat.toFixed(6)}, Longitude: ${coords.lng.toFixed(6)}`;
           }
         } catch {
-          locationsMap[issue.id] = {
-            fullAddress: `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
-            lat: coords.lat.toFixed(6),
-            lng: coords.lng.toFixed(6),
-          };
+          newAddresses[issue.id] = `Latitude: ${coords.lat.toFixed(6)}, Longitude: ${coords.lng.toFixed(6)}`;
         }
       }
     }
-    setDetailedLocations((prev) => ({ ...prev, ...locationsMap }));
+    setAddresses((prev) => ({ ...prev, ...newAddresses }));
   };
 
   const handleSubmit = async (e) => {
@@ -222,6 +215,7 @@ export default function App() {
       setTitle('');
       setDescription('');
       setFile(null);
+      fetchIssues();
       alert('Issue reported successfully!');
     } catch (err) {
       alert(err.message);
@@ -303,7 +297,6 @@ export default function App() {
     }
   };
 
-  // Double-tap Handler for Admin View
   const handleCardDoubleClick = (issue) => {
     if (isAdmin) {
       setAdminSelectedIssue(issue);
@@ -322,10 +315,11 @@ export default function App() {
   const resolvedCount = issues.filter(i => i.status === 'Resolved').length;
   const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
 
+  // Dynamic modal location calculation with immediate coordinate resolution
   const selectedModalCoords = adminSelectedIssue ? parsePoint(adminSelectedIssue.location) : null;
-  const selectedModalAddress = adminSelectedIssue && detailedLocations[adminSelectedIssue.id]
-    ? detailedLocations[adminSelectedIssue.id].fullAddress
-    : (selectedModalCoords ? `${selectedModalCoords.lat.toFixed(5)}, ${selectedModalCoords.lng.toFixed(5)}` : 'Resolving...');
+  const selectedModalAddress = adminSelectedIssue
+    ? (addresses[adminSelectedIssue.id] || (selectedModalCoords ? `Coordinates: ${selectedModalCoords.lat.toFixed(6)}, ${selectedModalCoords.lng.toFixed(6)}` : 'Location unavailable'))
+    : '';
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans">
@@ -554,7 +548,7 @@ export default function App() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredIssues.map((issue) => {
-            const locData = detailedLocations[issue.id];
+            const locText = addresses[issue.id];
             const coords = parsePoint(issue.location);
             const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
 
@@ -595,13 +589,13 @@ export default function App() {
                     />
                   )}
 
-                  {/* Encoded Location Box */}
+                  {/* Location Display */}
                   <div className="bg-blue-50/60 p-3 rounded-md border border-blue-100 mb-3 text-xs flex flex-col gap-1.5">
                     <div className="flex items-start gap-1.5 text-blue-900 font-semibold">
-                      <span>📍 Encoded Location:</span>
+                      <span>📍 Issue Location:</span>
                     </div>
                     <p className="text-gray-800 font-medium leading-relaxed bg-white p-2 rounded border border-blue-100">
-                      {locData ? locData.fullAddress : (coords ? `Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)}` : 'Resolving encoded location...')}
+                      {locText || (coords ? `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}` : 'Resolving...')}
                     </p>
                     {coords && (
                       <div className="flex justify-between items-center pt-1 text-[11px] font-mono text-gray-600">
@@ -681,7 +675,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ADMIN FULL REPORT DETAILS MODAL (TRIGGERED ON DOUBLE TAP) */}
+      {/* ADMIN FULL REPORT DETAILS MODAL */}
       {adminSelectedIssue && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
@@ -736,15 +730,17 @@ export default function App() {
               </p>
             </div>
 
-            {/* Exact Location Breakdown */}
+            {/* Exact Encoded Location & Address Section */}
             <div className="bg-purple-50/70 p-4 rounded-lg border border-purple-200 mb-4">
               <h4 className="text-xs font-bold uppercase text-purple-900 mb-2">Exact Encoded Location & Address</h4>
-              <p className="text-sm font-semibold text-gray-900 bg-white p-3 rounded border border-purple-100 mb-3 leading-relaxed">
-                📍 {selectedModalAddress}
-              </p>
+              <div className="bg-white p-3 rounded border border-purple-100 mb-3 leading-relaxed">
+                <p className="text-sm font-semibold text-gray-900">
+                  📍 {selectedModalAddress}
+                </p>
+              </div>
               {selectedModalCoords && (
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-gray-700 bg-white p-2.5 rounded border border-purple-100">
-                  <span>GPS Coordinates: Latitude {selectedModalCoords.lat.toFixed(6)}, Longitude {selectedModalCoords.lng.toFixed(6)}</span>
+                  <span>GPS: Latitude {selectedModalCoords.lat.toFixed(6)}, Longitude {selectedModalCoords.lng.toFixed(6)}</span>
                   <a
                     href={`https://www.google.com/maps?q=${selectedModalCoords.lat},${selectedModalCoords.lng}`}
                     target="_blank"
