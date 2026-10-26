@@ -11,9 +11,6 @@ const categoryNames = {
   4: 'Sanitation & Garbage',
 };
 
-// Default fallback coordinates (Bhadravathi, Karnataka)
-const DEFAULT_FALLBACK_LOCATION = { lat: 13.8409, lng: 75.7139 };
-
 const createCustomIcon = (categoryId, status) => {
   let color = '#3B82F6';
 
@@ -64,9 +61,9 @@ const getDeviceId = () => {
   return deviceId;
 };
 
-// Universal Location Parser with fallback guarantee
+// Strict location parser: Returns null if no authentic GPS data exists
 const parseLocation = (loc) => {
-  if (!loc) return DEFAULT_FALLBACK_LOCATION;
+  if (!loc) return null;
   if (typeof loc === 'object' && loc.lat && loc.lng) return loc;
 
   if (typeof loc === 'string') {
@@ -87,7 +84,7 @@ const parseLocation = (loc) => {
       }
     }
   }
-  return DEFAULT_FALLBACK_LOCATION;
+  return null;
 };
 
 function ChangeView({ center }) {
@@ -111,7 +108,7 @@ export default function App() {
   const [categoryId, setCategoryId] = useState('1');
   const [file, setFile] = useState(null);
   const [location, setLocation] = useState(null);
-  const [locStatus, setLocStatus] = useState('Waiting for live location...');
+  const [locStatus, setLocStatus] = useState('Acquiring live GPS location...');
   
   // Data State
   const [issues, setIssues] = useState([]);
@@ -122,7 +119,7 @@ export default function App() {
 
   // Admin Modal Detailed View State
   const [adminSelectedIssue, setAdminSelectedIssue] = useState(null);
-  const [modalAddressText, setModalAddressText] = useState('Resolving address details...');
+  const [modalAddressText, setModalAddressText] = useState('Resolving location...');
 
   const deviceId = getDeviceId();
 
@@ -141,13 +138,9 @@ export default function App() {
         (pos) => {
           const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setLocation(coords);
-          setLocStatus(`GPS Active: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
+          setLocStatus(`GPS Active: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
         },
-        (err) => {
-          console.warn('GPS error:', err.message);
-          setLocation(DEFAULT_FALLBACK_LOCATION);
-          setLocStatus('Using default location (Bhadravathi).');
-        },
+        (err) => setLocStatus(`GPS Error: ${err.message}`),
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
       
@@ -155,8 +148,6 @@ export default function App() {
         navigator.geolocation.clearWatch(watchId);
         supabase.removeChannel(channel);
       };
-    } else {
-      setLocation(DEFAULT_FALLBACK_LOCATION);
     }
 
     return () => supabase.removeChannel(channel);
@@ -195,8 +186,6 @@ export default function App() {
             } else {
               newAddresses[issue.id] = `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
             }
-          } else {
-            newAddresses[issue.id] = `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
           }
         } catch {
           newAddresses[issue.id] = `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
@@ -210,7 +199,12 @@ export default function App() {
     if (!adminSelectedIssue) return;
 
     const coords = parseLocation(adminSelectedIssue.location);
-    setModalAddressText(`Resolving address for (${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)})...`);
+    if (!coords) {
+      setModalAddressText('No location data attached to this report.');
+      return;
+    }
+
+    setModalAddressText(`Resolving address for Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)}...`);
 
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18`)
       .then((res) => res.json())
@@ -218,17 +212,17 @@ export default function App() {
         if (data && data.display_name) {
           setModalAddressText(data.display_name);
         } else {
-          setModalAddressText(`Coordinates: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+          setModalAddressText(`Lat: ${coords.lat.toFixed(6)}, Lng: ${coords.lng.toFixed(6)}`);
         }
       })
       .catch(() => {
-        setModalAddressText(`Coordinates: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+        setModalAddressText(`Lat: ${coords.lat.toFixed(6)}, Lng: ${coords.lng.toFixed(6)}`);
       });
   }, [adminSelectedIssue]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const targetLoc = location || DEFAULT_FALLBACK_LOCATION;
+    if (!location) return alert('GPS signal required to submit issue. Please enable location.');
     setLoading(true);
 
     try {
@@ -243,7 +237,8 @@ export default function App() {
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
       }
 
-      const pointLocation = `POINT(${targetLoc.lng} ${targetLoc.lat})`;
+      // Save exact live GPS coordinates from citizen device
+      const pointLocation = `POINT(${location.lng} ${location.lat})`;
 
       const { error: insertError } = await supabase.from('issues').insert([
         {
@@ -264,7 +259,7 @@ export default function App() {
       setDescription('');
       setFile(null);
       fetchIssues();
-      alert('Issue reported successfully!');
+      alert('Issue reported successfully with your exact location!');
     } catch (err) {
       alert(err.message);
     } finally {
@@ -321,7 +316,7 @@ export default function App() {
       issue.category_id,
       issue.status,
       issue.upvotes || 0,
-      `"${issue.location}"`,
+      `"${issue.location || ''}"`,
       new Date(issue.created_at).toLocaleString()
     ]);
 
@@ -363,7 +358,7 @@ export default function App() {
   const resolvedCount = issues.filter(i => i.status === 'Resolved').length;
   const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
 
-  const modalCoords = adminSelectedIssue ? parseLocation(adminSelectedIssue.location) : DEFAULT_FALLBACK_LOCATION;
+  const modalCoords = adminSelectedIssue ? parseLocation(adminSelectedIssue.location) : null;
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans">
@@ -490,7 +485,7 @@ export default function App() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !location}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-md transition disabled:bg-gray-400"
           >
             {loading ? 'Submitting...' : 'Report Issue'}
@@ -510,14 +505,14 @@ export default function App() {
         </div>
 
         <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100 flex items-center justify-center">
-          {location || DEFAULT_FALLBACK_LOCATION ? (
-            <MapContainer center={[(location || DEFAULT_FALLBACK_LOCATION).lat, (location || DEFAULT_FALLBACK_LOCATION).lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
-              <ChangeView center={[(location || DEFAULT_FALLBACK_LOCATION).lat, (location || DEFAULT_FALLBACK_LOCATION).lng]} />
+          {location ? (
+            <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+              <ChangeView center={[location.lat, location.lng]} />
               <TileLayer
                 attribution='&copy; OpenStreetMap contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <Marker position={[(location || DEFAULT_FALLBACK_LOCATION).lat, (location || DEFAULT_FALLBACK_LOCATION).lng]} icon={userIcon}>
+              <Marker position={[location.lat, location.lng]} icon={userIcon}>
                 <Popup>📍 Your Device Location</Popup>
               </Marker>
 
@@ -594,7 +589,7 @@ export default function App() {
           {filteredIssues.map((issue) => {
             const locText = addresses[issue.id];
             const coords = parseLocation(issue.location);
-            const googleMapsUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
+            const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
 
             return (
               <div
@@ -633,27 +628,31 @@ export default function App() {
                     />
                   )}
 
-                  {/* Location Box */}
-                  <div className="bg-blue-50/60 p-3 rounded-md border border-blue-100 mb-3 text-xs flex flex-col gap-1.5">
-                    <div className="flex items-start gap-1.5 text-blue-900 font-semibold">
-                      <span>📍 Issue Location:</span>
+                  {/* Show Location Box ONLY when authentic GPS data is present */}
+                  {coords && (
+                    <div className="bg-blue-50/60 p-3 rounded-md border border-blue-100 mb-3 text-xs flex flex-col gap-1.5">
+                      <div className="flex items-start gap-1.5 text-blue-900 font-semibold">
+                        <span>📍 Issue Location:</span>
+                      </div>
+                      <p className="text-gray-800 font-medium leading-relaxed bg-white p-2 rounded border border-blue-100">
+                        {locText || `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}`}
+                      </p>
+                      <div className="flex justify-between items-center pt-1 text-[11px] font-mono text-gray-600">
+                        <span>GPS: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>
+                        {googleMapsUrl && (
+                          <a
+                            href={googleMapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 font-sans font-semibold hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Open Google Maps ↗
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-gray-800 font-medium leading-relaxed bg-white p-2 rounded border border-blue-100">
-                      {locText || `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}`}
-                    </p>
-                    <div className="flex justify-between items-center pt-1 text-[11px] font-mono text-gray-600">
-                      <span>GPS: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>
-                      <a
-                        href={googleMapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 font-sans font-semibold hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        Open Google Maps ↗
-                      </a>
-                    </div>
-                  </div>
+                  )}
 
                   <div className="flex justify-between items-center py-2 border-t border-gray-100">
                     <button
@@ -778,17 +777,23 @@ export default function App() {
                   📍 {modalAddressText}
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-gray-700 bg-white p-2.5 rounded border border-purple-100">
-                <span>GPS: Latitude {modalCoords.lat.toFixed(6)}, Longitude {modalCoords.lng.toFixed(6)}</span>
-                <a
-                  href={`https://www.google.com/maps?q=${modalCoords.lat},${modalCoords.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-purple-700 hover:bg-purple-800 text-white font-sans text-xs px-3 py-1.5 rounded font-semibold whitespace-nowrap"
-                >
-                  Open Google Maps ↗
-                </a>
-              </div>
+              {modalCoords ? (
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-gray-700 bg-white p-2.5 rounded border border-purple-100">
+                  <span>GPS: Latitude {modalCoords.lat.toFixed(6)}, Longitude {modalCoords.lng.toFixed(6)}</span>
+                  <a
+                    href={`https://www.google.com/maps?q=${modalCoords.lat},${modalCoords.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-purple-700 hover:bg-purple-800 text-white font-sans text-xs px-3 py-1.5 rounded font-semibold whitespace-nowrap"
+                  >
+                    Open Google Maps ↗
+                  </a>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
+                  No GPS coordinates attached to this legacy report.
+                </p>
+              )}
             </div>
 
             {/* Metadata Summary */}
