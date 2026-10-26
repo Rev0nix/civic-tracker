@@ -61,7 +61,7 @@ const getDeviceId = () => {
   return deviceId;
 };
 
-// Strict location parser: Returns null if no authentic GPS data exists
+// Parse PostGIS POINT string, WKB string, or raw JSON object
 const parseLocation = (loc) => {
   if (!loc) return null;
   if (typeof loc === 'object' && loc.lat && loc.lng) return loc;
@@ -222,7 +222,9 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!location) return alert('GPS signal required to submit issue. Please enable location.');
+    if (!location) {
+      return alert('GPS signal is required to submit an issue. Please allow location permissions on your browser.');
+    }
     setLoading(true);
 
     try {
@@ -237,7 +239,7 @@ export default function App() {
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
       }
 
-      // Save exact live GPS coordinates from citizen device
+      // Store authentic PostGIS POINT coordinate string: POINT(longitude latitude)
       const pointLocation = `POINT(${location.lng} ${location.lat})`;
 
       const { error: insertError } = await supabase.from('issues').insert([
