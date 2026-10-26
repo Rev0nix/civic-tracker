@@ -61,7 +61,6 @@ const getDeviceId = () => {
   return deviceId;
 };
 
-// Parse PostGIS POINT string, WKB string, or raw JSON object
 const parseLocation = (loc) => {
   if (!loc) return null;
   if (typeof loc === 'object' && loc.lat && loc.lng) return loc;
@@ -123,8 +122,40 @@ export default function App() {
 
   const deviceId = getDeviceId();
 
+  const getExactGPSLocation = () => {
+    setLocStatus('Requesting GPS lock from device...');
+    if (!navigator.geolocation) {
+      setLocStatus('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setLocation(coords);
+        setLocStatus(`Live GPS Lock: Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)} (Accuracy: ${Math.round(pos.coords.accuracy)}m)`);
+      },
+      (err) => {
+        // Fallback retry with high accuracy set to false if hardware GPS times out
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setLocation(coords);
+            setLocStatus(`Network Location: Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)}`);
+          },
+          (fallbackErr) => {
+            setLocStatus(`GPS Error (${fallbackErr.code}): ${fallbackErr.message}. Enable Location in mobile settings.`);
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   useEffect(() => {
     fetchIssues();
+    getExactGPSLocation();
 
     const channel = supabase
       .channel('public:issues')
@@ -132,23 +163,6 @@ export default function App() {
         fetchIssues();
       })
       .subscribe();
-
-    if (navigator.geolocation) {
-      const watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setLocation(coords);
-          setLocStatus(`GPS Active: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
-        },
-        (err) => setLocStatus(`GPS Error: ${err.message}`),
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-      );
-      
-      return () => {
-        navigator.geolocation.clearWatch(watchId);
-        supabase.removeChannel(channel);
-      };
-    }
 
     return () => supabase.removeChannel(channel);
   }, [isAdmin]);
@@ -223,7 +237,7 @@ export default function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!location) {
-      return alert('GPS signal is required to submit an issue. Please allow location permissions on your browser.');
+      return alert('GPS signal is required. Please tap "Refresh GPS Location" and grant permission.');
     }
     setLoading(true);
 
@@ -239,7 +253,7 @@ export default function App() {
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
       }
 
-      // Store authentic PostGIS POINT coordinate string: POINT(longitude latitude)
+      // Store authentic PostGIS POINT string: POINT(longitude latitude)
       const pointLocation = `POINT(${location.lng} ${location.lat})`;
 
       const { error: insertError } = await supabase.from('issues').insert([
@@ -460,8 +474,17 @@ export default function App() {
             <option value="4">Sanitation & Garbage</option>
           </select>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-gray-700">Live Device Coordinates</label>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-semibold text-gray-700">Live Device Coordinates</label>
+              <button
+                type="button"
+                onClick={getExactGPSLocation}
+                className="text-xs text-blue-600 font-bold hover:underline bg-blue-50 px-2 py-1 rounded border border-blue-200"
+              >
+                🔄 Refresh GPS Location
+              </button>
+            </div>
             <input
               type="text"
               readOnly
@@ -630,7 +653,6 @@ export default function App() {
                     />
                   )}
 
-                  {/* Show Location Box ONLY when authentic GPS data is present */}
                   {coords && (
                     <div className="bg-blue-50/60 p-3 rounded-md border border-blue-100 mb-3 text-xs flex flex-col gap-1.5">
                       <div className="flex items-start gap-1.5 text-blue-900 font-semibold">
