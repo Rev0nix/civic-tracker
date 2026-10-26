@@ -14,12 +14,12 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Dynamic map view updater
+// Dynamic map view controller
 function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
     if (center) {
-      map.setView(center, 14);
+      map.setView(center, 15);
       map.invalidateSize();
     }
   }, [center, map]);
@@ -31,55 +31,39 @@ export default function App() {
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('1');
   const [file, setFile] = useState(null);
-  
-  // Default coordinates (Bhadravathi) if browser Wi-Fi triangulation fails
-  const [location, setLocation] = useState({ lat: 13.8412, lng: 75.7022 });
-  const [locationInput, setLocationInput] = useState('Bhadravathi, Karnataka');
+  const [location, setLocation] = useState(null);
+  const [locStatus, setLocStatus] = useState('Waiting for live device location...');
   const [issues, setIssues] = useState([]);
   const [filterCategory, setFilterCategory] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [locStatus, setLocStatus] = useState('Ready (Type location or drag pin)');
-
-  // Reverse Geocoding to translate map coordinates to address text
-  const updateAddressFromCoords = async (lat, lng) => {
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-      const data = await res.json();
-      if (data && data.display_name) {
-        setLocationInput(data.display_name);
-      } else {
-        setLocationInput(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      }
-    } catch {
-      setLocationInput(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-    }
-  };
-
-  // Hardware GPS Trigger for mobile devices
-  const requestDeviceGPS = () => {
-    setLocStatus('Querying hardware GPS...');
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setLocation(coords);
-        updateAddressFromCoords(coords.lat, coords.lng);
-        setLocStatus(`GPS Locked: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
-      },
-      (err) => {
-        setLocStatus('Desktop Wi-Fi location inaccurate. Type location below or drag the pin.');
-        alert('Hardware GPS unavailable or permission denied. Please type your location in the field or drag the map pin.');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
 
   useEffect(() => {
     fetchIssues();
+
+    if (!navigator.geolocation) {
+      setLocStatus('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    // Continuous real-time device tracking using watchPosition
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setLocation(coords);
+        setLocStatus(`Live GPS Active: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
+      },
+      (err) => {
+        console.warn('Geolocation error:', err.message);
+        setLocStatus(`Location Error: ${err.message}. Please enable Location/GPS access.`);
+      },
+      {
+        enableHighAccuracy: true, // Forces hardware GPS sensor where available
+        timeout: 20000,
+        maximumAge: 0,
+      }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   const fetchIssues = async () => {
@@ -88,26 +72,6 @@ export default function App() {
       .select('*')
       .order('created_at', { ascending: false });
     if (!error) setIssues(data);
-  };
-
-  // Handle manual location text search from the form field
-  const handleLocationSearch = async () => {
-    if (!locationInput.trim()) return;
-    setLocStatus('Searching area...');
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationInput)}`);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        const newCoords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-        setLocation(newCoords);
-        setLocationInput(data[0].display_name);
-        setLocStatus(`Location updated: ${data[0].display_name}`);
-      } else {
-        alert('Area not found. Try entering a nearby landmark or city name.');
-      }
-    } catch (err) {
-      alert('Error searching for location.');
-    }
   };
 
   const parsePoint = (pointStr) => {
@@ -119,7 +83,7 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!location) return alert('Please set an issue location before submitting.');
+    if (!location) return alert('Live location signal required to submit an issue.');
     setLoading(true);
 
     try {
@@ -152,7 +116,7 @@ export default function App() {
       setDescription('');
       setFile(null);
       fetchIssues();
-      alert('Civic issue submitted successfully!');
+      alert('Civic issue submitted successfully with your live location!');
     } catch (err) {
       alert(err.message);
     } finally {
@@ -192,34 +156,16 @@ export default function App() {
           <option value="4">Sanitation & Garbage</option>
         </select>
 
-        {/* Editable Location Input Slot */}
+        {/* Live GPS Coordinates Slot */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-semibold text-gray-700">Issue Location</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={locationInput}
-              onChange={(e) => setLocationInput(e.target.value)}
-              placeholder="Enter street, area, or city (e.g. Bhadravathi)"
-              className="p-3 border rounded-md w-full bg-white text-gray-800"
-              required
-            />
-            <button
-              type="button"
-              onClick={handleLocationSearch}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 rounded whitespace-nowrap"
-            >
-              Set Location
-            </button>
-            <button
-              type="button"
-              onClick={requestDeviceGPS}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold px-3 rounded whitespace-nowrap"
-            >
-              📍 Mobile GPS
-            </button>
-          </div>
-          <span className="text-xs text-gray-500">Type your location, click 'Set Location', or drag the pin on the map below.</span>
+          <label className="text-sm font-semibold text-gray-700">Live Device Coordinates</label>
+          <input
+            type="text"
+            readOnly
+            value={location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'Acquiring GPS signal...'}
+            className="p-3 border rounded-md w-full bg-gray-100 text-gray-800 font-mono text-sm"
+          />
+          <span className="text-xs text-blue-600 font-medium">{locStatus}</span>
         </div>
 
         <textarea
@@ -238,62 +184,52 @@ export default function App() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !location}
           className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-md transition disabled:bg-gray-400"
         >
           {loading ? 'Submitting...' : 'Report Issue'}
         </button>
       </form>
 
-      {/* Map Section */}
+      {/* Interactive Map Header */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-2 text-gray-800">Interactive Issue Map</h2>
-        <p className="text-xs text-blue-600 font-medium mb-3">{locStatus}</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-3">Interactive Issue Map</h2>
 
-        <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100">
-          <MapContainer center={[location.lat, location.lng]} zoom={14} style={{ height: '100%', width: '100%' }}>
-            <ChangeView center={[location.lat, location.lng]} />
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            
-            {/* Draggable Active Issue Pin */}
-            <Marker
-              position={[location.lat, location.lng]}
-              draggable={true}
-              eventHandlers={{
-                dragend: (e) => {
-                  const pos = e.target.getLatLng();
-                  const newCoords = { lat: pos.lat, lng: pos.lng };
-                  setLocation(newCoords);
-                  updateAddressFromCoords(pos.lat, pos.lng);
-                  setLocStatus(`Pin dragged to: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`);
-                },
-              }}
-            >
-              <Popup>📍 Drag this pin to adjust exact location</Popup>
-            </Marker>
+        <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100 flex items-center justify-center">
+          {location ? (
+            <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+              <ChangeView center={[location.lat, location.lng]} />
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {/* User Live Location Marker */}
+              <Marker position={[location.lat, location.lng]}>
+                <Popup>📍 Your Live Device Location</Popup>
+              </Marker>
 
-            {/* Existing Submitted Issues */}
-            {filteredIssues.map((issue) => {
-              const coords = parsePoint(issue.location);
-              if (!coords) return null;
-              return (
-                <Marker key={issue.id} position={[coords.lat, coords.lng]}>
-                  <Popup>
-                    <strong>{issue.title}</strong>
-                    <p>{issue.description}</p>
-                    <span className="text-xs text-gray-500">Status: {issue.status}</span>
-                  </Popup>
-                </Marker>
-              );
-            })}
-          </MapContainer>
+              {/* Reported Issues Markers */}
+              {filteredIssues.map((issue) => {
+                const coords = parsePoint(issue.location);
+                if (!coords) return null;
+                return (
+                  <Marker key={issue.id} position={[coords.lat, coords.lng]}>
+                    <Popup>
+                      <strong>{issue.title}</strong>
+                      <p>{issue.description}</p>
+                      <span className="text-xs text-gray-500">Status: {issue.status}</span>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          ) : (
+            <p className="text-gray-500 font-medium">Acquiring live device GPS position...</p>
+          )}
         </div>
       </div>
 
-      {/* Reported Issues Section */}
+      {/* Issues Listing */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-gray-800">Reported Civic Issues</h2>
         <select
