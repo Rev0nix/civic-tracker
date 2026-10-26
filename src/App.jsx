@@ -138,7 +138,6 @@ export default function App() {
     }
   };
 
-  // Upvote Feature Function
   const handleUpvote = async (id, currentUpvotes) => {
     const { error } = await supabase
       .from('issues')
@@ -175,6 +174,32 @@ export default function App() {
     }
   };
 
+  // CSV Export Utility for Admins
+  const exportToCSV = () => {
+    if (filteredIssues.length === 0) return alert('No issues available to export.');
+
+    const headers = ['ID', 'Title', 'Description', 'Category ID', 'Status', 'Upvotes', 'Location', 'Created At'];
+    const rows = filteredIssues.map(issue => [
+      issue.id,
+      `"${issue.title.replace(/"/g, '""')}"`,
+      `"${(issue.description || '').replace(/"/g, '""')}"`,
+      issue.category_id,
+      issue.status,
+      issue.upvotes || 0,
+      `"${issue.location}"`,
+      new Date(issue.created_at).toLocaleString()
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `civic_issues_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleAdminLogin = (e) => {
     e.preventDefault();
     if (adminPass === 'admin123') {
@@ -205,6 +230,12 @@ export default function App() {
         <div>
           {isAdmin ? (
             <div className="flex items-center gap-3">
+              <button
+                onClick={exportToCSV}
+                className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded"
+              >
+                📥 Export CSV
+              </button>
               <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">
                 🛡️ Admin View Active
               </span>
@@ -362,7 +393,7 @@ export default function App() {
       {/* Issues Grid */}
       {filteredIssues.length === 0 ? (
         <div className="p-8 border rounded-lg bg-gray-50 text-center text-gray-500">
-          No reports found for this device yet.
+          No reports found for this view.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -391,7 +422,6 @@ export default function App() {
                   />
                 )}
 
-                {/* Upvote Control */}
                 <div className="flex justify-between items-center py-2 border-t border-gray-100">
                   <button
                     onClick={() => handleUpvote(issue.id, issue.upvotes)}
@@ -401,7 +431,6 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Admin Controls */}
                 {isAdmin && (
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 mt-2">
                     <div className="flex items-center gap-2">
