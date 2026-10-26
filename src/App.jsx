@@ -58,7 +58,7 @@ function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
     if (center) {
-      map.setView(center, 15);
+      map.setView(center, 16);
       map.invalidateSize();
     }
   }, [center, map]);
@@ -79,6 +79,7 @@ export default function App() {
   
   // Data State
   const [issues, setIssues] = useState([]);
+  const [addresses, setAddresses] = useState({});
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
@@ -126,7 +127,10 @@ export default function App() {
     }
 
     const { data, error } = await query;
-    if (!error) setIssues(data);
+    if (!error && data) {
+      setIssues(data);
+      resolveAddresses(data);
+    }
   };
 
   const parsePoint = (pointStr) => {
@@ -134,6 +138,28 @@ export default function App() {
     const match = pointStr.match(/POINT\(([^ ]+) ([^ ]+)\)/);
     if (!match) return null;
     return { lng: parseFloat(match[1]), lat: parseFloat(match[2]) };
+  };
+
+  // Resolve Human-Readable Addresses for each report card
+  const resolveAddresses = async (issueList) => {
+    const newAddresses = {};
+    for (const issue of issueList) {
+      const coords = parsePoint(issue.location);
+      if (coords && !addresses[issue.id]) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`);
+          const data = await res.json();
+          if (data && data.display_name) {
+            newAddresses[issue.id] = data.display_name.split(',').slice(0, 3).join(',');
+          } else {
+            newAddresses[issue.id] = `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
+          }
+        } catch {
+          newAddresses[issue.id] = `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
+        }
+      }
+    }
+    setAddresses((prev) => ({ ...prev, ...newAddresses }));
   };
 
   const handleSubmit = async (e) => {
@@ -254,7 +280,7 @@ export default function App() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans">
-      {/* Top Header Bar */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Civic Issue Tracker</h1>
@@ -432,7 +458,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* List & Filters */}
+      {/* List Header & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <h2 className="text-2xl font-bold text-gray-800">
           {isAdmin ? 'Manage All Civic Reports' : 'My Device Reports'}
@@ -474,6 +500,7 @@ export default function App() {
           {filteredIssues.map((issue) => {
             const coords = parsePoint(issue.location);
             const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
+            const addressText = addresses[issue.id] || (coords ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 'Resolving address...');
 
             return (
               <div key={issue.id} className="p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between">
@@ -500,22 +527,32 @@ export default function App() {
                     />
                   )}
 
-                  {/* READABLE LOCATION DETAILS FOR ADMIN / CITIZENS */}
+                  {/* READABLE LOCATION BOX WITH GOOGLE MAPS & MAP CENTERING */}
                   {coords && (
-                    <div className="bg-gray-50 p-2.5 rounded border border-gray-200 mb-3 text-xs flex justify-between items-center">
-                      <span className="font-mono text-gray-700">
-                        📍 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-                      </span>
-                      {googleMapsUrl && (
-                        <a
-                          href={googleMapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                    <div className="bg-gray-50 p-2.5 rounded border border-gray-200 mb-3 text-xs flex flex-col gap-1.5">
+                      <div className="flex items-start gap-1 text-gray-700 font-medium">
+                        <span>📍 Location:</span>
+                        <span>{addressText}</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-gray-200">
+                        <button
+                          type="button"
+                          onClick={() => setLocation({ lat: coords.lat, lng: coords.lng })}
                           className="text-blue-600 hover:underline font-semibold"
                         >
-                          Open in Google Maps ↗
-                        </a>
-                      )}
+                          Show on Map Above 🎯
+                        </button>
+                        {googleMapsUrl && (
+                          <a
+                            href={googleMapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-600 hover:text-black hover:underline"
+                          >
+                            Open Google Maps ↗
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )}
 
