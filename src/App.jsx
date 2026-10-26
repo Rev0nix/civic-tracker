@@ -14,6 +14,16 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// Helper function to get or generate a unique Device ID
+const getDeviceId = () => {
+  let deviceId = localStorage.getItem('civic_tracker_device_id');
+  if (!deviceId) {
+    deviceId = 'device_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    localStorage.setItem('civic_tracker_device_id', deviceId);
+  }
+  return deviceId;
+};
+
 function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -43,6 +53,8 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
 
+  const deviceId = getDeviceId();
+
   useEffect(() => {
     fetchIssues();
 
@@ -58,13 +70,20 @@ export default function App() {
       );
       return () => navigator.geolocation.clearWatch(watchId);
     }
-  }, []);
+  }, [isAdmin]); // Re-fetch when switching between Admin and Device view
 
   const fetchIssues = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('issues')
       .select('*')
       .order('created_at', { ascending: false });
+
+    // Citizens only see issues created by their device; Admins see all issues
+    if (!isAdmin) {
+      query = query.eq('device_id', deviceId);
+    }
+
+    const { data, error } = await query;
     if (!error) setIssues(data);
   };
 
@@ -75,7 +94,6 @@ export default function App() {
     return { lng: parseFloat(match[1]), lat: parseFloat(match[2]) };
   };
 
-  // Submit Issue (Citizen)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!location) return alert('Location signal required to submit issue.');
@@ -103,6 +121,7 @@ export default function App() {
           location: pointLocation,
           category_id: parseInt(categoryId),
           status: 'Submitted',
+          device_id: deviceId, // Store current device ID
         },
       ]);
 
@@ -120,7 +139,6 @@ export default function App() {
     }
   };
 
-  // Update Status (Admin)
   const handleStatusChange = async (id, newStatus) => {
     const { error } = await supabase
       .from('issues')
@@ -134,7 +152,6 @@ export default function App() {
     }
   };
 
-  // Delete Issue (Admin)
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this issue report?')) return;
     const { error } = await supabase.from('issues').delete().eq('id', id);
@@ -145,10 +162,9 @@ export default function App() {
     }
   };
 
-  // Toggle Admin Access
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    if (adminPass === 'admin123') { // Set your simple secret key
+    if (adminPass === 'admin123') {
       setIsAdmin(true);
       setAdminPass('');
     } else {
@@ -164,11 +180,13 @@ export default function App() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans">
-      {/* Top Header & Admin Toggle Bar */}
+      {/* Top Header Bar */}
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Civic Issue Tracker</h1>
-          <p className="text-sm text-gray-500">Public Reporting & Municipal Management Platform</p>
+          <p className="text-sm text-gray-500">
+            {isAdmin ? 'Municipal Management Portal (All Reports)' : 'My Reported Issues'}
+          </p>
         </div>
 
         <div>
@@ -181,7 +199,7 @@ export default function App() {
                 onClick={() => setIsAdmin(false)}
                 className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded font-medium"
               >
-                Switch to Citizen View
+                Switch to My Device Reports
               </button>
             </div>
           ) : (
@@ -201,7 +219,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* CITIZEN VIEW: REPORT FORM */}
+      {/* Citizen Submission Form */}
       {!isAdmin && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
           <h2 className="text-xl font-semibold text-gray-700">Report a New Issue</h2>
@@ -261,7 +279,7 @@ export default function App() {
         </form>
       )}
 
-      {/* MAP VIEW */}
+      {/* Map View */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-3">Interactive Issue Map</h2>
         <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100 flex items-center justify-center">
@@ -296,14 +314,13 @@ export default function App() {
         </div>
       </div>
 
-      {/* FILTER & ISSUE LIST SECTION */}
+      {/* List Header & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <h2 className="text-2xl font-bold text-gray-800">
-          {isAdmin ? 'Manage Civic Reports' : 'Reported Civic Issues'}
+          {isAdmin ? 'Manage All Civic Reports' : 'My Device Reports'}
         </h2>
 
         <div className="flex gap-2">
-          {/* Category Filter */}
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
@@ -316,7 +333,6 @@ export default function App() {
             <option value="4">Sanitation & Garbage</option>
           </select>
 
-          {/* Status Filter */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -330,61 +346,66 @@ export default function App() {
         </div>
       </div>
 
-      {/* CARDS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredIssues.map((issue) => (
-          <div key={issue.id} className="p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-semibold text-gray-900">{issue.title}</h3>
-                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded ${
-                  issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                  issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {issue.status}
-                </span>
-              </div>
-              <p className="text-gray-600 mb-3">{issue.description}</p>
-            </div>
-
-            <div>
-              {issue.photo_url && (
-                <img
-                  src={issue.photo_url}
-                  alt="Proof"
-                  className="w-full h-40 object-cover rounded-md mb-3"
-                />
-              )}
-
-              {/* ADMIN CONTROLS SLOT */}
-              {isAdmin && (
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs font-semibold text-gray-600">Update Status:</label>
-                    <select
-                      value={issue.status}
-                      onChange={(e) => handleStatusChange(issue.id, e.target.value)}
-                      className="p-1 border rounded text-xs bg-gray-50 text-gray-800"
-                    >
-                      <option value="Submitted">Submitted</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Resolved">Resolved</option>
-                    </select>
-                  </div>
-
-                  <button
-                    onClick={() => handleDelete(issue.id)}
-                    className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2.5 py-1 rounded font-medium"
-                  >
-                    Delete
-                  </button>
+      {/* Issues Grid */}
+      {filteredIssues.length === 0 ? (
+        <div className="p-8 border rounded-lg bg-gray-50 text-center text-gray-500">
+          No reports found for this device yet.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredIssues.map((issue) => (
+            <div key={issue.id} className="p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">{issue.title}</h3>
+                  <span className={`text-xs font-semibold px-2.5 py-0.5 rounded ${
+                    issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                    issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {issue.status}
+                  </span>
                 </div>
-              )}
+                <p className="text-gray-600 mb-3">{issue.description}</p>
+              </div>
+
+              <div>
+                {issue.photo_url && (
+                  <img
+                    src={issue.photo_url}
+                    alt="Proof"
+                    className="w-full h-40 object-cover rounded-md mb-3"
+                  />
+                )}
+
+                {isAdmin && (
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-semibold text-gray-600">Update Status:</label>
+                      <select
+                        value={issue.status}
+                        onChange={(e) => handleStatusChange(issue.id, e.target.value)}
+                        className="p-1 border rounded text-xs bg-gray-50 text-gray-800"
+                      >
+                        <option value="Submitted">Submitted</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={() => handleDelete(issue.id)}
+                      className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2.5 py-1 rounded font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
