@@ -389,7 +389,7 @@ export default function App() {
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Civic Issue Tracker</h1>
           <p className="text-sm text-gray-500">
-            {isAdmin ? 'Municipal Management Portal (All Reports)' : 'My Reported Issues'}
+            {isAdmin ? 'Municipal Management Portal (All Reports)' : ''}
           </p>
         </div>
 
