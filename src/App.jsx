@@ -383,7 +383,7 @@ export default function App() {
   const modalCoords = adminSelectedIssue ? parseLocation(adminSelectedIssue.location) : null;
 
   return (
-    <div className="max-w-5xl mx-auto p-6 font-sans">
+    <div className="max-w-5xl mx-auto p-6 font-sans relative">
       {/* Header */}
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
         <div>
@@ -524,8 +524,8 @@ export default function App() {
         </form>
       )}
 
-      {/* Main Interactive Map View (Restored at Top) */}
-      <div className="mb-8">
+      {/* Main Interactive Map View (Isolated with strict relative z-index & fixed height) */}
+      <div className="mb-8 relative z-0" style={{ isolation: 'isolate' }}>
         <h2 className="text-2xl font-bold text-gray-800 mb-1">Interactive Issue Map</h2>
         <div className="flex gap-4 text-xs font-semibold mb-3 text-gray-600">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Roads</span>
@@ -535,9 +535,9 @@ export default function App() {
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Resolved</span>
         </div>
 
-        <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100 flex items-center justify-center">
+        <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100 flex items-center justify-center relative z-0">
           {location ? (
-            <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+            <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%', zIndex: 1 }}>
               <ChangeView center={[location.lat, location.lng]} />
               <TileLayer
                 attribution='&copy; OpenStreetMap contributors'
@@ -744,14 +744,14 @@ export default function App() {
         </div>
       )}
 
-      {/* ADMIN FULL REPORT DETAILS MODAL */}
+      {/* ADMIN FULL REPORT DETAILS MODAL (High z-index to overlay cleanly above map) */}
       {adminSelectedIssue && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => setAdminSelectedIssue(null)}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 relative max-h-[90vh] overflow-y-auto border border-purple-200"
+            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 relative max-h-[90vh] overflow-y-auto border border-purple-200 z-[10000]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
