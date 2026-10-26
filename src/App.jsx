@@ -14,7 +14,6 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Dynamic map view controller
 function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -32,15 +31,30 @@ export default function App() {
   const [categoryId, setCategoryId] = useState('1');
   const [file, setFile] = useState(null);
   const [location, setLocation] = useState(null);
+  const [locationName, setLocationName] = useState('');
   const [searchCity, setSearchCity] = useState('');
-  const [locStatus, setLocStatus] = useState('Acquiring live location...');
+  const [locStatus, setLocStatus] = useState('Acquiring location...');
   const [issues, setIssues] = useState([]);
   const [filterCategory, setFilterCategory] = useState('all');
   const [loading, setLoading] = useState(false);
 
-  // Request high-accuracy device location
+  // Reverse Geocoding to get address name from coordinates
+  const fetchAddressName = async (lat, lng) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      if (data && data.display_name) {
+        setLocationName(data.display_name);
+      } else {
+        setLocationName(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      }
+    } catch {
+      setLocationName(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    }
+  };
+
   const requestDeviceLocation = () => {
-    setLocStatus('Syncing live GPS...');
+    setLocStatus('Syncing GPS...');
     if (!navigator.geolocation) {
       setLocStatus('Geolocation not supported by browser.');
       return;
@@ -50,17 +64,14 @@ export default function App() {
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setLocation(coords);
+        fetchAddressName(coords.lat, coords.lng);
         setLocStatus(`GPS Active: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
       },
       (err) => {
         console.warn('Geolocation error:', err.message);
-        setLocStatus('Location access limited. Use search or drag the pin below.');
+        setLocStatus('Location permission denied or unavailable.');
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -81,16 +92,15 @@ export default function App() {
     e.preventDefault();
     if (!searchCity.trim()) return;
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchCity)}`
-      );
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchCity)}`);
       const data = await res.json();
       if (data && data.length > 0) {
         const newCoords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
         setLocation(newCoords);
-        setLocStatus(`Location Set: ${data[0].display_name}`);
+        setLocationName(data[0].display_name);
+        setLocStatus(`Set: ${data[0].display_name}`);
       } else {
-        alert('City/Area not found. Please try a different location name.');
+        alert('Location not found. Try entering e.g., "Bhadravathi"');
       }
     } catch (err) {
       alert('Error searching for location.');
@@ -179,6 +189,27 @@ export default function App() {
           <option value="4">Sanitation & Garbage</option>
         </select>
 
+        {/* Dedicated Location Field Slot */}
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-semibold text-gray-700">Issue Location Slot</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              readOnly
+              value={locationName || (location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'No location selected')}
+              className="p-3 border rounded-md w-full bg-gray-100 text-gray-700 font-medium"
+            />
+            <button
+              type="button"
+              onClick={requestDeviceLocation}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold px-4 rounded whitespace-nowrap"
+            >
+              📍 Use GPS
+            </button>
+          </div>
+          <span className="text-xs text-gray-500">Tip: You can also search below or drag the map pin to update this slot.</span>
+        </div>
+
         <textarea
           placeholder="Detailed Description"
           value={description}
@@ -207,27 +238,18 @@ export default function App() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
           <h2 className="text-2xl font-bold text-gray-800">Interactive Issue Map</h2>
           
-          <div className="flex gap-2 w-full md:w-auto">
-            <form onSubmit={handleCitySearch} className="flex gap-1 flex-1">
-              <input
-                type="text"
-                placeholder="Search location (e.g. 577301 or City Name)"
-                value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
-                className="p-1 px-2 border rounded text-sm bg-white text-gray-800 w-full"
-              />
-              <button type="submit" className="bg-blue-600 text-white text-xs px-3 py-1 rounded font-medium">
-                Search
-              </button>
-            </form>
-            <button
-              type="button"
-              onClick={requestDeviceLocation}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold py-1 px-2 rounded whitespace-nowrap"
-            >
-              📍 GPS Auto
+          <form onSubmit={handleCitySearch} className="flex gap-1 w-full md:w-auto">
+            <input
+              type="text"
+              placeholder="Search city/area (e.g. Bhadravathi)"
+              value={searchCity}
+              onChange={(e) => setSearchCity(e.target.value)}
+              className="p-1 px-2 border rounded text-sm bg-white text-gray-800 w-full"
+            />
+            <button type="submit" className="bg-blue-600 text-white text-xs px-3 py-1 rounded font-medium">
+              Search
             </button>
-          </div>
+          </form>
         </div>
         <p className="text-xs text-blue-600 font-medium mb-3">{locStatus}</p>
 
@@ -239,14 +261,15 @@ export default function App() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              {/* Draggable Pin for User's Active Position */}
               <Marker
                 position={[location.lat, location.lng]}
                 draggable={true}
                 eventHandlers={{
                   dragend: (e) => {
                     const pos = e.target.getLatLng();
-                    setLocation({ lat: pos.lat, lng: pos.lng });
+                    const newCoords = { lat: pos.lat, lng: pos.lng };
+                    setLocation(newCoords);
+                    fetchAddressName(pos.lat, pos.lng);
                     setLocStatus(`Pin position set: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`);
                   },
                 }}
@@ -254,7 +277,6 @@ export default function App() {
                 <Popup>📍 Drag this pin to fine-tune exact issue location</Popup>
               </Marker>
 
-              {/* Existing Reported Issues Markers */}
               {filteredIssues.map((issue) => {
                 const coords = parsePoint(issue.location);
                 if (!coords) return null;
