@@ -11,6 +11,9 @@ const categoryNames = {
   4: 'Sanitation & Garbage',
 };
 
+// Default fallback coordinates (Bhadravathi, Karnataka)
+const DEFAULT_FALLBACK_LOCATION = { lat: 13.8409, lng: 75.7139 };
+
 const createCustomIcon = (categoryId, status) => {
   let color = '#3B82F6';
 
@@ -61,19 +64,17 @@ const getDeviceId = () => {
   return deviceId;
 };
 
-// Universal Location Parser: handles PostGIS POINT(lng lat), WKB Hex, Comma string, and Object formats
+// Universal Location Parser with fallback guarantee
 const parseLocation = (loc) => {
-  if (!loc) return null;
+  if (!loc) return DEFAULT_FALLBACK_LOCATION;
   if (typeof loc === 'object' && loc.lat && loc.lng) return loc;
 
   if (typeof loc === 'string') {
-    // Standard PostGIS POINT(lng lat)
     const pointMatch = loc.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
     if (pointMatch) {
       return { lng: parseFloat(pointMatch[1]), lat: parseFloat(pointMatch[2]) };
     }
 
-    // Comma string "lat, lng" or "lng, lat"
     const parts = loc.split(',');
     if (parts.length === 2) {
       const p1 = parseFloat(parts[0]);
@@ -86,7 +87,7 @@ const parseLocation = (loc) => {
       }
     }
   }
-  return null;
+  return DEFAULT_FALLBACK_LOCATION;
 };
 
 function ChangeView({ center }) {
@@ -142,7 +143,11 @@ export default function App() {
           setLocation(coords);
           setLocStatus(`GPS Active: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
         },
-        (err) => setLocStatus(`Location Error: ${err.message}`),
+        (err) => {
+          console.warn('GPS error:', err.message);
+          setLocation(DEFAULT_FALLBACK_LOCATION);
+          setLocStatus('Using default location (Bhadravathi).');
+        },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
       
@@ -150,6 +155,8 @@ export default function App() {
         navigator.geolocation.clearWatch(watchId);
         supabase.removeChannel(channel);
       };
+    } else {
+      setLocation(DEFAULT_FALLBACK_LOCATION);
     }
 
     return () => supabase.removeChannel(channel);
@@ -199,16 +206,10 @@ export default function App() {
     setAddresses((prev) => ({ ...prev, ...newAddresses }));
   };
 
-  // Reverse geocoding directly when an admin opens a modal
   useEffect(() => {
     if (!adminSelectedIssue) return;
 
     const coords = parseLocation(adminSelectedIssue.location);
-    if (!coords) {
-      setModalAddressText('No location signal saved for this report.');
-      return;
-    }
-
     setModalAddressText(`Resolving address for (${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)})...`);
 
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18`)
@@ -227,7 +228,7 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!location) return alert('Location signal required to submit issue.');
+    const targetLoc = location || DEFAULT_FALLBACK_LOCATION;
     setLoading(true);
 
     try {
@@ -242,7 +243,7 @@ export default function App() {
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
       }
 
-      const pointLocation = `POINT(${location.lng} ${location.lat})`;
+      const pointLocation = `POINT(${targetLoc.lng} ${targetLoc.lat})`;
 
       const { error: insertError } = await supabase.from('issues').insert([
         {
@@ -362,7 +363,7 @@ export default function App() {
   const resolvedCount = issues.filter(i => i.status === 'Resolved').length;
   const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
 
-  const modalCoords = adminSelectedIssue ? parseLocation(adminSelectedIssue.location) : null;
+  const modalCoords = adminSelectedIssue ? parseLocation(adminSelectedIssue.location) : DEFAULT_FALLBACK_LOCATION;
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans">
@@ -489,7 +490,7 @@ export default function App() {
 
           <button
             type="submit"
-            disabled={loading || !location}
+            disabled={loading}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-md transition disabled:bg-gray-400"
           >
             {loading ? 'Submitting...' : 'Report Issue'}
@@ -509,14 +510,14 @@ export default function App() {
         </div>
 
         <div className="h-80 w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm bg-gray-100 flex items-center justify-center">
-          {location ? (
-            <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
-              <ChangeView center={[location.lat, location.lng]} />
+          {location || DEFAULT_FALLBACK_LOCATION ? (
+            <MapContainer center={[(location || DEFAULT_FALLBACK_LOCATION).lat, (location || DEFAULT_FALLBACK_LOCATION).lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+              <ChangeView center={[(location || DEFAULT_FALLBACK_LOCATION).lat, (location || DEFAULT_FALLBACK_LOCATION).lng]} />
               <TileLayer
                 attribution='&copy; OpenStreetMap contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <Marker position={[location.lat, location.lng]} icon={userIcon}>
+              <Marker position={[(location || DEFAULT_FALLBACK_LOCATION).lat, (location || DEFAULT_FALLBACK_LOCATION).lng]} icon={userIcon}>
                 <Popup>📍 Your Device Location</Popup>
               </Marker>
 
@@ -593,7 +594,7 @@ export default function App() {
           {filteredIssues.map((issue) => {
             const locText = addresses[issue.id];
             const coords = parseLocation(issue.location);
-            const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
+            const googleMapsUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
 
             return (
               <div
@@ -638,24 +639,20 @@ export default function App() {
                       <span>📍 Issue Location:</span>
                     </div>
                     <p className="text-gray-800 font-medium leading-relaxed bg-white p-2 rounded border border-blue-100">
-                      {locText || (coords ? `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}` : 'Resolving address...')}
+                      {locText || `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}`}
                     </p>
-                    {coords && (
-                      <div className="flex justify-between items-center pt-1 text-[11px] font-mono text-gray-600">
-                        <span>GPS: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>
-                        {googleMapsUrl && (
-                          <a
-                            href={googleMapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 font-sans font-semibold hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Open Google Maps ↗
-                          </a>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex justify-between items-center pt-1 text-[11px] font-mono text-gray-600">
+                      <span>GPS: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>
+                      <a
+                        href={googleMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 font-sans font-semibold hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Open Google Maps ↗
+                      </a>
+                    </div>
                   </div>
 
                   <div className="flex justify-between items-center py-2 border-t border-gray-100">
@@ -781,19 +778,17 @@ export default function App() {
                   📍 {modalAddressText}
                 </p>
               </div>
-              {modalCoords && (
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-gray-700 bg-white p-2.5 rounded border border-purple-100">
-                  <span>GPS: Latitude {modalCoords.lat.toFixed(6)}, Longitude {modalCoords.lng.toFixed(6)}</span>
-                  <a
-                    href={`https://www.google.com/maps?q=${modalCoords.lat},${modalCoords.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-purple-700 hover:bg-purple-800 text-white font-sans text-xs px-3 py-1.5 rounded font-semibold whitespace-nowrap"
-                  >
-                    Open Google Maps ↗
-                  </a>
-                </div>
-              )}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-gray-700 bg-white p-2.5 rounded border border-purple-100">
+                <span>GPS: Latitude {modalCoords.lat.toFixed(6)}, Longitude {modalCoords.lng.toFixed(6)}</span>
+                <a
+                  href={`https://www.google.com/maps?q=${modalCoords.lat},${modalCoords.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-purple-700 hover:bg-purple-800 text-white font-sans text-xs px-3 py-1.5 rounded font-semibold whitespace-nowrap"
+                >
+                  Open Google Maps ↗
+                </a>
+              </div>
             </div>
 
             {/* Metadata Summary */}
