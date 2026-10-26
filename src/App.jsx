@@ -174,7 +174,6 @@ export default function App() {
     }
   };
 
-  // CSV Export Utility for Admins
   const exportToCSV = () => {
     if (filteredIssues.length === 0) return alert('No issues available to export.');
 
@@ -215,6 +214,13 @@ export default function App() {
     const matchStatus = filterStatus === 'all' || i.status === filterStatus;
     return matchCategory && matchStatus;
   });
+
+  // Analytics Computation
+  const totalIssues = issues.length;
+  const submittedCount = issues.filter(i => i.status === 'Submitted').length;
+  const inProgressCount = issues.filter(i => i.status === 'In Progress').length;
+  const resolvedCount = issues.filter(i => i.status === 'Resolved').length;
+  const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans">
@@ -262,6 +268,32 @@ export default function App() {
           )}
         </div>
       </div>
+
+      {/* ADMIN ANALYTICS DASHBOARD CARDS */}
+      {isAdmin && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+          <div className="bg-white p-4 border rounded-lg shadow-sm text-center">
+            <span className="text-xs text-gray-500 uppercase font-semibold">Total Reports</span>
+            <p className="text-2xl font-bold text-gray-800 mt-1">{totalIssues}</p>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg shadow-sm text-center">
+            <span className="text-xs text-yellow-700 uppercase font-semibold">Submitted</span>
+            <p className="text-2xl font-bold text-yellow-800 mt-1">{submittedCount}</p>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm text-center">
+            <span className="text-xs text-blue-700 uppercase font-semibold">In Progress</span>
+            <p className="text-2xl font-bold text-blue-800 mt-1">{inProgressCount}</p>
+          </div>
+          <div className="bg-green-50 border border-green-200 p-4 rounded-lg shadow-sm text-center">
+            <span className="text-xs text-green-700 uppercase font-semibold">Resolved</span>
+            <p className="text-2xl font-bold text-green-800 mt-1">{resolvedCount}</p>
+          </div>
+          <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg shadow-sm text-center col-span-2 md:col-span-1">
+            <span className="text-xs text-purple-700 uppercase font-semibold">Total Upvotes</span>
+            <p className="text-2xl font-bold text-purple-800 mt-1">👍 {totalUpvotes}</p>
+          </div>
+        </div>
+      )}
 
       {/* Citizen Submission Form */}
       {!isAdmin && (
