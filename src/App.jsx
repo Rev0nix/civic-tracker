@@ -57,6 +57,14 @@ export default function App() {
   useEffect(() => {
     fetchIssues();
 
+    // Supabase Realtime Subscription setup
+    const channel = supabase
+      .channel('public:issues')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, () => {
+        fetchIssues(); // Refresh list immediately whenever database changes
+      })
+      .subscribe();
+
     if (navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
         (pos) => {
@@ -67,8 +75,14 @@ export default function App() {
         (err) => setLocStatus(`Location Error: ${err.message}`),
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
-      return () => navigator.geolocation.clearWatch(watchId);
+      
+      return () => {
+        navigator.geolocation.clearWatch(watchId);
+        supabase.removeChannel(channel);
+      };
     }
+
+    return () => supabase.removeChannel(channel);
   }, [isAdmin]);
 
   const fetchIssues = async () => {
@@ -129,7 +143,6 @@ export default function App() {
       setTitle('');
       setDescription('');
       setFile(null);
-      fetchIssues();
       alert('Issue reported successfully!');
     } catch (err) {
       alert(err.message);
@@ -144,11 +157,7 @@ export default function App() {
       .update({ upvotes: (currentUpvotes || 0) + 1 })
       .eq('id', id);
 
-    if (error) {
-      alert('Could not upvote: ' + error.message);
-    } else {
-      fetchIssues();
-    }
+    if (error) alert('Could not upvote: ' + error.message);
   };
 
   const handleStatusChange = async (id, newStatus) => {
@@ -157,21 +166,13 @@ export default function App() {
       .update({ status: newStatus })
       .eq('id', id);
 
-    if (error) {
-      alert('Failed to update status: ' + error.message);
-    } else {
-      fetchIssues();
-    }
+    if (error) alert('Failed to update status: ' + error.message);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this issue report?')) return;
     const { error } = await supabase.from('issues').delete().eq('id', id);
-    if (error) {
-      alert('Failed to delete issue: ' + error.message);
-    } else {
-      fetchIssues();
-    }
+    if (error) alert('Failed to delete issue: ' + error.message);
   };
 
   const exportToCSV = () => {
@@ -215,7 +216,6 @@ export default function App() {
     return matchCategory && matchStatus;
   });
 
-  // Analytics Computation
   const totalIssues = issues.length;
   const submittedCount = issues.filter(i => i.status === 'Submitted').length;
   const inProgressCount = issues.filter(i => i.status === 'In Progress').length;
@@ -269,7 +269,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* ADMIN ANALYTICS DASHBOARD CARDS */}
+      {/* Admin Analytics Cards */}
       {isAdmin && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
           <div className="bg-white p-4 border rounded-lg shadow-sm text-center">
@@ -295,7 +295,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Citizen Submission Form */}
+      {/* Form */}
       {!isAdmin && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
           <h2 className="text-xl font-semibold text-gray-700">Report a New Issue</h2>
