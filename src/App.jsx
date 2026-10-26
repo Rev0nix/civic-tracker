@@ -61,16 +61,26 @@ const getDeviceId = () => {
   return deviceId;
 };
 
+// Universal Location Parser (Handles Supabase GeoJSON, PostGIS POINT, Comma strings, and LatLng objects)
 const parseLocation = (loc) => {
   if (!loc) return null;
-  if (typeof loc === 'object' && loc.lat && loc.lng) return loc;
+
+  // Supabase GeoJSON object: { type: "Point", coordinates: [lng, lat] }
+  if (typeof loc === 'object') {
+    if (loc.coordinates && Array.isArray(loc.coordinates) && loc.coordinates.length >= 2) {
+      return { lng: parseFloat(loc.coordinates[0]), lat: parseFloat(loc.coordinates[1]) };
+    }
+    if (loc.lat && loc.lng) return { lat: parseFloat(loc.lat), lng: parseFloat(loc.lng) };
+  }
 
   if (typeof loc === 'string') {
+    // PostGIS POINT(lng lat)
     const pointMatch = loc.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
     if (pointMatch) {
       return { lng: parseFloat(pointMatch[1]), lat: parseFloat(pointMatch[2]) };
     }
 
+    // Comma string "lat, lng" or "lng, lat"
     const parts = loc.split(',');
     if (parts.length === 2) {
       const p1 = parseFloat(parts[0]);
@@ -123,7 +133,7 @@ export default function App() {
   const deviceId = getDeviceId();
 
   const getExactGPSLocation = () => {
-    setLocStatus('Requesting GPS lock from device...');
+    setLocStatus('Requesting GPS lock from mobile device...');
     if (!navigator.geolocation) {
       setLocStatus('Geolocation is not supported by your browser.');
       return;
@@ -133,18 +143,17 @@ export default function App() {
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setLocation(coords);
-        setLocStatus(`Live GPS Lock: Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)} (Accuracy: ${Math.round(pos.coords.accuracy)}m)`);
+        setLocStatus(`GPS Locked: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)} (${Math.round(pos.coords.accuracy)}m accuracy)`);
       },
       (err) => {
-        // Fallback retry with high accuracy set to false if hardware GPS times out
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             setLocation(coords);
-            setLocStatus(`Network Location: Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)}`);
+            setLocStatus(`Network Location: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
           },
           (fallbackErr) => {
-            setLocStatus(`GPS Error (${fallbackErr.code}): ${fallbackErr.message}. Enable Location in mobile settings.`);
+            setLocStatus(`GPS Error (${fallbackErr.code}): Please turn ON device location.`);
           },
           { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
         );
@@ -236,12 +245,10 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Strict GPS check: Prevents submitting if location signal hasn't locked in
     if (!location) {
-      return alert('GPS coordinates are required to submit a report. Please enable location permissions or tap "Refresh GPS Location".');
+      alert('GPS location is required. Please tap "Refresh GPS Location" and grant location permission.');
+      return;
     }
-
     setLoading(true);
 
     try {
@@ -256,7 +263,7 @@ export default function App() {
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
       }
 
-      // Format live GPS into PostGIS POINT format: POINT(longitude latitude)
+      // Format live GPS into standard PostGIS POINT string
       const pointLocation = `POINT(${location.lng} ${location.lat})`;
 
       const { error: insertError } = await supabase.from('issues').insert([
@@ -335,7 +342,7 @@ export default function App() {
       issue.category_id,
       issue.status,
       issue.upvotes || 0,
-      `"${issue.location || ''}"`,
+      `"${JSON.stringify(issue.location || '')}"`,
       new Date(issue.created_at).toLocaleString()
     ]);
 
@@ -483,7 +490,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={getExactGPSLocation}
-                className="text-xs text-blue-600 font-bold hover:underline bg-blue-50 px-2 py-1 rounded border border-blue-200"
+                className="text-xs text-blue-600 font-bold hover:underline bg-blue-50 px-2.5 py-1 rounded border border-blue-200"
               >
                 🔄 Refresh GPS Location
               </button>
@@ -818,7 +825,7 @@ export default function App() {
                 </div>
               ) : (
                 <p className="text-xs text-gray-500 bg-white p-2 rounded border border-gray-200">
-                  No GPS coordinates attached to this legacy report.
+                  No GPS coordinates attached to this report.
                 </p>
               )}
             </div>
