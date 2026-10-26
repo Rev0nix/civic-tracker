@@ -236,9 +236,12 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Strict GPS check: Prevents submitting if location signal hasn't locked in
     if (!location) {
-      return alert('GPS signal is required. Please tap "Refresh GPS Location" and grant permission.');
+      return alert('GPS coordinates are required to submit a report. Please enable location permissions or tap "Refresh GPS Location".');
     }
+
     setLoading(true);
 
     try {
@@ -253,7 +256,7 @@ export default function App() {
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
       }
 
-      // Store authentic PostGIS POINT string: POINT(longitude latitude)
+      // Format live GPS into PostGIS POINT format: POINT(longitude latitude)
       const pointLocation = `POINT(${location.lng} ${location.lat})`;
 
       const { error: insertError } = await supabase.from('issues').insert([
