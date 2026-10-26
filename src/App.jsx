@@ -61,6 +61,29 @@ const getDeviceId = () => {
   return deviceId;
 };
 
+// Robust Location Parser to handle POINT(lng lat), comma strings, or lat/lng objects
+const parseLocation = (loc) => {
+  if (!loc) return null;
+  if (typeof loc === 'object' && loc.lat && loc.lng) return loc;
+  
+  if (typeof loc === 'string') {
+    // PostGIS POINT(lng lat)
+    const pointMatch = loc.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+    if (pointMatch) {
+      return { lng: parseFloat(pointMatch[1]), lat: parseFloat(pointMatch[2]) };
+    }
+    
+    // Standard Comma "lat, lng"
+    const commaMatch = loc.split(',');
+    if (commaMatch.length === 2) {
+      const lat = parseFloat(commaMatch[0]);
+      const lng = parseFloat(commaMatch[1]);
+      if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+    }
+  }
+  return null;
+};
+
 function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -143,18 +166,10 @@ export default function App() {
     }
   };
 
-  const parsePoint = (pointStr) => {
-    if (!pointStr) return null;
-    const match = pointStr.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-    if (!match) return null;
-    return { lng: parseFloat(match[1]), lat: parseFloat(match[2]) };
-  };
-
-  // Safe reverse-geocoding with fallback to lat/lng string
   const resolveAddresses = async (issueList) => {
     const newAddresses = {};
     for (const issue of issueList) {
-      const coords = parsePoint(issue.location);
+      const coords = parseLocation(issue.location);
       if (coords && !addresses[issue.id]) {
         try {
           const res = await fetch(
@@ -165,13 +180,13 @@ export default function App() {
             if (data && data.display_name) {
               newAddresses[issue.id] = data.display_name;
             } else {
-              newAddresses[issue.id] = `Latitude: ${coords.lat.toFixed(6)}, Longitude: ${coords.lng.toFixed(6)}`;
+              newAddresses[issue.id] = `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
             }
           } else {
-            newAddresses[issue.id] = `Latitude: ${coords.lat.toFixed(6)}, Longitude: ${coords.lng.toFixed(6)}`;
+            newAddresses[issue.id] = `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
           }
         } catch {
-          newAddresses[issue.id] = `Latitude: ${coords.lat.toFixed(6)}, Longitude: ${coords.lng.toFixed(6)}`;
+          newAddresses[issue.id] = `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
         }
       }
     }
@@ -315,10 +330,10 @@ export default function App() {
   const resolvedCount = issues.filter(i => i.status === 'Resolved').length;
   const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
 
-  // Dynamic modal location calculation with immediate coordinate resolution
-  const selectedModalCoords = adminSelectedIssue ? parsePoint(adminSelectedIssue.location) : null;
-  const selectedModalAddress = adminSelectedIssue
-    ? (addresses[adminSelectedIssue.id] || (selectedModalCoords ? `Coordinates: ${selectedModalCoords.lat.toFixed(6)}, ${selectedModalCoords.lng.toFixed(6)}` : 'Location unavailable'))
+  // Dynamic Location Calculation for Admin Modal
+  const modalCoords = adminSelectedIssue ? parseLocation(adminSelectedIssue.location) : null;
+  const modalAddress = adminSelectedIssue
+    ? (addresses[adminSelectedIssue.id] || (modalCoords ? `GPS Coordinates: ${modalCoords.lat.toFixed(6)}, ${modalCoords.lng.toFixed(6)}` : 'Location data not attached to report'))
     : '';
 
   return (
@@ -478,7 +493,7 @@ export default function App() {
               </Marker>
 
               {filteredIssues.map((issue) => {
-                const coords = parsePoint(issue.location);
+                const coords = parseLocation(issue.location);
                 if (!coords) return null;
                 return (
                   <Marker
@@ -549,7 +564,7 @@ export default function App() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredIssues.map((issue) => {
             const locText = addresses[issue.id];
-            const coords = parsePoint(issue.location);
+            const coords = parseLocation(issue.location);
             const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
 
             return (
@@ -589,13 +604,13 @@ export default function App() {
                     />
                   )}
 
-                  {/* Location Display */}
+                  {/* Location Card Slot */}
                   <div className="bg-blue-50/60 p-3 rounded-md border border-blue-100 mb-3 text-xs flex flex-col gap-1.5">
                     <div className="flex items-start gap-1.5 text-blue-900 font-semibold">
                       <span>📍 Issue Location:</span>
                     </div>
                     <p className="text-gray-800 font-medium leading-relaxed bg-white p-2 rounded border border-blue-100">
-                      {locText || (coords ? `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}` : 'Resolving...')}
+                      {locText || (coords ? `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}` : 'Location not available')}
                     </p>
                     {coords && (
                       <div className="flex justify-between items-center pt-1 text-[11px] font-mono text-gray-600">
@@ -735,14 +750,14 @@ export default function App() {
               <h4 className="text-xs font-bold uppercase text-purple-900 mb-2">Exact Encoded Location & Address</h4>
               <div className="bg-white p-3 rounded border border-purple-100 mb-3 leading-relaxed">
                 <p className="text-sm font-semibold text-gray-900">
-                  📍 {selectedModalAddress}
+                  📍 {modalAddress}
                 </p>
               </div>
-              {selectedModalCoords && (
+              {modalCoords ? (
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-gray-700 bg-white p-2.5 rounded border border-purple-100">
-                  <span>GPS: Latitude {selectedModalCoords.lat.toFixed(6)}, Longitude {selectedModalCoords.lng.toFixed(6)}</span>
+                  <span>GPS: Latitude {modalCoords.lat.toFixed(6)}, Longitude {modalCoords.lng.toFixed(6)}</span>
                   <a
-                    href={`https://www.google.com/maps?q=${selectedModalCoords.lat},${selectedModalCoords.lng}`}
+                    href={`https://www.google.com/maps?q=${modalCoords.lat},${modalCoords.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="bg-purple-700 hover:bg-purple-800 text-white font-sans text-xs px-3 py-1.5 rounded font-semibold whitespace-nowrap"
@@ -750,6 +765,10 @@ export default function App() {
                     Open Google Maps ↗
                   </a>
                 </div>
+              ) : (
+                <p className="text-xs text-red-500 bg-white p-2 rounded border border-red-200">
+                  ⚠️ No GPS coordinates were saved for this specific report entry.
+                </p>
               )}
             </div>
 
