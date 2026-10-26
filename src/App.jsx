@@ -61,24 +61,29 @@ const getDeviceId = () => {
   return deviceId;
 };
 
-// Robust Location Parser to handle POINT(lng lat), comma strings, or lat/lng objects
+// Universal Location Parser: handles PostGIS POINT(lng lat), WKB Hex, Comma string, and Object formats
 const parseLocation = (loc) => {
   if (!loc) return null;
   if (typeof loc === 'object' && loc.lat && loc.lng) return loc;
-  
+
   if (typeof loc === 'string') {
-    // PostGIS POINT(lng lat)
+    // Standard PostGIS POINT(lng lat)
     const pointMatch = loc.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
     if (pointMatch) {
       return { lng: parseFloat(pointMatch[1]), lat: parseFloat(pointMatch[2]) };
     }
-    
-    // Standard Comma "lat, lng"
-    const commaMatch = loc.split(',');
-    if (commaMatch.length === 2) {
-      const lat = parseFloat(commaMatch[0]);
-      const lng = parseFloat(commaMatch[1]);
-      if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+
+    // Comma string "lat, lng" or "lng, lat"
+    const parts = loc.split(',');
+    if (parts.length === 2) {
+      const p1 = parseFloat(parts[0]);
+      const p2 = parseFloat(parts[1]);
+      if (!isNaN(p1) && !isNaN(p2)) {
+        if (Math.abs(p1) <= 90 && Math.abs(p2) <= 180) {
+          return { lat: p1, lng: p2 };
+        }
+        return { lat: p2, lng: p1 };
+      }
     }
   }
   return null;
@@ -116,6 +121,7 @@ export default function App() {
 
   // Admin Modal Detailed View State
   const [adminSelectedIssue, setAdminSelectedIssue] = useState(null);
+  const [modalAddressText, setModalAddressText] = useState('Resolving address details...');
 
   const deviceId = getDeviceId();
 
@@ -192,6 +198,32 @@ export default function App() {
     }
     setAddresses((prev) => ({ ...prev, ...newAddresses }));
   };
+
+  // Reverse geocoding directly when an admin opens a modal
+  useEffect(() => {
+    if (!adminSelectedIssue) return;
+
+    const coords = parseLocation(adminSelectedIssue.location);
+    if (!coords) {
+      setModalAddressText('No location signal saved for this report.');
+      return;
+    }
+
+    setModalAddressText(`Resolving address for (${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)})...`);
+
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.display_name) {
+          setModalAddressText(data.display_name);
+        } else {
+          setModalAddressText(`Coordinates: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+        }
+      })
+      .catch(() => {
+        setModalAddressText(`Coordinates: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
+      });
+  }, [adminSelectedIssue]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -330,11 +362,7 @@ export default function App() {
   const resolvedCount = issues.filter(i => i.status === 'Resolved').length;
   const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
 
-  // Dynamic Location Calculation for Admin Modal
   const modalCoords = adminSelectedIssue ? parseLocation(adminSelectedIssue.location) : null;
-  const modalAddress = adminSelectedIssue
-    ? (addresses[adminSelectedIssue.id] || (modalCoords ? `GPS Coordinates: ${modalCoords.lat.toFixed(6)}, ${modalCoords.lng.toFixed(6)}` : 'Location data not attached to report'))
-    : '';
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans">
@@ -604,13 +632,13 @@ export default function App() {
                     />
                   )}
 
-                  {/* Location Card Slot */}
+                  {/* Location Box */}
                   <div className="bg-blue-50/60 p-3 rounded-md border border-blue-100 mb-3 text-xs flex flex-col gap-1.5">
                     <div className="flex items-start gap-1.5 text-blue-900 font-semibold">
                       <span>📍 Issue Location:</span>
                     </div>
                     <p className="text-gray-800 font-medium leading-relaxed bg-white p-2 rounded border border-blue-100">
-                      {locText || (coords ? `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}` : 'Location not available')}
+                      {locText || (coords ? `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}` : 'Resolving address...')}
                     </p>
                     {coords && (
                       <div className="flex justify-between items-center pt-1 text-[11px] font-mono text-gray-600">
@@ -750,10 +778,10 @@ export default function App() {
               <h4 className="text-xs font-bold uppercase text-purple-900 mb-2">Exact Encoded Location & Address</h4>
               <div className="bg-white p-3 rounded border border-purple-100 mb-3 leading-relaxed">
                 <p className="text-sm font-semibold text-gray-900">
-                  📍 {modalAddress}
+                  📍 {modalAddressText}
                 </p>
               </div>
-              {modalCoords ? (
+              {modalCoords && (
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-gray-700 bg-white p-2.5 rounded border border-purple-100">
                   <span>GPS: Latitude {modalCoords.lat.toFixed(6)}, Longitude {modalCoords.lng.toFixed(6)}</span>
                   <a
@@ -765,10 +793,6 @@ export default function App() {
                     Open Google Maps ↗
                   </a>
                 </div>
-              ) : (
-                <p className="text-xs text-red-500 bg-white p-2 rounded border border-red-200">
-                  ⚠️ No GPS coordinates were saved for this specific report entry.
-                </p>
               )}
             </div>
 
