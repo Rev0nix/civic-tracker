@@ -91,6 +91,9 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
 
+  // Admin Modal Detailed View State
+  const [adminSelectedIssue, setAdminSelectedIssue] = useState(null);
+
   const deviceId = getDeviceId();
 
   useEffect(() => {
@@ -147,7 +150,6 @@ export default function App() {
     return { lng: parseFloat(match[1]), lat: parseFloat(match[2]) };
   };
 
-  // Fetch Full Encoded Address Details for Each Report Card
   const fetchDetailedAddresses = async (issueList) => {
     const locationsMap = {};
     for (const issue of issueList) {
@@ -166,14 +168,14 @@ export default function App() {
             };
           } else {
             locationsMap[issue.id] = {
-              fullAddress: 'Encoded Location Signal Received',
+              fullAddress: `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
               lat: coords.lat.toFixed(6),
               lng: coords.lng.toFixed(6),
             };
           }
         } catch {
           locationsMap[issue.id] = {
-            fullAddress: 'Location Coordinates Encoded',
+            fullAddress: `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
             lat: coords.lat.toFixed(6),
             lng: coords.lng.toFixed(6),
           };
@@ -243,13 +245,27 @@ export default function App() {
       .update({ status: newStatus })
       .eq('id', id);
 
-    if (error) alert('Failed to update status: ' + error.message);
+    if (error) {
+      alert('Failed to update status: ' + error.message);
+    } else {
+      if (adminSelectedIssue && adminSelectedIssue.id === id) {
+        setAdminSelectedIssue((prev) => ({ ...prev, status: newStatus }));
+      }
+      fetchIssues();
+    }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this issue report?')) return;
     const { error } = await supabase.from('issues').delete().eq('id', id);
-    if (error) alert('Failed to delete issue: ' + error.message);
+    if (error) {
+      alert('Failed to delete issue: ' + error.message);
+    } else {
+      if (adminSelectedIssue && adminSelectedIssue.id === id) {
+        setAdminSelectedIssue(null);
+      }
+      fetchIssues();
+    }
   };
 
   const exportToCSV = () => {
@@ -287,6 +303,13 @@ export default function App() {
     }
   };
 
+  // Double-tap Handler for Admin View
+  const handleCardDoubleClick = (issue) => {
+    if (isAdmin) {
+      setAdminSelectedIssue(issue);
+    }
+  };
+
   const filteredIssues = issues.filter((i) => {
     const matchCategory = filterCategory === 'all' || i.category_id === parseInt(filterCategory);
     const matchStatus = filterStatus === 'all' || i.status === filterStatus;
@@ -298,6 +321,11 @@ export default function App() {
   const inProgressCount = issues.filter(i => i.status === 'In Progress').length;
   const resolvedCount = issues.filter(i => i.status === 'Resolved').length;
   const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
+
+  const selectedModalCoords = adminSelectedIssue ? parsePoint(adminSelectedIssue.location) : null;
+  const selectedModalAddress = adminSelectedIssue && detailedLocations[adminSelectedIssue.id]
+    ? detailedLocations[adminSelectedIssue.id].fullAddress
+    : (selectedModalCoords ? `${selectedModalCoords.lat.toFixed(5)}, ${selectedModalCoords.lng.toFixed(5)}` : 'Resolving...');
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans">
@@ -481,9 +509,16 @@ export default function App() {
 
       {/* List Header & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">
-          {isAdmin ? 'Manage All Civic Reports' : 'My Device Reports'}
-        </h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {isAdmin ? 'Manage All Civic Reports' : 'My Device Reports'}
+          </h2>
+          {isAdmin && (
+            <p className="text-xs text-purple-700 font-medium mt-0.5">
+              ⚡ Admin Tip: Double-tap or double-click any card to view full issue details & exact location modal
+            </p>
+          )}
+        </div>
 
         <div className="flex gap-2">
           <select
@@ -524,7 +559,14 @@ export default function App() {
             const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
 
             return (
-              <div key={issue.id} className="p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between">
+              <div
+                key={issue.id}
+                onDoubleClick={() => handleCardDoubleClick(issue)}
+                className={`p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between transition ${
+                  isAdmin ? 'hover:border-purple-400 hover:shadow-md cursor-pointer' : ''
+                }`}
+                title={isAdmin ? 'Double-tap to open full report details' : ''}
+              >
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <div>
@@ -553,7 +595,7 @@ export default function App() {
                     />
                   )}
 
-                  {/* ENCODED DETAILED LOCATION BOX ON EVERY REPORT CARD */}
+                  {/* Encoded Location Box */}
                   <div className="bg-blue-50/60 p-3 rounded-md border border-blue-100 mb-3 text-xs flex flex-col gap-1.5">
                     <div className="flex items-start gap-1.5 text-blue-900 font-semibold">
                       <span>📍 Encoded Location:</span>
@@ -570,6 +612,7 @@ export default function App() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 font-sans font-semibold hover:underline"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             Open Google Maps ↗
                           </a>
@@ -580,18 +623,36 @@ export default function App() {
 
                   <div className="flex justify-between items-center py-2 border-t border-gray-100">
                     <button
-                      onClick={() => handleUpvote(issue.id, issue.upvotes)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpvote(issue.id, issue.upvotes);
+                      }}
                       className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded transition"
                     >
                       👍 Upvote ({issue.upvotes || 0})
                     </button>
-                    <span className="text-[11px] text-gray-400">
-                      {new Date(issue.created_at).toLocaleDateString()}
-                    </span>
+                    {isAdmin ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAdminSelectedIssue(issue);
+                        }}
+                        className="text-purple-700 bg-purple-50 hover:bg-purple-100 text-xs font-semibold px-2.5 py-1 rounded transition"
+                      >
+                        🔍 Double-Tap Details ↗
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-gray-400">
+                        {new Date(issue.created_at).toLocaleDateString()}
+                      </span>
+                    )}
                   </div>
 
                   {isAdmin && (
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 mt-2">
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 mt-2"
+                    >
                       <div className="flex items-center gap-2">
                         <label className="text-xs font-semibold text-gray-600">Update Status:</label>
                         <select
@@ -617,6 +678,120 @@ export default function App() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ADMIN FULL REPORT DETAILS MODAL (TRIGGERED ON DOUBLE TAP) */}
+      {adminSelectedIssue && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+          onClick={() => setAdminSelectedIssue(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 relative max-h-[90vh] overflow-y-auto border border-purple-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setAdminSelectedIssue(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none"
+            >
+              &times;
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-4 mb-4 pr-6">
+              <div>
+                <span className="text-xs font-bold text-purple-700 uppercase tracking-wider bg-purple-100 px-2 py-0.5 rounded">
+                  🛡️ Admin Detailed View • {categoryNames[adminSelectedIssue.category_id] || 'Civic Issue'}
+                </span>
+                <h2 className="text-2xl font-bold text-gray-900 mt-2">{adminSelectedIssue.title}</h2>
+              </div>
+              <span className={`text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap ${
+                adminSelectedIssue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                adminSelectedIssue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                'bg-yellow-100 text-yellow-800'
+              }`}>
+                {adminSelectedIssue.status}
+              </span>
+            </div>
+
+            {/* High-Res Proof Image */}
+            {adminSelectedIssue.photo_url && (
+              <div className="mb-4">
+                <h4 className="text-xs font-bold uppercase text-gray-500 mb-1">Uploaded Proof Photo</h4>
+                <img
+                  src={adminSelectedIssue.photo_url}
+                  alt="Proof"
+                  className="w-full max-h-80 object-cover rounded-lg border border-gray-200 shadow-sm"
+                />
+              </div>
+            )}
+
+            {/* Full Detailed Description */}
+            <div className="mb-4">
+              <h4 className="text-xs font-bold uppercase text-gray-500 mb-1">Complete Issue Description</h4>
+              <p className="text-gray-800 bg-gray-50 p-4 rounded-md border border-gray-200 whitespace-pre-wrap leading-relaxed">
+                {adminSelectedIssue.description || 'No detailed description provided.'}
+              </p>
+            </div>
+
+            {/* Exact Location Breakdown */}
+            <div className="bg-purple-50/70 p-4 rounded-lg border border-purple-200 mb-4">
+              <h4 className="text-xs font-bold uppercase text-purple-900 mb-2">Exact Encoded Location & Address</h4>
+              <p className="text-sm font-semibold text-gray-900 bg-white p-3 rounded border border-purple-100 mb-3 leading-relaxed">
+                📍 {selectedModalAddress}
+              </p>
+              {selectedModalCoords && (
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-gray-700 bg-white p-2.5 rounded border border-purple-100">
+                  <span>GPS Coordinates: Latitude {selectedModalCoords.lat.toFixed(6)}, Longitude {selectedModalCoords.lng.toFixed(6)}</span>
+                  <a
+                    href={`https://www.google.com/maps?q=${selectedModalCoords.lat},${selectedModalCoords.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-purple-700 hover:bg-purple-800 text-white font-sans text-xs px-3 py-1.5 rounded font-semibold whitespace-nowrap"
+                  >
+                    Open Google Maps ↗
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Metadata Summary */}
+            <div className="grid grid-cols-2 gap-4 text-xs text-gray-600 pt-2 border-t border-gray-200 mb-6">
+              <div>
+                <span className="font-semibold block text-gray-500">Submitted Timestamp:</span>
+                {new Date(adminSelectedIssue.created_at).toLocaleString()}
+              </div>
+              <div>
+                <span className="font-semibold block text-gray-500">Community Upvotes:</span>
+                👍 {adminSelectedIssue.upvotes || 0} Upvotes
+              </div>
+            </div>
+
+            {/* Admin Actions Bar inside Modal */}
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200 bg-gray-100 -mx-6 -mb-6 p-4 rounded-b-xl">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-gray-700">Update Status:</label>
+                <select
+                  value={adminSelectedIssue.status}
+                  onChange={(e) => handleStatusChange(adminSelectedIssue.id, e.target.value)}
+                  className="p-1.5 border rounded text-xs bg-white text-gray-800 font-semibold"
+                >
+                  <option value="Submitted">Submitted</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => handleDelete(adminSelectedIssue.id)}
+                className="bg-red-600 hover:bg-red-700 text-white text-xs px-3.5 py-1.5 rounded font-semibold"
+              >
+                Delete Report
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
