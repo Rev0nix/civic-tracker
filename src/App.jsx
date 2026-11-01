@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import emailjs from '@emailjs/browser';
@@ -205,6 +205,8 @@ function ChangeView({ center }) {
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminPass, setAdminPass] = useState('');
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const menuRef = useRef(null);
   
   // Form State
   const [title, setTitle] = useState('');
@@ -232,6 +234,17 @@ export default function App() {
   const [modalAddressText, setModalAddressText] = useState('Resolving location...');
 
   const deviceId = getDeviceId();
+
+  // Close admin menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowAdminMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -520,8 +533,9 @@ export default function App() {
     if (adminPass === 'admin123') {
       setIsAdmin(true);
       setAdminPass('');
+      setShowAdminMenu(false);
     } else {
-      alert('Invalid Admin Passcode');
+      alert('Invalid Passcode');
     }
   };
 
@@ -565,17 +579,14 @@ export default function App() {
 
       {/* Glassmorphism Navigation Header */}
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-indigo-300/50">
               🏛️
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 CivicTrack
-                <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200/60">
-                  v2.0 Live
-                </span>
               </h1>
               <p className="text-xs font-semibold text-slate-500">
                 {isAdmin ? 'Municipal Action & Infrastructure Control Portal' : 'Public Infrastructure Reporting & Tracker'}
@@ -583,39 +594,58 @@ export default function App() {
             </div>
           </div>
 
-          <div>
+          <div className="flex items-center gap-3">
             {isAdmin ? (
               <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <button
                   onClick={exportToCSV}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md shadow-emerald-200 transition active:scale-95 flex items-center gap-1.5"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md shadow-emerald-200 transition active:scale-95 flex items-center gap-1.5"
                 >
                   📥 Export CSV
                 </button>
-                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold px-3.5 py-2 rounded-full flex items-center gap-1.5">
+                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse inline-block" />
                   Admin Active
                 </span>
                 <button
                   onClick={() => setIsAdmin(false)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition border border-slate-300/80 active:scale-95"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl transition border border-slate-300/80 active:scale-95"
                 >
-                  Exit Admin View
+                  Exit
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleAdminLogin} className="flex gap-2">
-                <input
-                  type="password"
-                  placeholder="Admin Passcode"
-                  value={adminPass}
-                  onChange={(e) => setAdminPass(e.target.value)}
-                  className="p-2.5 border border-slate-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:outline-none w-36 shadow-xs bg-slate-50"
-                />
-                <button type="submit" className="bg-slate-900 hover:bg-black text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-md shadow-slate-300 active:scale-95">
-                  Admin Portal
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setShowAdminMenu(!showAdminMenu)}
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition font-bold text-lg leading-none"
+                  aria-label="More options"
+                >
+                  •••
                 </button>
-              </form>
+
+                {showAdminMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-50">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Access Portal</p>
+                    <form onSubmit={handleAdminLogin} className="flex flex-col gap-2">
+                      <input
+                        type="password"
+                        placeholder="Enter Passcode"
+                        value={adminPass}
+                        onChange={(e) => setAdminPass(e.target.value)}
+                        className="p-2.5 border border-slate-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:outline-none w-full bg-slate-50 font-mono"
+                        autoFocus
+                      />
+                      <button
+                        type="submit"
+                        className="bg-slate-900 hover:bg-black text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md active:scale-95 w-full"
+                      >
+                        Authenticate
+                      </button>
+                    </form>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -668,7 +698,7 @@ export default function App() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g., Damaged Pothole near Vidyanagar Cross"
+                  placeholder="e.g., Damaged Pothole near Main Road"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="p-3.5 border border-slate-300/80 rounded-2xl w-full bg-slate-50/60 text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition shadow-xs"
