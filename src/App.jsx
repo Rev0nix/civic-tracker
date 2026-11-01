@@ -142,6 +142,48 @@ const parseLocation = (loc) => {
   return null;
 };
 
+// Visual Progress Timeline Component
+function ProgressTimeline({ status }) {
+  const steps = ['Submitted', 'In Progress', 'Resolved'];
+  const currentIndex = steps.indexOf(status) !== -1 ? steps.indexOf(status) : 0;
+
+  return (
+    <div className="w-full my-3">
+      <div className="flex items-center justify-between relative">
+        <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 -translate-y-1/2 z-0" />
+        <div
+          className="absolute top-1/2 left-0 h-1 bg-blue-600 -translate-y-1/2 z-0 transition-all duration-500"
+          style={{ width: `${(currentIndex / (steps.length - 1)) * 100}%` }}
+        />
+        {steps.map((step, idx) => {
+          const isCompleted = idx <= currentIndex;
+          const isCurrent = idx === currentIndex;
+          return (
+            <div key={step} className="relative z-10 flex flex-col items-center">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                  isCompleted
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-white border-2 border-gray-300 text-gray-400'
+                } ${isCurrent ? 'ring-4 ring-blue-100 scale-110' : ''}`}
+              >
+                {isCompleted ? '✓' : idx + 1}
+              </div>
+              <span
+                className={`text-[10px] mt-1 font-semibold ${
+                  isCompleted ? 'text-blue-900' : 'text-gray-400'
+                }`}
+              >
+                {step}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ChangeView({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -170,6 +212,7 @@ export default function App() {
   // Data State
   const [issues, setIssues] = useState([]);
   const [addresses, setAddresses] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
@@ -351,7 +394,6 @@ export default function App() {
     try {
       let photoUrl = null;
       if (file) {
-        // Compress image client-side before uploading
         const compressedFile = await compressImage(file);
         const filePath = `${Date.now()}_${compressedFile.name}`;
         
@@ -482,10 +524,20 @@ export default function App() {
     }
   };
 
+  // Multi-Field Search & Filter Logic
   const filteredIssues = issues.filter((i) => {
     const matchCategory = filterCategory === 'all' || i.category_id === parseInt(filterCategory);
     const matchStatus = filterStatus === 'all' || i.status === filterStatus;
-    return matchCategory && matchStatus;
+    
+    const query = searchQuery.toLowerCase();
+    const addressStr = addresses[i.id] || '';
+    const matchSearch =
+      !query ||
+      i.title.toLowerCase().includes(query) ||
+      (i.description && i.description.toLowerCase().includes(query)) ||
+      addressStr.toLowerCase().includes(query);
+
+    return matchCategory && matchStatus && matchSearch;
   });
 
   const totalIssues = issues.length;
@@ -712,7 +764,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* List Header & Filters */}
+      {/* List Header, Search & Multi-Filters Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">
@@ -720,7 +772,15 @@ export default function App() {
           </h2>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <input
+            type="text"
+            placeholder="🔍 Search title, description, address..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="p-2 border rounded-md bg-white text-gray-800 text-sm flex-1 sm:w-60"
+          />
+
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
@@ -749,7 +809,7 @@ export default function App() {
       {/* Issues Grid */}
       {filteredIssues.length === 0 ? (
         <div className="p-8 border rounded-lg bg-gray-50 text-center text-gray-500">
-          No reports found for this view.
+          No reports found matching your search or filters.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -785,6 +845,10 @@ export default function App() {
                       {issue.status}
                     </span>
                   </div>
+
+                  {/* Visual Progress Timeline Bar */}
+                  <ProgressTimeline status={issue.status} />
+
                   <p className="text-gray-600 mb-3">{issue.description}</p>
                 </div>
 
@@ -913,6 +977,12 @@ export default function App() {
               }`}>
                 {adminSelectedIssue.status}
               </span>
+            </div>
+
+            {/* Modal Progress Bar */}
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-4">
+              <span className="text-xs font-bold text-gray-500 uppercase">Current Resolution Stage</span>
+              <ProgressTimeline status={adminSelectedIssue.status} />
             </div>
 
             {/* High-Res Proof Image */}
