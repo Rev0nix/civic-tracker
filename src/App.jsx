@@ -584,12 +584,7 @@ export default function App() {
               alt="CivicTrack Logo"
               className="w-11 h-11 rounded-2xl object-cover shadow-md shadow-indigo-300/50"
             />
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">
-                CivicTrack
-              </h1>
-              ...
-            </div>
+            
           </div>
 
           <div className="flex items-center gap-3">
