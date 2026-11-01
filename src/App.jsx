@@ -123,6 +123,9 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(false);
 
+  // Status Notification Banner State
+  const [notification, setNotification] = useState(null);
+
   // Admin Modal Detailed View State
   const [adminSelectedIssue, setAdminSelectedIssue] = useState(null);
   const [modalAddressText, setModalAddressText] = useState('Resolving location...');
@@ -163,15 +166,29 @@ export default function App() {
     fetchIssues();
     getExactGPSLocation();
 
+    // Supabase Realtime Listener for Instant Status Notifications
     const channel = supabase
       .channel('public:issues')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, (payload) => {
         fetchIssues();
+        if (payload.eventType === 'UPDATE' && payload.new) {
+          const updatedIssue = payload.new;
+          if (updatedIssue.device_id === deviceId || isAdmin) {
+            triggerNotification(`Report "${updatedIssue.title}" status updated to: ${updatedIssue.status}`);
+          }
+        }
       })
       .subscribe();
 
     return () => supabase.removeChannel(channel);
   }, [isAdmin]);
+
+  const triggerNotification = (msg) => {
+    setNotification(msg);
+    setTimeout(() => {
+      setNotification(null);
+    }, 5000);
+  };
 
   const fetchIssues = async () => {
     let query = supabase
@@ -281,7 +298,7 @@ export default function App() {
       setDescription('');
       setFile(null);
       fetchIssues();
-      alert('Issue reported successfully with your exact location!');
+      triggerNotification('Issue reported successfully with your exact location!');
     } catch (err) {
       alert(err.message);
     } finally {
@@ -310,6 +327,7 @@ export default function App() {
       if (adminSelectedIssue && adminSelectedIssue.id === id) {
         setAdminSelectedIssue((prev) => ({ ...prev, status: newStatus }));
       }
+      triggerNotification(`Status updated to "${newStatus}"`);
       fetchIssues();
     }
   };
@@ -323,6 +341,7 @@ export default function App() {
       if (adminSelectedIssue && adminSelectedIssue.id === id) {
         setAdminSelectedIssue(null);
       }
+      triggerNotification('Report deleted successfully');
       fetchIssues();
     }
   };
@@ -362,7 +381,7 @@ export default function App() {
     }
   };
 
-  const handleCardDoubleClick = (issue) => {
+  const handleCardClick = (issue) => {
     if (isAdmin) {
       setAdminSelectedIssue(issue);
     }
@@ -384,12 +403,19 @@ export default function App() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 font-sans relative">
+      {/* Realtime Notification Banner */}
+      {notification && (
+        <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-3 rounded-lg shadow-xl z-[10001] transition transform flex items-center gap-2 text-sm font-semibold animate-bounce">
+          <span>🔔</span> {notification}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Civic Issue Tracker</h1>
           <p className="text-sm text-gray-500">
-            {isAdmin ? 'Municipal Management Portal (All Reports)' : ''}
+            {isAdmin ? 'Municipal Management Portal (All Reports)' : 'My Reported Issues'}
           </p>
         </div>
 
@@ -524,7 +550,7 @@ export default function App() {
         </form>
       )}
 
-      {/* Main Interactive Map View (Isolated with strict relative z-index & fixed height) */}
+      {/* Main Interactive Map View */}
       <div className="mb-8 relative z-0" style={{ isolation: 'isolate' }}>
         <h2 className="text-2xl font-bold text-gray-800 mb-1">Interactive Issue Map</h2>
         <div className="flex gap-4 text-xs font-semibold mb-3 text-gray-600">
@@ -577,11 +603,6 @@ export default function App() {
           <h2 className="text-2xl font-bold text-gray-800">
             {isAdmin ? 'Manage All Civic Reports' : 'My Device Reports'}
           </h2>
-          {isAdmin && (
-            <p className="text-xs text-purple-700 font-medium mt-0.5">
-              
-            </p>
-          )}
         </div>
 
         <div className="flex gap-2">
@@ -625,11 +646,10 @@ export default function App() {
             return (
               <div
                 key={issue.id}
-                onDoubleClick={() => handleCardDoubleClick(issue)}
+                onClick={() => handleCardClick(issue)}
                 className={`p-4 border rounded-lg bg-white shadow-sm flex flex-col justify-between transition ${
                   isAdmin ? 'hover:border-purple-400 hover:shadow-md cursor-pointer' : ''
                 }`}
-                title={isAdmin ? 'Double-tap to open full report details' : ''}
               >
                 <div>
                   <div className="flex justify-between items-start mb-2">
@@ -702,7 +722,7 @@ export default function App() {
                         }}
                         className="text-purple-700 bg-purple-50 hover:bg-purple-100 text-xs font-semibold px-2.5 py-1 rounded transition"
                       >
-                        
+                        🔍 View Details ↗
                       </button>
                     ) : (
                       <span className="text-[11px] text-gray-400">
@@ -728,8 +748,6 @@ export default function App() {
                           <option value="Resolved">Resolved</option>
                         </select>
                       </div>
-
-                      
                     </div>
                   )}
                 </div>
@@ -739,7 +757,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ADMIN FULL REPORT DETAILS MODAL (High z-index to overlay cleanly above map) */}
+      {/* ADMIN FULL REPORT DETAILS MODAL */}
       {adminSelectedIssue && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto"
