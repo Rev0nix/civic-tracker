@@ -62,6 +62,54 @@ const getDeviceId = () => {
   return deviceId;
 };
 
+// Client-Side Canvas Image Compression Helper (Max 1200px dimension, 75% JPEG quality)
+const compressImage = (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          0.75
+        );
+      };
+    };
+  });
+};
+
 // Universal Location Parser
 const parseLocation = (loc) => {
   if (!loc) return null;
@@ -115,6 +163,7 @@ export default function App() {
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('1');
   const [file, setFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [location, setLocation] = useState(null);
   const [locStatus, setLocStatus] = useState('Acquiring live GPS location...');
   
@@ -133,6 +182,17 @@ export default function App() {
   const [modalAddressText, setModalAddressText] = useState('Resolving location...');
 
   const deviceId = getDeviceId();
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setImagePreview(URL.createObjectURL(selectedFile));
+    } else {
+      setFile(null);
+      setImagePreview(null);
+    }
+  };
 
   const getExactGPSLocation = () => {
     setLocStatus('Requesting GPS lock from mobile device...');
@@ -191,9 +251,6 @@ export default function App() {
     }, 5000);
   };
 
-  // =========================================================================
-  // REPLACE THESE 3 PLACEHOLDERS WITH YOUR ACTUAL EMAILJS KEYS BELOW:
-  // =========================================================================
   const sendResolvedEmail = (recipientEmail, issueTitle, status) => {
     if (!recipientEmail) return;
 
@@ -205,10 +262,10 @@ export default function App() {
 
     emailjs
       .send(
-        'service_7v8m16b',   // <-- Replace with your EmailJS Service ID
-        'template_vtc51wn',  // <-- Replace with your EmailJS Template ID
+        'service_7v8m16b',
+        'template_vtc51wn',
         templateParams,
-        'hIQcr3HDUS9AFupsd'    // <-- Replace with your EmailJS Public Key
+        'hIQcr3HDUS9AFupsd'
       )
       .then(
         () => triggerNotification('Notification email dispatched to citizen!'),
@@ -294,10 +351,13 @@ export default function App() {
     try {
       let photoUrl = null;
       if (file) {
-        const filePath = `${Date.now()}_${file.name}`;
+        // Compress image client-side before uploading
+        const compressedFile = await compressImage(file);
+        const filePath = `${Date.now()}_${compressedFile.name}`;
+        
         const { error: uploadError } = await supabase.storage
           .from('issue-photos')
-          .upload(filePath, file);
+          .upload(filePath, compressedFile);
         if (uploadError) throw uploadError;
 
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
@@ -325,6 +385,7 @@ export default function App() {
       setUserEmail('');
       setDescription('');
       setFile(null);
+      setImagePreview(null);
       fetchIssues();
       triggerNotification('Issue reported successfully!');
     } catch (err) {
@@ -356,7 +417,6 @@ export default function App() {
         setAdminSelectedIssue((prev) => ({ ...prev, status: newStatus }));
       }
 
-      // Automatically trigger email dispatch when status becomes Resolved
       if (newStatus === 'Resolved' && issueItem.user_email) {
         sendResolvedEmail(issueItem.user_email, issueItem.title, newStatus);
       }
@@ -516,7 +576,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Citizen Form with Email Input */}
+      {/* Citizen Form */}
       {!isAdmin && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
           <h2 className="text-xl font-semibold text-gray-700">Report a New Issue</h2>
@@ -577,19 +637,30 @@ export default function App() {
             className="p-3 border rounded-md w-full bg-white text-gray-800 h-24"
           />
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setFile(e.target.files[0])}
-            className="p-2 text-sm text-gray-600"
-          />
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">Upload Photo Proof (Auto-Compressed)</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="p-2 text-sm text-gray-600 bg-white border rounded-md"
+            />
+            {imagePreview && (
+              <div className="mt-2 relative w-32 h-32 border rounded-md overflow-hidden shadow-sm">
+                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] text-center py-0.5">
+                  Ready to Compress
+                </span>
+              </div>
+            )}
+          </div>
 
           <button
             type="submit"
             disabled={loading || !location}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-md transition disabled:bg-gray-400"
           >
-            {loading ? 'Submitting...' : 'Report Issue'}
+            {loading ? 'Compressing & Submitting...' : 'Report Issue'}
           </button>
         </form>
       )}
