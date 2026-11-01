@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import emailjs from '@emailjs/browser';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -110,6 +111,7 @@ export default function App() {
   
   // Form State
   const [title, setTitle] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('1');
   const [file, setFile] = useState(null);
@@ -166,7 +168,6 @@ export default function App() {
     fetchIssues();
     getExactGPSLocation();
 
-    // Supabase Realtime Listener for Instant Status Notifications
     const channel = supabase
       .channel('public:issues')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, (payload) => {
@@ -188,6 +189,31 @@ export default function App() {
     setTimeout(() => {
       setNotification(null);
     }, 5000);
+  };
+
+  // =========================================================================
+  // REPLACE THESE 3 PLACEHOLDERS WITH YOUR ACTUAL EMAILJS KEYS BELOW:
+  // =========================================================================
+  const sendResolvedEmail = (recipientEmail, issueTitle, status) => {
+    if (!recipientEmail) return;
+
+    const templateParams = {
+      to_email: recipientEmail,
+      issue_title: issueTitle,
+      status: status,
+    };
+
+    emailjs
+      .send(
+        'service_7v8m16b',   // <-- Replace with your EmailJS Service ID
+        'template_vtc51wn',  // <-- Replace with your EmailJS Template ID
+        templateParams,
+        'hIQcr3HDUS9AFupsd'    // <-- Replace with your EmailJS Public Key
+      )
+      .then(
+        () => triggerNotification('Notification email dispatched to citizen!'),
+        (err) => console.warn('Email send error:', err)
+      );
   };
 
   const fetchIssues = async () => {
@@ -282,6 +308,7 @@ export default function App() {
       const { error: insertError } = await supabase.from('issues').insert([
         {
           title,
+          user_email: userEmail,
           description,
           photo_url: photoUrl,
           location: pointLocation,
@@ -295,10 +322,11 @@ export default function App() {
       if (insertError) throw insertError;
 
       setTitle('');
+      setUserEmail('');
       setDescription('');
       setFile(null);
       fetchIssues();
-      triggerNotification('Issue reported successfully with your exact location!');
+      triggerNotification('Issue reported successfully!');
     } catch (err) {
       alert(err.message);
     } finally {
@@ -315,18 +343,24 @@ export default function App() {
     if (error) alert('Could not upvote: ' + error.message);
   };
 
-  const handleStatusChange = async (id, newStatus) => {
+  const handleStatusChange = async (issueItem, newStatus) => {
     const { error } = await supabase
       .from('issues')
       .update({ status: newStatus })
-      .eq('id', id);
+      .eq('id', issueItem.id);
 
     if (error) {
       alert('Failed to update status: ' + error.message);
     } else {
-      if (adminSelectedIssue && adminSelectedIssue.id === id) {
+      if (adminSelectedIssue && adminSelectedIssue.id === issueItem.id) {
         setAdminSelectedIssue((prev) => ({ ...prev, status: newStatus }));
       }
+
+      // Automatically trigger email dispatch when status becomes Resolved
+      if (newStatus === 'Resolved' && issueItem.user_email) {
+        sendResolvedEmail(issueItem.user_email, issueItem.title, newStatus);
+      }
+
       triggerNotification(`Status updated to "${newStatus}"`);
       fetchIssues();
     }
@@ -349,10 +383,11 @@ export default function App() {
   const exportToCSV = () => {
     if (filteredIssues.length === 0) return alert('No issues available to export.');
 
-    const headers = ['ID', 'Title', 'Description', 'Category ID', 'Status', 'Upvotes', 'Location', 'Created At'];
+    const headers = ['ID', 'Title', 'User Email', 'Description', 'Category ID', 'Status', 'Upvotes', 'Location', 'Created At'];
     const rows = filteredIssues.map(issue => [
       issue.id,
       `"${issue.title.replace(/"/g, '""')}"`,
+      `"${issue.user_email || ''}"`,
       `"${(issue.description || '').replace(/"/g, '""')}"`,
       issue.category_id,
       issue.status,
@@ -481,7 +516,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Citizen Form */}
+      {/* Citizen Form with Email Input */}
       {!isAdmin && (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm mb-8">
           <h2 className="text-xl font-semibold text-gray-700">Report a New Issue</h2>
@@ -491,6 +526,15 @@ export default function App() {
             placeholder="Issue Title (e.g. Broken Streetlight)"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            className="p-3 border rounded-md w-full bg-white text-gray-800"
+            required
+          />
+
+          <input
+            type="email"
+            placeholder="Your Email Address (for status updates)"
+            value={userEmail}
+            onChange={(e) => setUserEmail(e.target.value)}
             className="p-3 border rounded-md w-full bg-white text-gray-800"
             required
           />
@@ -658,6 +702,9 @@ export default function App() {
                         {categoryNames[issue.category_id] || 'Civic Issue'}
                       </span>
                       <h3 className="text-lg font-semibold text-gray-900">{issue.title}</h3>
+                      {issue.user_email && (
+                        <span className="text-xs text-gray-500 block">📧 {issue.user_email}</span>
+                      )}
                     </div>
                     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded ${
                       issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
@@ -740,7 +787,7 @@ export default function App() {
                         <label className="text-xs font-semibold text-gray-600">Update Status:</label>
                         <select
                           value={issue.status}
-                          onChange={(e) => handleStatusChange(issue.id, e.target.value)}
+                          onChange={(e) => handleStatusChange(issue, e.target.value)}
                           className="p-1 border rounded text-xs bg-gray-50 text-gray-800"
                         >
                           <option value="Submitted">Submitted</option>
@@ -782,6 +829,11 @@ export default function App() {
                   🛡️ Admin Detailed View • {categoryNames[adminSelectedIssue.category_id] || 'Civic Issue'}
                 </span>
                 <h2 className="text-2xl font-bold text-gray-900 mt-2">{adminSelectedIssue.title}</h2>
+                {adminSelectedIssue.user_email && (
+                  <p className="text-xs text-purple-800 font-semibold mt-1">
+                    📧 Reporter Email: {adminSelectedIssue.user_email}
+                  </p>
+                )}
               </div>
               <span className={`text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap ${
                 adminSelectedIssue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
@@ -857,7 +909,7 @@ export default function App() {
                 <label className="text-xs font-semibold text-gray-700">Update Status:</label>
                 <select
                   value={adminSelectedIssue.status}
-                  onChange={(e) => handleStatusChange(adminSelectedIssue.id, e.target.value)}
+                  onChange={(e) => handleStatusChange(adminSelectedIssue, e.target.value)}
                   className="p-1.5 border rounded text-xs bg-white text-gray-800 font-semibold"
                 >
                   <option value="Submitted">Submitted</option>
