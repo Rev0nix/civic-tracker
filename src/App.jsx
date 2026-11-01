@@ -729,12 +729,7 @@ export default function App() {
                         </select>
                       </div>
 
-                      <button
-                        onClick={() => handleDelete(issue.id)}
-                        className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-2.5 py-1 rounded font-medium"
-                      >
-                        Delete
-                      </button>
+                      
                     </div>
                   )}
                 </div>
