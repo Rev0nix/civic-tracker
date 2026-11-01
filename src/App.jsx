@@ -579,7 +579,7 @@ export default function App() {
           </h2>
           {isAdmin && (
             <p className="text-xs text-purple-700 font-medium mt-0.5">
-              ⚡ Admin Tip: Double-tap or double-click any card to view full issue details & exact location modal
+              
             </p>
           )}
         </div>
