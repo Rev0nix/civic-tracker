@@ -819,7 +819,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="h-96 w-full rounded-3xl overflow-hidden border border-slate-200/90 shadow-md bg-slate-100 flex items-center justify-center relative z-0">
+          <div className="h-56 w-full rounded-3xl overflow-hidden border border-slate-200/90 shadow-md bg-slate-100 flex items-center justify-center relative z-0">
             {location ? (
               <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%', zIndex: 1 }}>
                 <ChangeView center={[location.lat, location.lng]} />
