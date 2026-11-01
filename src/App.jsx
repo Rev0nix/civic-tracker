@@ -168,18 +168,16 @@ function ProgressTimeline({ status }) {
           return (
             <div key={step} className="relative z-10 flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${
-                  isCompleted
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
-                    : 'bg-white border-2 border-slate-300 text-slate-400'
-                } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${isCompleted
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
+                  : 'bg-white border-2 border-slate-300 text-slate-400'
+                  } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
               >
                 {isCompleted ? '✓' : idx + 1}
               </div>
               <span
-                className={`text-[11px] mt-1.5 font-bold tracking-tight ${
-                  isCompleted ? 'text-slate-900' : 'text-slate-400'
-                }`}
+                className={`text-[11px] mt-1.5 font-bold tracking-tight ${isCompleted ? 'text-slate-900' : 'text-slate-400'
+                  }`}
               >
                 {step}
               </span>
@@ -207,7 +205,7 @@ export default function App() {
   const [adminPass, setAdminPass] = useState('');
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const menuRef = useRef(null);
-  
+
   // Form State
   const [title, setTitle] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -217,7 +215,7 @@ export default function App() {
   const [imagePreview, setImagePreview] = useState(null);
   const [location, setLocation] = useState(null);
   const [locStatus, setLocStatus] = useState('Acquiring live GPS location...');
-  
+
   // Data State
   const [issues, setIssues] = useState([]);
   const [addresses, setAddresses] = useState({});
@@ -416,7 +414,7 @@ export default function App() {
       if (file) {
         const compressedFile = await compressImage(file);
         const filePath = `${Date.now()}_${compressedFile.name}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from('issue-photos')
           .upload(filePath, compressedFile);
@@ -548,7 +546,7 @@ export default function App() {
   const filteredIssues = issues.filter((i) => {
     const matchCategory = filterCategory === 'all' || i.category_id === parseInt(filterCategory);
     const matchStatus = filterStatus === 'all' || i.status === filterStatus;
-    
+
     const query = searchQuery.toLowerCase();
     const addressStr = addresses[i.id] || '';
     const matchSearch =
@@ -581,16 +579,16 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-indigo-300/50">
-              🏛️
-            </div>
+            <img
+              src="/logo.svg"
+              alt="CivicTrack Logo"
+              className="w-11 h-11 rounded-2xl object-cover shadow-md shadow-indigo-300/50"
+            />
             <div>
               <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 CivicTrack
               </h1>
-              <p className="text-xs font-semibold text-slate-500">
-                {isAdmin ? 'Municipal Action & Infrastructure Control Portal' : 'Public Infrastructure Reporting & Tracker'}
-              </p>
+              ...
             </div>
           </div>
 
@@ -690,7 +688,7 @@ export default function App() {
                 </div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
               <div>
                 <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
@@ -920,16 +918,14 @@ export default function App() {
                 <div
                   key={issue.id}
                   onClick={() => handleCardClick(issue)}
-                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${
-                    isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
-                  }`}
+                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
+                    }`}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-3 gap-2">
                       <div>
-                        <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block mb-2 ${
-                          categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
-                        }`}>
+                        <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block mb-2 ${categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}>
                           {categoryNames[issue.category_id] || 'Civic Issue'}
                         </span>
                         <h3 className="text-lg font-black text-slate-900 leading-snug">{issue.title}</h3>
@@ -937,11 +933,10 @@ export default function App() {
                           <span className="text-xs text-slate-400 block font-mono mt-1 font-semibold">📧 {issue.user_email}</span>
                         )}
                       </div>
-                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${
-                        issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                         issue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                        'bg-blue-100 text-blue-800 border border-blue-200'
-                      }`}>
+                          'bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}>
                         {issue.status}
                       </span>
                     </div>
@@ -1071,11 +1066,10 @@ export default function App() {
                   </p>
                 )}
               </div>
-              <span className={`text-xs font-black px-3.5 py-1.5 rounded-full whitespace-nowrap ${
-                adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+              <span className={`text-xs font-black px-3.5 py-1.5 rounded-full whitespace-nowrap ${adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                 adminSelectedIssue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                'bg-blue-100 text-blue-800 border border-blue-200'
-              }`}>
+                  'bg-blue-100 text-blue-800 border border-blue-200'
+                }`}>
                 {adminSelectedIssue.status}
               </span>
             </div>
