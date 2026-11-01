@@ -702,7 +702,7 @@ export default function App() {
                         }}
                         className="text-purple-700 bg-purple-50 hover:bg-purple-100 text-xs font-semibold px-2.5 py-1 rounded transition"
                       >
-                        🔍 Double-Tap Details ↗
+                        
                       </button>
                     ) : (
                       <span className="text-[11px] text-gray-400">
