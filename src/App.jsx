@@ -169,8 +169,8 @@ function ProgressTimeline({ status }) {
             <div key={step} className="relative z-10 flex flex-col items-center">
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${isCompleted
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
-                    : 'bg-white border-2 border-slate-300 text-slate-400'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
+                  : 'bg-white border-2 border-slate-300 text-slate-400'
                   } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
               >
                 {isCompleted ? '✓' : idx + 1}
@@ -586,7 +586,7 @@ export default function App() {
               <h1 className="text-3xl font-black tracking-tight text-slate-800">
                 CivicTrack
               </h1>
-              
+
             </div>
           </div>
 
@@ -932,8 +932,8 @@ export default function App() {
                         )}
                       </div>
                       <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                          issue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                            'bg-blue-100 text-blue-800 border border-blue-200'
+                        issue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                          'bg-blue-100 text-blue-800 border border-blue-200'
                         }`}>
                         {issue.status}
                       </span>
@@ -1065,8 +1065,8 @@ export default function App() {
                 )}
               </div>
               <span className={`text-xs font-black px-3.5 py-1.5 rounded-full whitespace-nowrap ${adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                  adminSelectedIssue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                    'bg-blue-100 text-blue-800 border border-blue-200'
+                adminSelectedIssue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                  'bg-blue-100 text-blue-800 border border-blue-200'
                 }`}>
                 {adminSelectedIssue.status}
               </span>
