@@ -579,14 +579,14 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-purple-300 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-indigo-300/50">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-800 via-indigo-600 to-purple-300 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-indigo-300/50">
               🏛️
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              <h1 className="text-3xl font-black tracking-tight text-slate-800">
                 CivicTrack
               </h1>
-              ...
+              
             </div>
           </div>
 
