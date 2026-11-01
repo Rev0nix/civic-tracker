@@ -581,7 +581,6 @@ export default function App() {
           <div className="flex items-center gap-3">
             <img
               src="/logo.svg"
-              alt="CivicTrack Logo"
               className="w-11 h-11 rounded-2xl object-cover shadow-md shadow-indigo-300/50"
             />
             
