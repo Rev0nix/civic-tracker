@@ -32,6 +32,12 @@
 
 ---
 
+🌐 **Live Demo:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
+
+**CivicTrack** is a modern, responsive, and full-stack municipal issue-reporting and tracking platform...
+
+---
+
 ## 📂 System Architecture & Directory Structure
 ```text
 civic-tracker/
