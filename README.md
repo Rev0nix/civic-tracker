@@ -31,7 +31,7 @@
 * **PWA & Offline Support:** Progressive Web App manifest and network status detector
 
 ---
-
+##
 🌐 **Live Demo:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
 
 **CivicTrack** is a modern, responsive, and full-stack municipal issue-reporting and tracking platform...
