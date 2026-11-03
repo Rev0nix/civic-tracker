@@ -679,7 +679,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-tight text-slate-800">
-                CivicTrack <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-1 font-bold">AI Enabled</span>
+                CivicTrack <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-1 font-bold"></span>
               </h1>
             </div>
           </div>
