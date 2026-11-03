@@ -486,27 +486,6 @@ export default function App() {
     }
   };
 
-  const handleDeleteIssue = async (id, photoUrl) => {
-    if (!window.confirm("Are you sure you want to delete this report?")) return;
-
-    try {
-      // 1. Delete the record from Supabase table
-      const { error } = await supabase
-        .from('issues')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // 2. (Optional) Remove the photo from Supabase storage if needed, then refresh list
-      alert("Report deleted successfully!");
-      fetchIssues(); // Refresh your issues state/list
-    } catch (err) {
-      console.error("Error deleting issue:", err.message);
-      alert("Failed to delete report: " + err.message);
-    }
-  };
-
   const exportToCSV = () => {
     if (filteredIssues.length === 0) return alert('No issues available to export.');
 
@@ -576,6 +555,25 @@ export default function App() {
   const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
 
   const modalCoords = adminSelectedIssue ? parseLocation(adminSelectedIssue.location) : null;
+
+  const handleDeleteIssue = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this report?")) return;
+
+    try {
+      const { error } = await supabase
+        .from('issues')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
+      alert("Report deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting issue:", err.message);
+      alert("Failed to delete report: " + err.message);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans antialiased pb-16 selection:bg-indigo-500 selection:text-white">
@@ -930,6 +928,17 @@ export default function App() {
                   className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
                     }`}
                 >
+
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDeleteIssue(issue.id)}
+                      className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-md transition z-10"
+                      title="Delete Report"
+                    >
+                      🗑️
+                    </button>
+                  )}
+
                   <div>
                     <div className="flex justify-between items-start mb-3 gap-2">
                       <div>
