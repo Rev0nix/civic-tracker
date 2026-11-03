@@ -932,10 +932,9 @@ export default function App() {
                   {isAdmin && (
                     <button
                       onClick={() => handleDeleteIssue(issue.id)}
-                      className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-md transition z-10"
-                      title="Delete Report"
+                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
                     >
-                      🗑️
+                      Delete Report
                     </button>
                   )}
 
