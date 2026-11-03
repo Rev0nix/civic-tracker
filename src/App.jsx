@@ -19,11 +19,39 @@ const categoryBadges = {
   4: 'bg-purple-50 text-purple-700 border-purple-200/80',
 };
 
-const createCustomIcon = (categoryId, status) => {
+// Distance calculator helper for AI Duplicate Detection (Haversine formula in meters)
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// AI Smart Priority Scoring Analyzer
+const analyzePriority = (title, description) => {
+  const text = `${title} ${description}`.toLowerCase();
+  if (text.includes('danger') || text.includes('accident') || text.includes('burst') || text.includes('severe') || text.includes('live wire') || text.includes('overflow')) {
+    return 'Critical';
+  } else if (text.includes('broken') || text.includes('damaged') || text.includes('leak') || text.includes('dark')) {
+    return 'Medium';
+  }
+  return 'Low';
+};
+
+const createCustomIcon = (categoryId, status, priority) => {
   let color = '#3B82F6';
 
   if (status === 'Resolved') {
     color = '#10B981';
+  } else if (priority === 'Critical') {
+    color = '#EF4444';
   } else if (status === 'In Progress') {
     color = '#F59E0B';
   } else {
@@ -233,6 +261,13 @@ export default function App() {
   const [adminSelectedIssue, setAdminSelectedIssue] = useState(null);
   const [modalAddressText, setModalAddressText] = useState('Resolving location...');
 
+  // AI Chatbot Drawer State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'bot', text: 'Namaste! I am your Civic AI Assistant. Ask me about issue statuses, municipal guidelines, or reporting timelines in English or Kannada.' }
+  ]);
+
   const deviceId = getDeviceId();
 
   // Close admin menu when clicking outside
@@ -403,12 +438,36 @@ export default function App() {
       });
   }, [adminSelectedIssue]);
 
+  // AI Feature: Duplicate Detection Check before submission
+  const checkForDuplicates = () => {
+    if (!location) return null;
+    const nearby = issues.filter(issue => {
+      if (issue.category_id !== parseInt(categoryId)) return false;
+      const coords = parseLocation(issue.location);
+      if (!coords) return false;
+      const distance = calculateDistance(location.lat, location.lng, coords.lat, coords.lng);
+      return distance <= 100; // Within 100 meters radius
+    });
+    return nearby.length > 0 ? nearby[0] : null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!location) {
       alert('GPS location is required. Please tap "Refresh GPS Location" and grant location permission.');
       return;
     }
+
+    // AI Duplicate Detection Check
+    const duplicate = checkForDuplicates();
+    if (duplicate) {
+      const proceed = window.confirm(`⚠️ AI Notice: An issue similar to "${duplicate.title}" was already reported ~${Math.round(calculateDistance(location.lat, location.lng, parseLocation(duplicate.location).lat, parseLocation(duplicate.location).lng))}m away. Would you like to upvote that report instead?`);
+      if (proceed) {
+        handleUpvote(duplicate.id, duplicate.upvotes);
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -425,6 +484,8 @@ export default function App() {
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
       }
 
+      // AI Smart Priority Scoring Analysis
+      const priorityScore = analyzePriority(title, description);
       const pointLocation = `POINT(${location.lng} ${location.lat})`;
 
       const { error: insertError } = await supabase.from('issues').insert([
@@ -438,6 +499,7 @@ export default function App() {
           status: 'Submitted',
           device_id: deviceId,
           upvotes: 0,
+          priority: priorityScore, // Storing AI priority score
         },
       ]);
 
@@ -449,7 +511,7 @@ export default function App() {
       setFile(null);
       setImagePreview(null);
       fetchIssues();
-      triggerNotification('Issue reported successfully!');
+      triggerNotification(`Issue reported successfully! AI Priority: ${priorityScore}`);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -464,6 +526,7 @@ export default function App() {
       .eq('id', id);
 
     if (error) alert('Could not upvote: ' + error.message);
+    else fetchIssues();
   };
 
   const handleStatusChange = async (issueItem, newStatus) => {
@@ -491,7 +554,7 @@ export default function App() {
   const exportToCSV = () => {
     if (filteredIssues.length === 0) return alert('No issues available to export.');
 
-    const headers = ['ID', 'Title', 'User Email', 'Description', 'Category ID', 'Status', 'Upvotes', 'Location', 'Created At'];
+    const headers = ['ID', 'Title', 'User Email', 'Description', 'Category ID', 'Status', 'Priority', 'Upvotes', 'Location', 'Created At'];
     const rows = filteredIssues.map(issue => [
       issue.id,
       `"${issue.title.replace(/"/g, '""')}"`,
@@ -499,6 +562,7 @@ export default function App() {
       `"${(issue.description || '').replace(/"/g, '""')}"`,
       issue.category_id,
       issue.status,
+      issue.priority || 'Low',
       issue.upvotes || 0,
       `"${JSON.stringify(issue.location || '')}"`,
       new Date(issue.created_at).toLocaleString()
@@ -530,6 +594,28 @@ export default function App() {
     if (isAdmin) {
       setAdminSelectedIssue(issue);
     }
+  };
+
+  // AI Multilingual Chatbot Response Handler
+  const handleChatSend = (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput;
+    setChatMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
+    setChatInput('');
+
+    setTimeout(() => {
+      let botReply = "I can help you track issues or understand municipal guidelines. Try asking about 'potholes', 'status', or 'timeline'.";
+      const q = userMsg.toLowerCase();
+      if (q.includes('status') || q.includes('track') || q.includes('ಸ್ಥಿತಿ')) {
+        botReply = "You can view your submitted issues directly on this dashboard. Admins update statuses between 'Submitted', 'In Progress', and 'Resolved'.";
+      } else if (q.includes('pothole') || q.includes('road') || q.includes('ಗುಂಡಿ')) {
+        botReply = "Road and pothole issues are categorized under Priority 1. Critical safety hazards receive accelerated municipal review.";
+      } else if (q.includes('kannada') || q.includes('ಕನ್ನಡ')) {
+        botReply = "Namaskara! CivicTrack municipal portal ಮುಖಾಂತರ ನಿಮ್ಮ ಹತ್ತಿರದ ಸಮಸ್ಯೆಗಳನ್ನು ಸುಲಭವಾಗಿ ವರದಿ ಮಾಡಬಹುದು.";
+      }
+      setChatMessages(prev => [...prev, { sender: 'bot', text: botReply }]);
+    }, 600);
   };
 
   const filteredIssues = issues.filter((i) => {
@@ -567,7 +653,7 @@ export default function App() {
       if (error) throw error;
 
       setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
-      setAdminSelectedIssue(null); // Close modal if open
+      setAdminSelectedIssue(null);
       alert("Report deleted successfully!");
     } catch (err) {
       console.error("Error deleting issue:", err.message);
@@ -593,7 +679,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-tight text-slate-800">
-                CivicTrack
+                CivicTrack <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-1 font-bold">AI Enabled</span>
               </h1>
             </div>
           </div>
@@ -767,7 +853,7 @@ export default function App() {
 
             <div className="mb-5">
               <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
-                Detailed Description
+                Detailed Description <span className="text-indigo-600 font-normal">(AI Priority Scoring Enabled)</span>
               </label>
               <textarea
                 placeholder="Describe landmark details, hazard level, or relevant landmarks..."
@@ -842,7 +928,7 @@ export default function App() {
                     <Marker
                       key={issue.id}
                       position={[coords.lat, coords.lng]}
-                      icon={createCustomIcon(issue.category_id, issue.status)}
+                      icon={createCustomIcon(issue.category_id, issue.status, issue.priority)}
                     >
                       <Popup>
                         <div className="p-1">
@@ -931,11 +1017,20 @@ export default function App() {
                   <div>
                     <div className="flex justify-between items-start mb-3 gap-2">
                       <div>
-                        <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block mb-2 ${
-                          categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
-                        }`}>
-                          {categoryNames[issue.category_id] || 'Civic Issue'}
-                        </span>
+                        <div className="flex gap-2 items-center mb-2 flex-wrap">
+                          <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${
+                            categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}>
+                            {categoryNames[issue.category_id] || 'Civic Issue'}
+                          </span>
+                          {issue.priority && (
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
+                              issue.priority === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              ⚡ {issue.priority} Priority
+                            </span>
+                          )}
+                        </div>
                         <h3 className="text-lg font-black text-slate-900 leading-snug">{issue.title}</h3>
                         {issue.user_email && (
                           <span className="text-xs text-slate-400 block font-mono mt-1 font-semibold">📧 {issue.user_email}</span>
@@ -1044,6 +1139,33 @@ export default function App() {
         )}
       </main>
 
+      {/* AI Multilingual Chatbot Floating Widget */}
+      <div className="fixed bottom-5 right-5 z-[9999]">
+        {!isChatOpen ? (
+          <button onClick={() => setIsChatOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl font-bold flex items-center gap-2 transition active:scale-95">
+            💬 Ask Civic AI
+          </button>
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-80 sm:w-96 flex flex-col h-[420px] overflow-hidden">
+            <div className="bg-indigo-600 text-white p-4 flex justify-between items-center font-bold">
+              <span>🤖 Civic AI Assistant</span>
+              <button onClick={() => setIsChatOpen(false)} className="text-white hover:text-slate-200">✕</button>
+            </div>
+            <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 text-xs">
+              {chatMessages.map((m, idx) => (
+                <div key={idx} className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${m.sender === 'user' ? 'bg-indigo-600 text-white ml-auto' : 'bg-white text-slate-800 border border-slate-200'}`}>
+                  {m.text}
+                </div>
+              ))}
+            </div>
+            <form onSubmit={handleChatSend} className="p-3 border-t bg-white flex gap-2">
+              <input type="text" placeholder="Ask in English or Kannada..." value={chatInput} onChange={e => setChatInput(e.target.value)} className="flex-1 p-2 border rounded-xl text-xs bg-slate-50 focus:outline-none" />
+              <button type="submit" className="bg-indigo-600 text-white text-xs px-4 py-2 rounded-xl font-bold">Send</button>
+            </form>
+          </div>
+        )}
+      </div>
+
       {/* ADMIN FULL REPORT DETAILS MODAL */}
       {adminSelectedIssue && (
         <div
@@ -1144,8 +1266,8 @@ export default function App() {
                 {new Date(adminSelectedIssue.created_at).toLocaleString()}
               </div>
               <div>
-                <span className="font-bold block text-slate-400">Upvotes:</span>
-                👍 {adminSelectedIssue.upvotes || 0} Upvotes
+                <span className="font-bold block text-slate-400">Priority Level:</span>
+                ⚡ {adminSelectedIssue.priority || 'Low'}
               </div>
             </div>
 
