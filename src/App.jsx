@@ -486,17 +486,24 @@ export default function App() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this issue report?')) return;
-    const { error } = await supabase.from('issues').delete().eq('id', id);
-    if (error) {
-      alert('Failed to delete issue: ' + error.message);
-    } else {
-      if (adminSelectedIssue && adminSelectedIssue.id === id) {
-        setAdminSelectedIssue(null);
-      }
-      triggerNotification('Report deleted successfully');
-      fetchIssues();
+  const handleDeleteIssue = async (id, photoUrl) => {
+    if (!window.confirm("Are you sure you want to delete this report?")) return;
+
+    try {
+      // 1. Delete the record from Supabase table
+      const { error } = await supabase
+        .from('issues')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // 2. (Optional) Remove the photo from Supabase storage if needed, then refresh list
+      alert("Report deleted successfully!");
+      fetchIssues(); // Refresh your issues state/list
+    } catch (err) {
+      console.error("Error deleting issue:", err.message);
+      alert("Failed to delete report: " + err.message);
     }
   };
 
@@ -516,11 +523,15 @@ export default function App() {
       new Date(issue.created_at).toLocaleString()
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    // Combine headers and rows into a CSV string
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+
+    // Trigger file download in browser
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `civic_issues_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `civic_tracker_reports_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
