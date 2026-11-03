@@ -168,16 +168,18 @@ function ProgressTimeline({ status }) {
           return (
             <div key={step} className="relative z-10 flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${isCompleted
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
-                  : 'bg-white border-2 border-slate-300 text-slate-400'
-                  } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${
+                  isCompleted
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
+                    : 'bg-white border-2 border-slate-300 text-slate-400'
+                } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
               >
                 {isCompleted ? '✓' : idx + 1}
               </div>
               <span
-                className={`text-[11px] mt-1.5 font-bold tracking-tight ${isCompleted ? 'text-slate-900' : 'text-slate-400'
-                  }`}
+                className={`text-[11px] mt-1.5 font-bold tracking-tight ${
+                  isCompleted ? 'text-slate-900' : 'text-slate-400'
+                }`}
               >
                 {step}
               </span>
@@ -268,7 +270,7 @@ export default function App() {
         setLocation(coords);
         setLocStatus(`GPS Locked: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)} (${Math.round(pos.coords.accuracy)}m accuracy)`);
       },
-      (err) => {
+      () => {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -312,13 +314,13 @@ export default function App() {
     }, 5000);
   };
 
-  const sendResolvedEmail = (recipientEmail, issueTitle, status) => {
+  const sendResolvedEmail = (recipientEmail, issueTitle, newStatus) => {
     if (!recipientEmail) return;
 
     const templateParams = {
-      email: issue.email,       // This maps directly to {{email}} in To Email & Reply To
-      issue_title: issue.title, // This maps to {{issue_title}}
-      status: newStatus         // This maps to {{status}}
+      email: recipientEmail,
+      issue_title: issueTitle,
+      status: newStatus
     };
 
     emailjs
@@ -502,10 +504,7 @@ export default function App() {
       new Date(issue.created_at).toLocaleString()
     ]);
 
-    // Combine headers and rows into a CSV string
     const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-
-    // Trigger file download in browser
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -568,6 +567,7 @@ export default function App() {
       if (error) throw error;
 
       setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
+      setAdminSelectedIssue(null); // Close modal if open
       alert("Report deleted successfully!");
     } catch (err) {
       console.error("Error deleting issue:", err.message);
@@ -595,7 +595,6 @@ export default function App() {
               <h1 className="text-3xl font-black tracking-tight text-slate-800">
                 CivicTrack
               </h1>
-
             </div>
           </div>
 
@@ -925,24 +924,16 @@ export default function App() {
                 <div
                   key={issue.id}
                   onClick={() => handleCardClick(issue)}
-                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
-                    }`}
+                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${
+                    isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
+                  }`}
                 >
-
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleDeleteIssue(issue.id)}
-                      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
-                    >
-                      Delete Report
-                    </button>
-                  )}
-
                   <div>
                     <div className="flex justify-between items-start mb-3 gap-2">
                       <div>
-                        <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block mb-2 ${categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
-                          }`}>
+                        <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block mb-2 ${
+                          categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}>
                           {categoryNames[issue.category_id] || 'Civic Issue'}
                         </span>
                         <h3 className="text-lg font-black text-slate-900 leading-snug">{issue.title}</h3>
@@ -950,10 +941,11 @@ export default function App() {
                           <span className="text-xs text-slate-400 block font-mono mt-1 font-semibold">📧 {issue.user_email}</span>
                         )}
                       </div>
-                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${
+                        issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                         issue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                          'bg-blue-100 text-blue-800 border border-blue-200'
-                        }`}>
+                        'bg-blue-100 text-blue-800 border border-blue-200'
+                      }`}>
                         {issue.status}
                       </span>
                     </div>
@@ -1083,10 +1075,11 @@ export default function App() {
                   </p>
                 )}
               </div>
-              <span className={`text-xs font-black px-3.5 py-1.5 rounded-full whitespace-nowrap ${adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+              <span className={`text-xs font-black px-3.5 py-1.5 rounded-full whitespace-nowrap ${
+                adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                 adminSelectedIssue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                  'bg-blue-100 text-blue-800 border border-blue-200'
-                }`}>
+                'bg-blue-100 text-blue-800 border border-blue-200'
+              }`}>
                 {adminSelectedIssue.status}
               </span>
             </div>
@@ -1172,7 +1165,7 @@ export default function App() {
               </div>
 
               <button
-                onClick={() => handleDelete(adminSelectedIssue.id)}
+                onClick={() => handleDeleteIssue(adminSelectedIssue.id)}
                 className="bg-rose-600 hover:bg-rose-700 text-white text-xs px-4 py-2.5 rounded-xl font-extrabold shadow-sm active:scale-95 transition"
               >
                 Delete Report
