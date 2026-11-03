@@ -1,4 +1,4 @@
-package com.getcapacitor.myapp;
+package com.rev0nix.civictrack;
 
 import static org.junit.Assert.*;
 
@@ -20,7 +20,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() throws Exception {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-
-        assertEquals("com.getcapacitor.app", appContext.getPackageName());
+        assertEquals("com.rev0nix.civictrack", appContext.getPackageName());
     }
 }
