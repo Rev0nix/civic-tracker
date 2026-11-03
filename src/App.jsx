@@ -316,17 +316,17 @@ export default function App() {
     if (!recipientEmail) return;
 
     const templateParams = {
-      to_email: recipientEmail,
-      issue_title: issueTitle,
-      status: status,
+      email: issue.email,       // This maps directly to {{email}} in To Email & Reply To
+      issue_title: issue.title, // This maps to {{issue_title}}
+      status: newStatus         // This maps to {{status}}
     };
 
     emailjs
       .send(
-        'YOUR_SERVICE_ID',
-        'YOUR_TEMPLATE_ID',
+        'service_7v8m16b',
+        'template_vtc51wn',
         templateParams,
-        'YOUR_PUBLIC_KEY'
+        'hIQcr3HDUS9AFupsd'
       )
       .then(
         () => triggerNotification('Notification email dispatched to citizen!'),
