@@ -748,7 +748,7 @@ export default function App() {
           <p className="text-xs font-semibold text-indigo-300/80 max-w-xs mb-8 leading-relaxed">
             Smart Municipal Infrastructure Tracking
           </p>
-          
+
         </div>
       )}
 
