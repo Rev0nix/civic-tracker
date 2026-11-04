@@ -735,7 +735,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans antialiased pb-16 selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-700 font-sans antialiased pb-16 selection:bg-indigo-700 selection:text-white">
 
       {showSplash && (
         <div className="fixed inset-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 text-white flex flex-col items-center justify-center z-[99999] p-6 text-center select-none">
