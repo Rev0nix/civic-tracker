@@ -746,15 +746,9 @@ export default function App() {
             CivicTrack
           </h1>
           <p className="text-xs font-semibold text-indigo-300/80 max-w-xs mb-8 leading-relaxed">
-            Smart Municipal Infrastructure Tracking & In-App OTA Updates
+            Smart Municipal Infrastructure Tracking
           </p>
-
-          <div className="flex flex-col items-center gap-2 text-xs text-slate-400 font-mono bg-white/5 px-4 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              Initializing GPS & checking in-app updates...
-            </div>
-          </div>
+          
         </div>
       )}
 
