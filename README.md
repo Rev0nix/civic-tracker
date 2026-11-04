@@ -2,6 +2,7 @@
 
 **CivicTrack** is a modern, responsive, and full-stack municipal issue-reporting and tracking platform. Designed to bridge the gap between citizens and local government bodies, it enables everyday users to report municipal infrastructure problems—such as damaged potholes, faulty street lights, broken water/drainage pipes, and garbage overflows—with high precision. Concurrently, it provides municipal authorities with a dedicated administrative control center to manage, filter, analyze, and resolve these reports in real-time.
 
+🌐 **Live Demo:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
 
 ---
 
@@ -98,9 +99,6 @@ CivicTrack is configured for automated continuous deployment to GitHub Pages via
     git add .
     git commit -m "Update project features and UI components"
     git push origin main    
-
-
-🌐 **Live Demo:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
 
 ### 📥 Download App
 [Download Latest Debug APK v1.0.0](https://github.com/Rev0nix/civic-tracker/releases/download/v1.0.0/app-debug.apk)
