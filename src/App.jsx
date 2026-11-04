@@ -268,6 +268,10 @@ export default function App() {
 
   const deviceId = getDeviceId();
 
+  // --- ADD THESE NEW STATES HERE ---
+  const [toastMessage, setToastMessage] = useState(null);
+  const [selectedFilter, setSelectedFilter] = useState('All');
+
   // Close admin menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -277,6 +281,33 @@ export default function App() {
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // --- ADD THIS REAL-TIME NOTIFICATION useEffect HERE ---
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'issues' },
+        (payload) => {
+          const updatedIssue = payload.new;
+          setToastMessage(`📢 Issue #${updatedIssue.id} status updated to: ${updatedIssue.status}`);
+
+          if (typeof fetchIssues === 'function') {
+            fetchIssues();
+          }
+
+          setTimeout(() => {
+            setToastMessage(null);
+          }, 5000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleFileChange = (e) => {
@@ -926,6 +957,22 @@ export default function App() {
           </form>
         )}
 
+        {/* --- ADD THIS FILTER BAR UI RIGHT ABOVE THE MAP --- */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+          {['All', 'Roads', 'Lighting', 'Water', 'Sanitation', 'Resolved'].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setSelectedFilter(filter)}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition active:scale-95 shadow-2xs ${selectedFilter === filter
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+            >
+              {filter === 'All' ? '🌐 All Reports' : filter}
+            </button>
+          ))}
+        </div>
+
         {/* Main Interactive Map View */}
         <div className="mb-10 relative z-0" style={{ isolation: 'isolate' }}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
@@ -1038,6 +1085,13 @@ export default function App() {
               const locText = addresses[issue.id];
               const coords = parseLocation(issue.location);
               const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
+
+              // --- STEP 2: FILTER LOGIC ---
+              const filteredIssues = issues.filter(issue => {
+                if (selectedFilter === 'All') return true;
+                if (selectedFilter === 'Resolved') return issue.status === 'Resolved';
+                return categoryNames[issue.category_id] === selectedFilter;
+              });
 
               return (
                 <div
@@ -1318,6 +1372,14 @@ export default function App() {
           </div>
         </div>
       )}
-    </div>
+      {/* --- STEP 4: FLOATING TOAST NOTIFICATION --- */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[99999] bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-indigo-500/50 flex items-center gap-3 animate-bounce">
+          <span className="text-xl">🔔</span>
+          <p className="text-xs font-bold tracking-wide">{toastMessage}</p>
+        </div>
+      )}
+
+   </div>
   );
 }
