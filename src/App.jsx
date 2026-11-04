@@ -272,6 +272,17 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState('All');
 
+  // Splash Screen State
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Auto-hide splash after 2.5 seconds once checks finish
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Close admin menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -725,6 +736,28 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans antialiased pb-16 selection:bg-indigo-500 selection:text-white">
+
+      {showSplash && (
+        <div className="fixed inset-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 text-white flex flex-col items-center justify-center z-[99999] p-6 text-center select-none">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center text-4xl font-black shadow-2xl shadow-indigo-500/50 mb-6 animate-pulse">
+            🏛️
+          </div>
+          <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-white via-indigo-200 to-purple-300 bg-clip-text text-transparent">
+            CivicTrack
+          </h1>
+          <p className="text-xs font-semibold text-indigo-300/80 max-w-xs mb-8 leading-relaxed">
+            Smart Municipal Infrastructure Tracking & In-App OTA Updates
+          </p>
+
+          <div className="flex flex-col items-center gap-2 text-xs text-slate-400 font-mono bg-white/5 px-4 py-3 rounded-2xl border border-white/10 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              Initializing GPS & checking in-app updates...
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Realtime Notification Banner */}
       {notification && (
         <div className="fixed top-5 right-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl z-[10001] transition transform flex items-center gap-3 text-sm font-bold border border-white/20 animate-bounce backdrop-blur-lg">
@@ -1380,6 +1413,6 @@ export default function App() {
         </div>
       )}
 
-   </div>
+    </div>
   );
 }
