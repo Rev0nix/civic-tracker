@@ -684,22 +684,24 @@ export default function App() {
 
           <div className="flex items-center gap-3">
             {isAdmin ? (
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 justify-end">
-                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 whitespace-nowrap">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse inline-block" />
-                  Admin Active
-                </span>
+              <div className="flex flex-col items-end gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse inline-block" />
+                    Admin Active
+                  </span>
+                  <button
+                    onClick={() => setIsAdmin(false)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold px-3 py-1 rounded-xl transition border border-slate-300/80 active:scale-95 whitespace-nowrap shadow-2xs"
+                  >
+                    Exit
+                  </button>
+                </div>
                 <button
                   onClick={exportToCSV}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs transition active:scale-95 flex items-center gap-1 whitespace-nowrap"
                 >
                   📥 Export CSV
-                </button>
-                <button
-                  onClick={() => setIsAdmin(false)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl transition border border-slate-300/80 active:scale-95 whitespace-nowrap"
-                >
-                  Exit
                 </button>
               </div>
             ) : (
