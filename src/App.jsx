@@ -340,6 +340,39 @@ export default function App() {
     return () => supabase.removeChannel(channel);
   }, [isAdmin]);
 
+  // In-App OTA Version Checker
+  useEffect(() => {
+    async function checkAppVersion() {
+      try {
+        const { data, error } = await supabase
+          .from('app_versions')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error || !data) return;
+
+        const currentAppVersion = '1.0.0'; // Update this whenever you push major releases
+
+        if (data.version !== currentAppVersion) {
+          const userWantsUpdate = window.confirm(
+            `🚀 New Update Available (v${data.version})!\n\nWhat's new: ${data.changelog || 'Performance improvements & bug fixes'}\n\nTap OK to update instantly.`
+          );
+
+          if (userWantsUpdate) {
+            // Redirects to your latest hosted web build/PWA bundle instantly
+            window.location.href = data.update_url;
+          }
+        }
+      } catch (err) {
+        console.warn('Version check skipped offline:', err);
+      }
+    }
+
+    checkAppVersion();
+  }, []);
+
   const triggerNotification = (msg) => {
     setNotification(msg);
     setTimeout(() => {
