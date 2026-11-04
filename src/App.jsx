@@ -27,9 +27,9 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -196,18 +196,16 @@ function ProgressTimeline({ status }) {
           return (
             <div key={step} className="relative z-10 flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${
-                  isCompleted
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
-                    : 'bg-white border-2 border-slate-300 text-slate-400'
-                } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${isCompleted
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
+                  : 'bg-white border-2 border-slate-300 text-slate-400'
+                  } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
               >
                 {isCompleted ? '✓' : idx + 1}
               </div>
               <span
-                className={`text-[11px] mt-1.5 font-bold tracking-tight ${
-                  isCompleted ? 'text-slate-900' : 'text-slate-400'
-                }`}
+                className={`text-[11px] mt-1.5 font-bold tracking-tight ${isCompleted ? 'text-slate-900' : 'text-slate-400'
+                  }`}
               >
                 {step}
               </span>
@@ -679,27 +677,27 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-tight text-slate-800">
-                CivicTrack 
+                CivicTrack
               </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             {isAdmin ? (
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <button
-                  onClick={exportToCSV}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md shadow-emerald-200 transition active:scale-95 flex items-center gap-1.5"
-                >
-                  📥 Export CSV
-                </button>
-                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 justify-end">
+                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 whitespace-nowrap">
                   <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse inline-block" />
                   Admin Active
                 </span>
                 <button
+                  onClick={exportToCSV}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  📥 Export CSV
+                </button>
+                <button
                   onClick={() => setIsAdmin(false)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl transition border border-slate-300/80 active:scale-95"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl transition border border-slate-300/80 active:scale-95 whitespace-nowrap"
                 >
                   Exit
                 </button>
@@ -1010,23 +1008,20 @@ export default function App() {
                 <div
                   key={issue.id}
                   onClick={() => handleCardClick(issue)}
-                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${
-                    isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
-                  }`}
+                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
+                    }`}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-3 gap-2">
                       <div>
                         <div className="flex gap-2 items-center mb-2 flex-wrap">
-                          <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${
-                            categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
-                          }`}>
+                          <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}>
                             {categoryNames[issue.category_id] || 'Civic Issue'}
                           </span>
                           {issue.priority && (
-                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
-                              issue.priority === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-slate-100 text-slate-700'
-                            }`}>
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${issue.priority === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-slate-100 text-slate-700'
+                              }`}>
                               ⚡ {issue.priority} Priority
                             </span>
                           )}
@@ -1036,11 +1031,10 @@ export default function App() {
                           <span className="text-xs text-slate-400 block font-mono mt-1 font-semibold">📧 {issue.user_email}</span>
                         )}
                       </div>
-                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${
-                        issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                         issue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                        'bg-blue-100 text-blue-800 border border-blue-200'
-                      }`}>
+                          'bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}>
                         {issue.status}
                       </span>
                     </div>
@@ -1167,118 +1161,111 @@ export default function App() {
       </div>
 
       {/* ADMIN FULL REPORT DETAILS MODAL */}
+      {/* ADMIN FULL REPORT DETAILS MODAL */}
       {adminSelectedIssue && (
         <div
-          className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => setAdminSelectedIssue(null)}
         >
           <div
-            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto border border-slate-200 z-[10000]"
+            className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto border border-slate-200 z-[10000]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
               onClick={() => setAdminSelectedIssue(null)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-800 text-2xl font-bold leading-none"
+              className="absolute top-5 right-5 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-lg transition"
             >
               &times;
             </button>
 
             {/* Modal Header */}
-            <div className="flex items-start justify-between gap-4 mb-5 pr-6">
+            <div className="flex items-start justify-between gap-4 mb-6 pr-8">
               <div>
                 <span className="text-xs font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full inline-block mb-2">
-                  🛡️ Admin View • {categoryNames[adminSelectedIssue.category_id] || 'Civic Issue'}
+                  📌 Report ID #{adminSelectedIssue.id} • {categoryNames[adminSelectedIssue.category_id]}
                 </span>
-                <h2 className="text-2xl font-black text-slate-900">{adminSelectedIssue.title}</h2>
+                <h2 className="text-2xl font-black text-slate-900 leading-snug">{adminSelectedIssue.title}</h2>
                 {adminSelectedIssue.user_email && (
-                  <p className="text-xs text-indigo-800 font-bold mt-1">
-                    📧 Reporter Email: {adminSelectedIssue.user_email}
+                  <p className="text-xs text-indigo-800 font-bold mt-1 flex items-center gap-1.5">
+                    <span>📧</span> Citizen Contact: {adminSelectedIssue.user_email}
                   </p>
                 )}
               </div>
-              <span className={`text-xs font-black px-3.5 py-1.5 rounded-full whitespace-nowrap ${
-                adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+              <span className={`text-xs font-black px-4 py-1.5 rounded-full whitespace-nowrap shadow-xs ${adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                 adminSelectedIssue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                'bg-blue-100 text-blue-800 border border-blue-200'
-              }`}>
+                  'bg-blue-100 text-blue-800 border border-blue-200'
+                }`}>
                 {adminSelectedIssue.status}
               </span>
             </div>
 
-            {/* Modal Progress Bar */}
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-5">
-              <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Resolution Status</span>
-              <ProgressTimeline status={adminSelectedIssue.status} />
+            {/* Two Column Grid for Proof & Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Left: Photo Proof */}
+              {adminSelectedIssue.photo_url ? (
+                <div>
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Visual Evidence</h4>
+                  <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-inner bg-slate-50 h-64">
+                    <img
+                      src={adminSelectedIssue.photo_url}
+                      alt="Proof"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center bg-slate-50 rounded-2xl border border-slate-200 p-6 text-slate-400 text-xs font-bold h-64">
+                  No photo attached
+                </div>
+              )}
+
+              {/* Right: Location & Address */}
+              <div className="flex flex-col justify-between">
+                <div>
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Location Coordinates</h4>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4">
+                    <p className="text-xs font-bold text-slate-800 leading-relaxed mb-2">
+                      📍 {modalAddressText}
+                    </p>
+                    {modalCoords && (
+                      <a
+                        href={`https://www.google.com/maps?q=${modalCoords.lat},${modalCoords.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 font-bold text-xs hover:underline block"
+                      >
+                        Open in Google Maps ↗
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
+                  <span className="text-[11px] font-extrabold text-indigo-900 uppercase tracking-wider block mb-1">AI Priority Score</span>
+                  <span className="text-sm font-black text-indigo-950 flex items-center gap-1.5">
+                    ⚡ {adminSelectedIssue.priority || 'Low'} Priority Hazard
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* High-Res Proof Image */}
-            {adminSelectedIssue.photo_url && (
-              <div className="mb-5">
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Uploaded Photo Proof</h4>
-                <img
-                  src={adminSelectedIssue.photo_url}
-                  alt="Proof"
-                  className="w-full max-h-80 object-cover rounded-2xl border border-slate-200 shadow-sm"
-                />
-              </div>
-            )}
-
-            {/* Full Detailed Description */}
-            <div className="mb-5">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Issue Description</h4>
+            {/* Description Section */}
+            <div className="mb-6">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Full Description</h4>
               <p className="text-slate-800 bg-slate-50 p-4 rounded-2xl border border-slate-200 whitespace-pre-wrap leading-relaxed text-sm font-medium">
                 {adminSelectedIssue.description || 'No detailed description provided.'}
               </p>
             </div>
 
-            {/* Location Section */}
-            <div className="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 mb-5">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-900 mb-2">Location & Address</h4>
-              <div className="bg-white p-3.5 rounded-xl border border-indigo-100 mb-3 leading-relaxed">
-                <p className="text-sm font-bold text-slate-900">
-                  📍 {modalAddressText}
-                </p>
-              </div>
-              {modalCoords ? (
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono text-slate-700 bg-white p-3 rounded-xl border border-indigo-100">
-                  <span>GPS: Latitude {modalCoords.lat.toFixed(6)}, Longitude {modalCoords.lng.toFixed(6)}</span>
-                  <a
-                    href={`https://www.google.com/maps?q=${modalCoords.lat},${modalCoords.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-sans text-xs px-4 py-2 rounded-xl font-bold whitespace-nowrap shadow-sm active:scale-95 transition"
-                  >
-                    Open Google Maps ↗
-                  </a>
-                </div>
-              ) : (
-                <p className="text-xs text-slate-500 bg-white p-2 rounded-xl border border-slate-200">
-                  No GPS coordinates attached to this report.
-                </p>
-              )}
-            </div>
-
-            {/* Metadata Summary */}
-            <div className="grid grid-cols-2 gap-4 text-xs text-slate-600 pt-2 border-t border-slate-200 mb-6 font-medium">
-              <div>
-                <span className="font-bold block text-slate-400">Timestamp:</span>
-                {new Date(adminSelectedIssue.created_at).toLocaleString()}
-              </div>
-              <div>
-                <span className="font-bold block text-slate-400">Priority Level:</span>
-                ⚡ {adminSelectedIssue.priority || 'Low'}
-              </div>
-            </div>
-
-            {/* Admin Actions Bar inside Modal */}
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200 bg-slate-100 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 p-5 sm:p-6 rounded-b-3xl">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-extrabold text-slate-700">Update Status:</label>
+            {/* Admin Action Control Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-5 border-t border-slate-200 bg-slate-50 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 p-5 sm:p-6 rounded-b-3xl gap-4">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <label className="text-xs font-extrabold text-slate-700 whitespace-nowrap">Change Status:</label>
                 <select
                   value={adminSelectedIssue.status}
                   onChange={(e) => handleStatusChange(adminSelectedIssue, e.target.value)}
-                  className="p-2 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none flex-1 sm:w-44 shadow-xs"
                 >
                   <option value="Submitted">Submitted</option>
                   <option value="In Progress">In Progress</option>
@@ -1288,7 +1275,7 @@ export default function App() {
 
               <button
                 onClick={() => handleDeleteIssue(adminSelectedIssue.id)}
-                className="bg-rose-600 hover:bg-rose-700 text-white text-xs px-4 py-2.5 rounded-xl font-extrabold shadow-sm active:scale-95 transition"
+                className="bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 text-xs px-5 py-2.5 rounded-xl font-extrabold shadow-xs active:scale-95 transition w-full sm:w-auto"
               >
                 Delete Report
               </button>
