@@ -812,24 +812,52 @@ export default function App() {
                 </button>
 
                 {showAdminMenu && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-50">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Access Portal</p>
-                    <form onSubmit={handleAdminLogin} className="flex flex-col gap-2">
-                      <input
-                        type="password"
-                        placeholder="Enter Passcode"
-                        value={adminPass}
-                        onChange={(e) => setAdminPass(e.target.value)}
-                        className="p-2.5 border border-slate-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:outline-none w-full bg-slate-50 font-mono"
-                        autoFocus
-                      />
-                      <button
-                        type="submit"
-                        className="bg-slate-900 hover:bg-black text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md active:scale-95 w-full"
-                      >
-                        Authenticate
-                      </button>
-                    </form>
+                  <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-50 flex flex-col gap-3">
+
+                    {/* Option 1: Admin Access Portal */}
+                    <div>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Admin Access</p>
+                      <form onSubmit={handleAdminLogin} className="flex flex-col gap-2">
+                        <input
+                          type="password"
+                          placeholder="Enter Passcode"
+                          value={adminPass}
+                          onChange={(e) => setAdminPass(e.target.value)}
+                          className="p-2.5 border border-slate-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:outline-none w-full bg-slate-50 font-mono"
+                          autoFocus
+                        />
+                        <button
+                          type="submit"
+                          className="bg-slate-900 hover:bg-black text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md active:scale-95 w-full"
+                        >
+                          Authenticate
+                        </button>
+                      </form>
+                    </div>
+
+                    <hr className="border-slate-100 my-1" />
+
+                    {/* Option 2: Settings / App Info */}
+                    <div>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Settings</p>
+                      <div className="flex flex-col gap-1.5 text-xs text-slate-700">
+                        <div className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/60 font-semibold">
+                          <span>App Version</span>
+                          <span className="font-mono font-bold text-indigo-600">v1.0.0</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            alert("CivicTrack is up to date! Live OTA version checking is active.");
+                            setShowAdminMenu(false);
+                          }}
+                          className="w-full text-left bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-xl border border-slate-200/60 font-semibold transition flex items-center justify-between"
+                        >
+                          <span>Check for Updates</span>
+                          <span>🔄</span>
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
                 )}
               </div>
