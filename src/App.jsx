@@ -4,6 +4,10 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import emailjs from '@emailjs/browser';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import CivicMap from './components/CivicMap';
+
+// Inside your main view component or issue card modal:
+<CivicMap latitude={issue.latitude} longitude={issue.longitude} />
 
 const categoryNames = {
   1: 'Roads & Potholes',
