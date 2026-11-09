@@ -154,18 +154,16 @@ function ProgressTimeline({ status }) {
           return (
             <div key={step} className="relative z-10 flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${
-                  isCompleted
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
-                    : 'bg-white border-2 border-slate-300 text-slate-400'
-                } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${isCompleted
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
+                  : 'bg-white border-2 border-slate-300 text-slate-400'
+                  } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
               >
                 {isCompleted ? '✓' : idx + 1}
               </div>
               <span
-                className={`text-[11px] mt-1.5 font-bold tracking-tight ${
-                  isCompleted ? 'text-slate-900' : 'text-slate-400'
-                }`}
+                className={`text-[11px] mt-1.5 font-bold tracking-tight ${isCompleted ? 'text-slate-900' : 'text-slate-400'
+                  }`}
               >
                 {step}
               </span>
@@ -383,14 +381,13 @@ export default function App() {
         'service_7v8m16b',
         'template_vtc51wn',
         templateParams,
-        'hIQcr3HDUS9AFupsd'
+        'hIQcr3HDUS9AFupsd' // <-- Make sure this is your correct public key
       )
       .then(
         () => triggerNotification('Notification email dispatched to citizen!'),
-        (err) => console.warn('Email send error:', err)
+        (err) => console.warn('Email send error:', err.text || err)
       );
   };
-
   const fetchIssues = async () => {
     let query = supabase
       .from('issues')
@@ -932,11 +929,10 @@ export default function App() {
             <button
               key={filter}
               onClick={() => setSelectedFilter(filter)}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition active:scale-95 shadow-2xs ${
-                selectedFilter === filter
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition active:scale-95 shadow-2xs ${selectedFilter === filter
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
             >
               {filter === 'All' ? '🌐 All Reports' : filter}
             </button>
@@ -1029,23 +1025,20 @@ export default function App() {
                 <div
                   key={issue.id}
                   onClick={() => handleCardClick(issue)}
-                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${
-                    isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
-                  }`}
+                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
+                    }`}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-3 gap-2">
                       <div>
                         <div className="flex gap-2 items-center mb-2 flex-wrap">
-                          <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${
-                            categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
-                          }`}>
+                          <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}>
                             {categoryNames[issue.category_id] || 'Civic Issue'}
                           </span>
                           {issue.priority && (
-                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
-                              issue.priority === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-slate-100 text-slate-700'
-                            }`}>
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${issue.priority === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-slate-100 text-slate-700'
+                              }`}>
                               ⚡ {issue.priority} Priority
                             </span>
                           )}
@@ -1055,11 +1048,10 @@ export default function App() {
                           <span className="text-xs text-slate-400 block font-mono mt-1 font-semibold">📧 {issue.user_email}</span>
                         )}
                       </div>
-                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${
-                        issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                         issue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                        'bg-blue-100 text-blue-800 border border-blue-200'
-                      }`}>
+                          'bg-blue-100 text-blue-800 border border-blue-200'
+                        }`}>
                         {issue.status}
                       </span>
                     </div>
@@ -1211,11 +1203,10 @@ export default function App() {
                   </p>
                 )}
               </div>
-              <span className={`text-xs font-black px-4 py-1.5 rounded-full whitespace-nowrap shadow-xs ${
-                adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+              <span className={`text-xs font-black px-4 py-1.5 rounded-full whitespace-nowrap shadow-xs ${adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                 adminSelectedIssue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                'bg-blue-100 text-blue-800 border border-blue-200'
-              }`}>
+                  'bg-blue-100 text-blue-800 border border-blue-200'
+                }`}>
                 {adminSelectedIssue.status}
               </span>
             </div>
