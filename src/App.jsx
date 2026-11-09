@@ -6,9 +6,6 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import CivicMap from './components/CivicMap';
 
-// Inside your main view component or issue card modal:
-<CivicMap latitude={issue.latitude} longitude={issue.longitude} />
-
 const categoryNames = {
   1: 'Roads & Potholes',
   2: 'Street Lighting',
@@ -1022,38 +1019,13 @@ export default function App() {
 
           <div className="h-56 w-full rounded-3xl overflow-hidden border border-slate-200/90 shadow-md bg-slate-100 flex items-center justify-center relative z-0">
             {location ? (
-              <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%', zIndex: 1 }}>
-                <ChangeView center={[location.lat, location.lng]} />
-                <TileLayer
-                  attribution='&copy; OpenStreetMap contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <Marker position={[location.lat, location.lng]} icon={userIcon}>
-                  <Popup>📍 Your Current Device Location</Popup>
-                </Marker>
 
-                {filteredIssues.map((issue) => {
-                  const coords = parseLocation(issue.location);
-                  if (!coords) return null;
-                  return (
-                    <Marker
-                      key={issue.id}
-                      position={[coords.lat, coords.lng]}
-                      icon={createCustomIcon(issue.category_id, issue.status, issue.priority)}
-                    >
-                      <Popup>
-                        <div className="p-1">
-                          <strong className="text-slate-900 font-bold">{issue.title}</strong>
-                          <p className="text-xs text-slate-600 my-1 leading-relaxed">{issue.description}</p>
-                          <span className="text-xs font-bold text-indigo-600">Upvotes: 👍 {issue.upvotes || 0}</span>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  );
-                })}
-              </MapContainer>
+            // Inside your render:
+            <CivicMap latitude={issue.latitude} longitude={issue.longitude} />
+
+
             ) : (
-              <p className="text-slate-500 font-bold animate-pulse">Locking location signal...</p>
+            <p className="text-slate-500 font-bold animate-pulse">Locking location signal...</p>
             )}
           </div>
         </div>
