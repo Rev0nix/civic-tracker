@@ -182,3 +182,6 @@
     border-right-color: var(--border);
   }
 }
+.leaflet-control-attribution {
+  display: none !important;
+}
