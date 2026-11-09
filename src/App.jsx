@@ -896,14 +896,32 @@ export default function App() {
 
             <div className="mb-6">
               <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
-                Upload Photo Proof (Auto-Compressed)
+                Upload Photo Proof
               </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="p-3 text-sm text-slate-600 bg-slate-50 border border-slate-300/80 rounded-2xl w-full file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-              />
+
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <label className="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-extrabold py-3 px-4 rounded-2xl text-center transition active:scale-95 flex items-center justify-center gap-2">
+                  <span>📷</span> Take Photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+
+                <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-extrabold py-3 px-4 rounded-2xl text-center transition active:scale-95 flex items-center justify-center gap-2">
+                  <span>🖼️</span> Choose Gallery
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
               {imagePreview && (
                 <div className="mt-4 relative w-40 h-40 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
