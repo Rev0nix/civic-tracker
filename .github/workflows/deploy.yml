@@ -23,9 +23,9 @@ jobs:
       - name: Build project
         run: npm run build
         env:
-          VITE_SUPABASE_URL: https://mpnnfbdieihzxzzsyooa.supabase.co
-          VITE_SUPABASE_ANON_KEY: sb_publishable_5MiGrFAv95zS55q5XZRNzQ_1udEajvh
-          VITE_GOOGLE_MAPS_API_KEY: 016089-E20F62-171E41
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
