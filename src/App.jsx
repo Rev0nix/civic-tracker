@@ -912,7 +912,7 @@ export default function App() {
                 </label>
 
                 <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-extrabold py-3 px-4 rounded-2xl text-center transition active:scale-95 flex items-center justify-center gap-2">
-                  <span>🖼️</span> Choose Gallery
+                  <span>🖼️</span> Gallery
                   <input
                     type="file"
                     accept="image/*"
