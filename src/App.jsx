@@ -291,7 +291,7 @@ export default function App() {
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setLocation(coords);
-        setLocStatus(`GPS Locked: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)} (${Math.round(pos.coords.accuracy)}m accuracy)`);
+        setLocStatus(`GPS Locked: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
       },
       () => {
         navigator.geolocation.getCurrentPosition(
@@ -528,7 +528,7 @@ export default function App() {
       setFile(null);
       setImagePreview(null);
       fetchIssues();
-      triggerNotification(`Issue reported successfully! AI Priority: ${priorityScore}`);
+      triggerNotification('Issue reported successfully!');
     } catch (err) {
       alert(err.message);
     } finally {
@@ -887,7 +887,7 @@ export default function App() {
 
             <div className="mb-5">
               <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
-                Detailed Description <span className="text-indigo-600 font-normal">(AI Priority Scoring Enabled)</span>
+                Detailed Description
               </label>
               <textarea
                 placeholder="Describe landmark details, hazard level, or relevant landmarks..."
@@ -928,9 +928,6 @@ export default function App() {
               {imagePreview && (
                 <div className="mt-4 relative w-40 h-40 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <span className="absolute bottom-0 inset-x-0 bg-slate-900/80 text-white text-[10px] font-bold text-center py-1 backdrop-blur-xs">
-                    Ready to Compress
-                  </span>
                 </div>
               )}
             </div>
@@ -940,7 +937,7 @@ export default function App() {
               disabled={loading || !location}
               className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold py-4 px-9 rounded-2xl transition shadow-lg shadow-indigo-300/50 disabled:opacity-50 disabled:shadow-none w-full sm:w-auto active:scale-98"
             >
-              {loading ? 'Compressing & Submitting...' : 'Submit Official Report'}
+              {loading ? 'Submitting...' : 'Submit Official Report'}
             </button>
           </form>
         )}
@@ -1057,12 +1054,6 @@ export default function App() {
                             }`}>
                             {categoryNames[issue.category_id] || 'Civic Issue'}
                           </span>
-                          {issue.priority && (
-                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${issue.priority === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-slate-100 text-slate-700'
-                              }`}>
-                              ⚡ {issue.priority} Priority
-                            </span>
-                          )}
                         </div>
                         <h3 className="text-lg font-black text-slate-900 leading-snug">{issue.title}</h3>
                         {issue.user_email && (
@@ -1269,13 +1260,6 @@ export default function App() {
                       </a>
                     )}
                   </div>
-                </div>
-
-                <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
-                  <span className="text-[11px] font-extrabold text-indigo-900 uppercase tracking-wider block mb-1">AI Priority Score</span>
-                  <span className="text-sm font-black text-indigo-950 flex items-center gap-1.5">
-                    ⚡ {adminSelectedIssue.priority || 'Low'} Priority Hazard
-                  </span>
                 </div>
               </div>
             </div>
