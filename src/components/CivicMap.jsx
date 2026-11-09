@@ -5,10 +5,10 @@ export default function CivicMap({ latitude, longitude }) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   return (
-    <MapContainer center={[latitude, longitude]} zoom={15} style={{ height: '400px', width: '100%' }}>
+    <MapContainer center={[latitude, longitude]} zoom={15} style={{ height: '100%', width: '100%' }}>
       <TileLayer
         url={`https://maps.googleapis.com/maps/api/vt?lyrs=m&x={x}&y={y}&z={z}&key=${apiKey}`}
-        attribution='&copy; <a href="https://maps.google.com">Google Maps</a>'
+        attribution=""
         maxZoom={20}
       />
       <Marker position={[latitude, longitude]}>
