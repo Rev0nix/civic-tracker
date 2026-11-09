@@ -46,49 +46,6 @@ const analyzePriority = (title, description) => {
   return 'Low';
 };
 
-const createCustomIcon = (categoryId, status, priority) => {
-  let color = '#3B82F6';
-
-  if (status === 'Resolved') {
-    color = '#10B981';
-  } else if (priority === 'Critical') {
-    color = '#EF4444';
-  } else if (status === 'In Progress') {
-    color = '#F59E0B';
-  } else {
-    switch (parseInt(categoryId)) {
-      case 1: color = '#F43F5E'; break;
-      case 2: color = '#F59E0B'; break;
-      case 3: color = '#06B6D4'; break;
-      case 4: color = '#8B5CF6'; break;
-      default: color = '#3B82F6';
-    }
-  }
-
-  const svgMarker = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="36" height="36" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.25))">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-    </svg>`;
-
-  return L.divIcon({
-    className: 'custom-leaflet-icon',
-    html: svgMarker,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -36],
-  });
-};
-
-const userIcon = L.divIcon({
-  className: 'user-leaflet-icon',
-  html: `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#6366F1" width="32" height="32" filter="drop-shadow(0 4px 6px rgba(99,102,241,0.4))">
-      <circle cx="12" cy="12" r="8" fill="#6366F1" stroke="#FFFFFF" stroke-width="3.5"/>
-    </svg>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-});
-
 const getDeviceId = () => {
   let deviceId = localStorage.getItem('civic_tracker_device_id');
   if (!deviceId) {
@@ -197,16 +154,18 @@ function ProgressTimeline({ status }) {
           return (
             <div key={step} className="relative z-10 flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${isCompleted
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
-                  : 'bg-white border-2 border-slate-300 text-slate-400'
-                  } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${
+                  isCompleted
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
+                    : 'bg-white border-2 border-slate-300 text-slate-400'
+                } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
               >
                 {isCompleted ? '✓' : idx + 1}
               </div>
               <span
-                className={`text-[11px] mt-1.5 font-bold tracking-tight ${isCompleted ? 'text-slate-900' : 'text-slate-400'
-                  }`}
+                className={`text-[11px] mt-1.5 font-bold tracking-tight ${
+                  isCompleted ? 'text-slate-900' : 'text-slate-400'
+                }`}
               >
                 {step}
               </span>
@@ -216,17 +175,6 @@ function ProgressTimeline({ status }) {
       </div>
     </div>
   );
-}
-
-function ChangeView({ center }) {
-  const map = useMap();
-  useEffect(() => {
-    if (center) {
-      map.setView(center, 16);
-      map.invalidateSize();
-    }
-  }, [center, map]);
-  return null;
 }
 
 export default function App() {
@@ -269,7 +217,6 @@ export default function App() {
 
   const deviceId = getDeviceId();
 
-  // --- ADD THESE NEW STATES HERE ---
   const [toastMessage, setToastMessage] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState('All');
 
@@ -295,7 +242,7 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // --- ADD THIS REAL-TIME NOTIFICATION useEffect HERE ---
+  // Real-time Notification useEffect
   useEffect(() => {
     const channel = supabase
       .channel('schema-db-changes')
@@ -396,7 +343,7 @@ export default function App() {
 
         if (error || !data) return;
 
-        const currentAppVersion = '1.0.0'; // Update this whenever you push major releases
+        const currentAppVersion = '1.0.0';
 
         if (data.version !== currentAppVersion) {
           const userWantsUpdate = window.confirm(
@@ -404,7 +351,6 @@ export default function App() {
           );
 
           if (userWantsUpdate) {
-            // Redirects to your latest hosted web build/PWA bundle instantly
             window.location.href = data.update_url;
           }
         }
@@ -512,7 +458,6 @@ export default function App() {
       });
   }, [adminSelectedIssue]);
 
-  // AI Feature: Duplicate Detection Check before submission
   const checkForDuplicates = () => {
     if (!location) return null;
     const nearby = issues.filter(issue => {
@@ -520,7 +465,7 @@ export default function App() {
       const coords = parseLocation(issue.location);
       if (!coords) return false;
       const distance = calculateDistance(location.lat, location.lng, coords.lat, coords.lng);
-      return distance <= 100; // Within 100 meters radius
+      return distance <= 100;
     });
     return nearby.length > 0 ? nearby[0] : null;
   };
@@ -532,7 +477,6 @@ export default function App() {
       return;
     }
 
-    // AI Duplicate Detection Check
     const duplicate = checkForDuplicates();
     if (duplicate) {
       const proceed = window.confirm(`⚠️ AI Notice: An issue similar to "${duplicate.title}" was already reported ~${Math.round(calculateDistance(location.lat, location.lng, parseLocation(duplicate.location).lat, parseLocation(duplicate.location).lng))}m away. Would you like to upvote that report instead?`);
@@ -558,7 +502,6 @@ export default function App() {
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
       }
 
-      // AI Smart Priority Scoring Analysis
       const priorityScore = analyzePriority(title, description);
       const pointLocation = `POINT(${location.lng} ${location.lat})`;
 
@@ -573,7 +516,7 @@ export default function App() {
           status: 'Submitted',
           device_id: deviceId,
           upvotes: 0,
-          priority: priorityScore, // Storing AI priority score
+          priority: priorityScore,
         },
       ]);
 
@@ -670,7 +613,6 @@ export default function App() {
     }
   };
 
-  // AI Multilingual Chatbot Response Handler
   const handleChatSend = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -695,6 +637,11 @@ export default function App() {
   const filteredIssues = issues.filter((i) => {
     const matchCategory = filterCategory === 'all' || i.category_id === parseInt(filterCategory);
     const matchStatus = filterStatus === 'all' || i.status === filterStatus;
+
+    if (selectedFilter !== 'All') {
+      if (selectedFilter === 'Resolved' && i.status !== 'Resolved') return false;
+      if (selectedFilter !== 'Resolved' && categoryNames[i.category_id] !== selectedFilter) return false;
+    }
 
     const query = searchQuery.toLowerCase();
     const addressStr = addresses[i.id] || '';
@@ -749,18 +696,15 @@ export default function App() {
           <p className="text-xs font-semibold text-indigo-300/80 max-w-xs mb-8 leading-relaxed">
             Smart Municipal Infrastructure Tracking
           </p>
-
         </div>
       )}
 
-      {/* Realtime Notification Banner */}
       {notification && (
         <div className="fixed top-5 right-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl z-[10001] transition transform flex items-center gap-3 text-sm font-bold border border-white/20 animate-bounce backdrop-blur-lg">
           <span className="text-xl">🔔</span> {notification}
         </div>
       )}
 
-      {/* Glassmorphism Navigation Header */}
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -834,7 +778,6 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
-        {/* Admin Analytics Cards */}
         {isAdmin && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-8">
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs text-center hover:shadow-md transition">
@@ -860,7 +803,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Citizen Form Container */}
         {!isAdmin && (
           <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md shadow-slate-200/50 mb-10 transition">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
@@ -985,28 +927,28 @@ export default function App() {
           </form>
         )}
 
-        {/* --- ADD THIS FILTER BAR UI RIGHT ABOVE THE MAP --- */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
           {['All', 'Roads', 'Lighting', 'Water', 'Sanitation', 'Resolved'].map((filter) => (
             <button
               key={filter}
               onClick={() => setSelectedFilter(filter)}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition active:scale-95 shadow-2xs ${selectedFilter === filter
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                }`}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition active:scale-95 shadow-2xs ${
+                selectedFilter === filter
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              }`}
             >
               {filter === 'All' ? '🌐 All Reports' : filter}
             </button>
           ))}
         </div>
 
-        {/* Main Interactive Map View */}
+        {/* Main Interactive Google Map View */}
         <div className="mb-10 relative z-0" style={{ isolation: 'isolate' }}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
             <div>
               <h2 className="text-xl font-black text-slate-900 tracking-tight">Interactive Map View</h2>
-              <p className="text-xs font-semibold text-slate-500">Live spatial overview of reported community issues</p>
+              <p className="text-xs font-semibold text-slate-500">Live spatial overview powered by Google Maps</p>
             </div>
             <div className="flex gap-2.5 text-xs font-bold text-slate-600 flex-wrap bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-xs"></span> Roads</span>
@@ -1017,20 +959,15 @@ export default function App() {
             </div>
           </div>
 
-          <div className="h-56 w-full rounded-3xl overflow-hidden border border-slate-200/90 shadow-md bg-slate-100 flex items-center justify-center relative z-0">
+          <div className="h-80 w-full rounded-3xl overflow-hidden border border-slate-200/90 shadow-md bg-slate-100 flex items-center justify-center relative z-0">
             {location ? (
-
-            // Inside your render:
-            <CivicMap latitude={issue.latitude} longitude={issue.longitude} />
-
-
+              <CivicMap latitude={location.lat} longitude={location.lng} />
             ) : (
-            <p className="text-slate-500 font-bold animate-pulse">Locking location signal...</p>
+              <p className="text-slate-500 font-bold animate-pulse">Locking location signal...</p>
             )}
           </div>
         </div>
 
-        {/* List Header, Search & Multi-Filter Bar */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -1075,7 +1012,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Issues Grid */}
         {filteredIssues.length === 0 ? (
           <div className="p-14 border border-slate-200/90 rounded-3xl bg-white text-center text-slate-500 shadow-xs">
             <span className="text-4xl block mb-3">🔍</span>
@@ -1089,31 +1025,27 @@ export default function App() {
               const coords = parseLocation(issue.location);
               const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
 
-              // --- STEP 2: FILTER LOGIC ---
-              const filteredIssues = issues.filter(issue => {
-                if (selectedFilter === 'All') return true;
-                if (selectedFilter === 'Resolved') return issue.status === 'Resolved';
-                return categoryNames[issue.category_id] === selectedFilter;
-              });
-
               return (
                 <div
                   key={issue.id}
                   onClick={() => handleCardClick(issue)}
-                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
-                    }`}
+                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${
+                    isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
+                  }`}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-3 gap-2">
                       <div>
                         <div className="flex gap-2 items-center mb-2 flex-wrap">
-                          <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
-                            }`}>
+                          <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${
+                            categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}>
                             {categoryNames[issue.category_id] || 'Civic Issue'}
                           </span>
                           {issue.priority && (
-                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${issue.priority === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-slate-100 text-slate-700'
-                              }`}>
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
+                              issue.priority === 'Critical' ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-slate-100 text-slate-700'
+                            }`}>
                               ⚡ {issue.priority} Priority
                             </span>
                           )}
@@ -1123,15 +1055,15 @@ export default function App() {
                           <span className="text-xs text-slate-400 block font-mono mt-1 font-semibold">📧 {issue.user_email}</span>
                         )}
                       </div>
-                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${
+                        issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                         issue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                          'bg-blue-100 text-blue-800 border border-blue-200'
-                        }`}>
+                        'bg-blue-100 text-blue-800 border border-blue-200'
+                      }`}>
                         {issue.status}
                       </span>
                     </div>
 
-                    {/* Progress Timeline */}
                     <ProgressTimeline status={issue.status} />
 
                     <p className="text-slate-600 text-sm mb-4 leading-relaxed font-medium">{issue.description}</p>
@@ -1225,7 +1157,6 @@ export default function App() {
         )}
       </main>
 
-      {/* AI Multilingual Chatbot Floating Widget */}
       <div className="fixed bottom-5 right-5 z-[9999]">
         {!isChatOpen ? (
           <button onClick={() => setIsChatOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl font-bold flex items-center gap-2 transition active:scale-95">
@@ -1252,8 +1183,6 @@ export default function App() {
         )}
       </div>
 
-      {/* ADMIN FULL REPORT DETAILS MODAL */}
-      {/* ADMIN FULL REPORT DETAILS MODAL */}
       {adminSelectedIssue && (
         <div
           className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto"
@@ -1263,7 +1192,6 @@ export default function App() {
             className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto border border-slate-200 z-[10000]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button
               onClick={() => setAdminSelectedIssue(null)}
               className="absolute top-5 right-5 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-lg transition"
@@ -1271,7 +1199,6 @@ export default function App() {
               &times;
             </button>
 
-            {/* Modal Header */}
             <div className="flex items-start justify-between gap-4 mb-6 pr-8">
               <div>
                 <span className="text-xs font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full inline-block mb-2">
@@ -1284,17 +1211,16 @@ export default function App() {
                   </p>
                 )}
               </div>
-              <span className={`text-xs font-black px-4 py-1.5 rounded-full whitespace-nowrap shadow-xs ${adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+              <span className={`text-xs font-black px-4 py-1.5 rounded-full whitespace-nowrap shadow-xs ${
+                adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                 adminSelectedIssue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                  'bg-blue-100 text-blue-800 border border-blue-200'
-                }`}>
+                'bg-blue-100 text-blue-800 border border-blue-200'
+              }`}>
                 {adminSelectedIssue.status}
               </span>
             </div>
 
-            {/* Two Column Grid for Proof & Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Left: Photo Proof */}
               {adminSelectedIssue.photo_url ? (
                 <div>
                   <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Visual Evidence</h4>
@@ -1312,7 +1238,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* Right: Location & Address */}
               <div className="flex flex-col justify-between">
                 <div>
                   <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Location Coordinates</h4>
@@ -1342,7 +1267,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Description Section */}
             <div className="mb-6">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Full Description</h4>
               <p className="text-slate-800 bg-slate-50 p-4 rounded-2xl border border-slate-200 whitespace-pre-wrap leading-relaxed text-sm font-medium">
@@ -1350,7 +1274,6 @@ export default function App() {
               </p>
             </div>
 
-            {/* Admin Action Control Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between pt-5 border-t border-slate-200 bg-slate-50 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 p-5 sm:p-6 rounded-b-3xl gap-4">
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <label className="text-xs font-extrabold text-slate-700 whitespace-nowrap">Change Status:</label>
@@ -1375,7 +1298,7 @@ export default function App() {
           </div>
         </div>
       )}
-      {/* --- STEP 4: FLOATING TOAST NOTIFICATION --- */}
+
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-[99999] bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-indigo-500/50 flex items-center gap-3 animate-bounce">
           <span className="text-xl">🔔</span>
