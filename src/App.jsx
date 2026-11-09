@@ -154,16 +154,18 @@ function ProgressTimeline({ status }) {
           return (
             <div key={step} className="relative z-10 flex flex-col items-center">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${isCompleted
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
-                  : 'bg-white border-2 border-slate-300 text-slate-400'
-                  } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${
+                  isCompleted
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
+                    : 'bg-white border-2 border-slate-300 text-slate-400'
+                } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
               >
                 {isCompleted ? '✓' : idx + 1}
               </div>
               <span
-                className={`text-[11px] mt-1.5 font-bold tracking-tight ${isCompleted ? 'text-slate-900' : 'text-slate-400'
-                  }`}
+                className={`text-[11px] mt-1.5 font-bold tracking-tight ${
+                  isCompleted ? 'text-slate-900' : 'text-slate-400'
+                }`}
               >
                 {step}
               </span>
@@ -381,13 +383,14 @@ export default function App() {
         'service_7v8m16b',
         'template_vtc51wn',
         templateParams,
-        'hIQcr3HDUS9AFupsd' // <-- Make sure this is your correct public key
+        'hIQcr3HDUS9AFupsd'
       )
       .then(
         () => triggerNotification('Notification email dispatched to citizen!'),
         (err) => console.warn('Email send error:', err.text || err)
       );
   };
+
   const fetchIssues = async () => {
     let query = supabase
       .from('issues')
@@ -1221,10 +1224,11 @@ export default function App() {
                   </p>
                 )}
               </div>
-              <span className={`text-xs font-black px-4 py-1.5 rounded-full whitespace-nowrap shadow-xs ${adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+              <span className={`text-xs font-black px-4 py-1.5 rounded-full whitespace-nowrap shadow-xs ${
+                adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                 adminSelectedIssue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                  'bg-blue-100 text-blue-800 border border-blue-200'
-                }`}>
+                'bg-blue-100 text-blue-800 border border-blue-200'
+              }`}>
                 {adminSelectedIssue.status}
               </span>
             </div>
