@@ -957,12 +957,12 @@ export default function App() {
           ))}
         </div>
 
-        {/* Main Interactive Google Map View */}
-        <div className="mb-10 relative z-0" style={{ isolation: 'isolate' }}>
+        {/* Interactive Map View */}
+        <div className="mb-10">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
             <div>
               <h2 className="text-xl font-black text-slate-900 tracking-tight">Interactive Map View</h2>
-              <p className="text-xs font-semibold text-slate-500">Live spatial overview powered by Google Maps</p>
+              <p className="text-xs font-semibold text-slate-500">Live spatial overview of reported community issues</p>
             </div>
             <div className="flex gap-2.5 text-xs font-bold text-slate-600 flex-wrap bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-xs"></span> Roads</span>
@@ -973,9 +973,15 @@ export default function App() {
             </div>
           </div>
 
-          <div className="h-80 w-full rounded-3xl overflow-hidden border border-slate-200/90 shadow-md bg-slate-100 flex items-center justify-center relative z-0">
+          <div className="h-80 w-full rounded-3xl overflow-hidden border border-slate-200/90 shadow-md bg-slate-100 flex items-center justify-center">
             {location ? (
-              <CivicMap latitude={location.lat} longitude={location.lng} />
+              <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                <ChangeView center={[location.lat, location.lng]} />
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <Marker position={[location.lat, location.lng]}>
+                  <Popup>Issue Location</Popup>
+                </Marker>
+              </MapContainer>
             ) : (
               <p className="text-slate-500 font-bold animate-pulse">Locking location signal...</p>
             )}
