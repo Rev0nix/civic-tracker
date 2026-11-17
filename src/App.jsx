@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ArrowUpRight, Camera, Landmark, MapPin, MessageCircle, Search, X } from 'lucide-react';
 import { supabase } from './supabaseClient';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import emailjs from '@emailjs/browser';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 import CivicMap from './components/CivicMap';
+import { reverseGeocode } from './googleMaps';
 
 const categoryNames = {
   1: 'Roads & Potholes',
@@ -414,17 +413,8 @@ export default function App() {
       const coords = parseLocation(issue.location);
       if (coords && !addresses[issue.id]) {
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18`
-          );
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.display_name) {
-              newAddresses[issue.id] = data.display_name;
-            } else {
-              newAddresses[issue.id] = `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
-            }
-          }
+          const address = await reverseGeocode(coords.lat, coords.lng);
+          newAddresses[issue.id] = address || `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
         } catch {
           newAddresses[issue.id] = `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
         }
@@ -444,14 +434,9 @@ export default function App() {
 
     setModalAddressText(`Resolving address for Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)}...`);
 
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&zoom=18`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.display_name) {
-          setModalAddressText(data.display_name);
-        } else {
-          setModalAddressText(`Lat: ${coords.lat.toFixed(6)}, Lng: ${coords.lng.toFixed(6)}`);
-        }
+    reverseGeocode(coords.lat, coords.lng)
+      .then((address) => {
+        setModalAddressText(address || `Lat: ${coords.lat.toFixed(6)}, Lng: ${coords.lng.toFixed(6)}`);
       })
       .catch(() => {
         setModalAddressText(`Lat: ${coords.lat.toFixed(6)}, Lng: ${coords.lng.toFixed(6)}`);
@@ -608,9 +593,7 @@ export default function App() {
   };
 
   const handleCardClick = (issue) => {
-    if (isAdmin) {
-      setAdminSelectedIssue(issue);
-    }
+    setAdminSelectedIssue(issue);
   };
 
   const handleChatSend = (e) => {
@@ -683,7 +666,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-700 font-sans antialiased pb-16 selection:bg-indigo-700 selection:text-white">
+    <div className="civic-app min-h-screen bg-[#F8FAFC] text-slate-700 font-sans antialiased pb-16 selection:bg-indigo-700 selection:text-white">
 
       {showSplash && (
         <div className="fixed inset-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 text-white flex flex-col items-center justify-center z-[99999] p-6 text-center select-none">
@@ -705,18 +688,25 @@ export default function App() {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-800 via-indigo-600 to-purple-300 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-indigo-300/50">
-              🏛️
+      <header className="app-header sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
+        <div className="app-header-inner max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
+          <div className="app-brand flex items-center gap-3">
+            <div className="brand-mark w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-800 via-indigo-600 to-purple-300 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-indigo-300/50">
+              <Landmark size={22} strokeWidth={2.2} />
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-tight text-slate-800">
                 CivicTrack
               </h1>
+              <span className="brand-caption">Your neighborhood, in the loop</span>
             </div>
           </div>
+
+          <nav className="primary-nav" aria-label="Main navigation">
+            <a className="active" href="#feed"><Landmark size={17} /> Feed</a>
+            <a href="#map"><MapPin size={17} /> Map</a>
+            {!isAdmin && <a href="#report"><Camera size={17} /> Report</a>}
+          </nav>
 
           <div className="flex items-center gap-3">
             {isAdmin ? (
@@ -777,7 +767,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
+      <main className="app-main max-w-6xl mx-auto px-4 sm:px-6 pt-8">
         {isAdmin && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-8">
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs text-center hover:shadow-md transition">
@@ -804,13 +794,13 @@ export default function App() {
         )}
 
         {!isAdmin && (
-          <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md shadow-slate-200/50 mb-10 transition">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+          <form id="report" onSubmit={handleSubmit} className="report-composer bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md shadow-slate-200/50 mb-10 transition">
+            <div className="composer-heading flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xl">📢</span>
+                <span className="composer-icon w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xl"><Camera size={19} /></span>
                 <div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight">Report Infrastructure Issue</h2>
-                  <p className="text-xs font-semibold text-slate-500">Live coordinates required for precise municipal action</p>
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">Share a neighborhood issue</h2>
+                  <p className="text-xs font-semibold text-slate-500">A photo and precise location help your community act.</p>
                 </div>
               </div>
             </div>
@@ -942,7 +932,7 @@ export default function App() {
           </form>
         )}
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+        <div id="feed" className="feed-filters flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
           {['All', 'Roads', 'Lighting', 'Water', 'Sanitation', 'Resolved'].map((filter) => (
             <button
               key={filter}
@@ -958,7 +948,7 @@ export default function App() {
         </div>
 
         {/* Interactive Map View */}
-        <div className="mb-10">
+        <div id="map" className="map-section mb-10">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
             <div>
               <h2 className="text-xl font-black text-slate-900 tracking-tight">Interactive Map View</h2>
@@ -973,22 +963,19 @@ export default function App() {
             </div>
           </div>
 
-          <div className="h-80 w-full rounded-3xl overflow-hidden border border-slate-200/90 shadow-md bg-slate-100 flex items-center justify-center">
-            {location ? (
-              <MapContainer center={[location.lat, location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
-                <ChangeView center={[location.lat, location.lng]} />
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[location.lat, location.lng]}>
-                  <Popup>Issue Location</Popup>
-                </Marker>
-              </MapContainer>
-            ) : (
-              <p className="text-slate-500 font-bold animate-pulse">Locking location signal...</p>
-            )}
+          <div className="w-full">
+            <CivicMap
+              latitude={location?.lat}
+              longitude={location?.lng}
+              issues={issues}
+              addresses={addresses}
+              categoryNames={categoryNames}
+              onSelectIssue={(issue) => setAdminSelectedIssue(issue)}
+            />
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="feed-toolbar flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
               {isAdmin ? 'Manage All Reports' : 'My Reported Issues'}
@@ -999,13 +986,16 @@ export default function App() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <input
+              <div className="search-field">
+                <Search size={17} aria-hidden="true" />
+                <input
               type="text"
-              placeholder="🔍 Search title, text, address..."
+              placeholder="Search reports, places, details"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="p-3 border border-slate-300/80 rounded-2xl bg-white text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none flex-1 sm:w-64 shadow-xs font-medium"
             />
+              </div>
 
             <select
               value={filterCategory}
@@ -1033,40 +1023,33 @@ export default function App() {
         </div>
 
         {filteredIssues.length === 0 ? (
-          <div className="p-14 border border-slate-200/90 rounded-3xl bg-white text-center text-slate-500 shadow-xs">
+          <div className="empty-feed p-14 border border-slate-200/90 rounded-3xl bg-white text-center text-slate-500 shadow-xs">
             <span className="text-4xl block mb-3">🔍</span>
             <p className="font-extrabold text-slate-800 text-lg">No matching reports found</p>
             <span className="text-xs font-semibold text-slate-400">Try adjusting your search query or reset status filters</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="issue-feed grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredIssues.map((issue) => {
               const locText = addresses[issue.id];
               const coords = parseLocation(issue.location);
               const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
 
               return (
-                <div
+                <article
                   key={issue.id}
                   onClick={() => handleCardClick(issue)}
-                  className={`p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
+                  className={`issue-post p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
                     }`}
                 >
-                  <div>
-                    <div className="flex justify-between items-start mb-3 gap-2">
-                      <div>
-                        <div className="flex gap-2 items-center mb-2 flex-wrap">
-                          <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
-                            }`}>
-                            {categoryNames[issue.category_id] || 'Civic Issue'}
-                          </span>
-                        </div>
-                        <h3 className="text-lg font-black text-slate-900 leading-snug">{issue.title}</h3>
-                        {issue.user_email && (
-                          <span className="text-xs text-slate-400 block font-mono mt-1 font-semibold">📧 {issue.user_email}</span>
-                        )}
+                  <div className="issue-post-main">
+                    <div className="issue-post-head">
+                      <div className="issue-author-mark"><Landmark size={17} /></div>
+                      <div className="issue-author-copy">
+                        <strong>Community report</strong>
+                        <span>#{issue.id} · {new Date(issue.created_at).toLocaleDateString()}</span>
                       </div>
-                      <span className={`text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                      <span className={`issue-status text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                         issue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
                           'bg-blue-100 text-blue-800 border border-blue-200'
                         }`}>
@@ -1074,24 +1057,34 @@ export default function App() {
                       </span>
                     </div>
 
-                    <ProgressTimeline status={issue.status} />
-
-                    <p className="text-slate-600 text-sm mb-4 leading-relaxed font-medium">{issue.description}</p>
-                  </div>
-
-                  <div>
                     {issue.photo_url && (
                       <img
                         src={issue.photo_url}
                         alt="Proof"
-                        className="w-full h-48 object-cover rounded-2xl mb-4 border border-slate-200 shadow-inner"
+                        className="issue-photo w-full h-48 object-cover rounded-2xl mb-4 border border-slate-200 shadow-inner"
                       />
                     )}
+                    {!issue.photo_url && <div className="issue-photo-placeholder"><Camera size={24} /><span>Photo not attached</span></div>}
+
+                    <div className="issue-post-content">
+                      <div className="flex gap-2 items-center mb-2 flex-wrap">
+                        <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}>
+                          {categoryNames[issue.category_id] || 'Civic Issue'}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-black text-slate-900 leading-snug">{issue.title}</h3>
+                      <p className="text-slate-600 text-sm mb-4 leading-relaxed font-medium">{issue.description}</p>
+                      <ProgressTimeline status={issue.status} />
+                    </div>
+                  </div>
+
+                  <div className="issue-post-footer">
 
                     {coords && (
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 mb-4 text-xs flex flex-col gap-2">
+                      <div className="issue-location bg-slate-50 p-4 rounded-2xl border border-slate-200/80 mb-4 text-xs flex flex-col gap-2">
                         <div className="flex items-center gap-1.5 text-slate-800 font-extrabold">
-                          <span>📍 Location Address</span>
+                          <MapPin size={14} /> <span>Location</span>
                         </div>
                         <p className="text-slate-800 font-semibold leading-relaxed bg-white p-3 rounded-xl border border-slate-200/90 text-xs shadow-2xs">
                           {locText || `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}`}
@@ -1113,15 +1106,15 @@ export default function App() {
                       </div>
                     )}
 
-                    <div className="flex justify-between items-center py-2.5 border-t border-slate-100">
+                    <div className="issue-post-actions flex justify-between items-center py-2.5 border-t border-slate-100">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleUpvote(issue.id, issue.upvotes);
                         }}
-                        className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black px-4 py-2 rounded-xl transition active:scale-95"
+                        className="upvote-button flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black px-4 py-2 rounded-xl transition active:scale-95"
                       >
-                        👍 Upvote ({issue.upvotes || 0})
+                        <ArrowUpRight size={15} /> Support ({issue.upvotes || 0})
                       </button>
                       {isAdmin ? (
                         <button
@@ -1160,23 +1153,29 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         )}
       </main>
 
+      <nav className="mobile-nav" aria-label="Quick navigation">
+        <a href="#feed"><Landmark size={19} /><span>Feed</span></a>
+        <a href="#map"><MapPin size={19} /><span>Map</span></a>
+        {!isAdmin && <a href="#report"><Camera size={19} /><span>Report</span></a>}
+      </nav>
+
       <div className="fixed bottom-5 right-5 z-[9999]">
         {!isChatOpen ? (
-          <button onClick={() => setIsChatOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl font-bold flex items-center gap-2 transition active:scale-95">
-            💬 Ask Civic AI
+          <button onClick={() => setIsChatOpen(true)} className="chat-launch bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl font-bold flex items-center gap-2 transition active:scale-95">
+            <MessageCircle size={18} /> Ask Civic AI
           </button>
         ) : (
           <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-80 sm:w-96 flex flex-col h-[420px] overflow-hidden">
             <div className="bg-indigo-600 text-white p-4 flex justify-between items-center font-bold">
               <span>🤖 Civic AI Assistant</span>
-              <button onClick={() => setIsChatOpen(false)} className="text-white hover:text-slate-200">✕</button>
+              <button onClick={() => setIsChatOpen(false)} className="text-white hover:text-slate-200" aria-label="Close assistant"><X size={18} /></button>
             </div>
             <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 text-xs">
               {chatMessages.map((m, idx) => (
@@ -1277,27 +1276,29 @@ export default function App() {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-5 border-t border-slate-200 bg-slate-50 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 p-5 sm:p-6 rounded-b-3xl gap-4">
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <label className="text-xs font-extrabold text-slate-700 whitespace-nowrap">Change Status:</label>
-                <select
-                  value={adminSelectedIssue.status}
-                  onChange={(e) => handleStatusChange(adminSelectedIssue, e.target.value)}
-                  className="p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none flex-1 sm:w-44 shadow-xs"
-                >
-                  <option value="Submitted">Submitted</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Resolved">Resolved</option>
-                </select>
-              </div>
+            {isAdmin && (
+              <div className="flex flex-col sm:flex-row items-center justify-between pt-5 border-t border-slate-200 bg-slate-50 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 p-5 sm:p-6 rounded-b-3xl gap-4">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <label className="text-xs font-extrabold text-slate-700 whitespace-nowrap">Change Status:</label>
+                  <select
+                    value={adminSelectedIssue.status}
+                    onChange={(e) => handleStatusChange(adminSelectedIssue, e.target.value)}
+                    className="p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none flex-1 sm:w-44 shadow-xs"
+                  >
+                    <option value="Submitted">Submitted</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                  </select>
+                </div>
 
-              <button
-                onClick={() => handleDeleteIssue(adminSelectedIssue.id)}
-                className="bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 text-xs px-5 py-2.5 rounded-xl font-extrabold shadow-xs active:scale-95 transition w-full sm:w-auto"
-              >
-                Delete Report
-              </button>
-            </div>
+                <button
+                  onClick={() => handleDeleteIssue(adminSelectedIssue.id)}
+                  className="bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 text-xs px-5 py-2.5 rounded-xl font-extrabold shadow-xs active:scale-95 transition w-full sm:w-auto"
+                >
+                  Delete Report
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
