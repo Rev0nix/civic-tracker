@@ -82,6 +82,8 @@ export default function IssueDetailModal({
             anchor: new maps.Point(12, 22),
           },
         });
+      }).catch((err) => {
+        console.warn('Mini map preview in IssueDetailModal:', err);
       });
     }, 150);
 

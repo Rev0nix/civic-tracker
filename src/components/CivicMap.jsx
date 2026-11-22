@@ -65,6 +65,15 @@ export default function CivicMap({
     return null;
   }, [latitude, longitude]);
 
+  // Listen for Google Maps authentication failures
+  useEffect(() => {
+    const handleAuthError = (e) => {
+      setMapError(e.detail?.message || 'Google Maps API authorization failure');
+    };
+    window.addEventListener('lokify:map_auth_error', handleAuthError);
+    return () => window.removeEventListener('lokify:map_auth_error', handleAuthError);
+  }, []);
+
   // Initialize Map with Lokify Dark Styling
   useEffect(() => {
     let active = true;

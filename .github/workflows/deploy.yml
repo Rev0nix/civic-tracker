@@ -43,7 +43,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc' }}
+          VITE_GOOGLE_MAPS_API_KEY: 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc'
 
       - name: Deploy to gh-pages branch (backup)
         uses: peaceiris/actions-gh-pages@v4
@@ -99,7 +99,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc' }}
+          VITE_GOOGLE_MAPS_API_KEY: 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc'
 
       - name: Sync Capacitor Android Project
         run: npx cap sync android
@@ -118,15 +118,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.2' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.2' }} – Production Web & Mobile Release"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.3' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.3' }} – Production Web & Mobile Release"
           make_latest: true
           body: |
-            ## 🏛️ Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.2' }} – Production Release
+            ## 🏛️ Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.3' }} – Production Release
 
             Welcome to the official production release of **Lokify**, the modern civic issue reporting and municipal tracking platform.
 
-            ### 🚀 What's New in v1.2.2:
+            ### 🚀 What's New in v1.2.3:
+            * **Fixed Google Maps API Key Enforcement:** Ensured API key `AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc` is strictly bound into both CI builds and runtime, preventing override by Map/Billing IDs.
             * **Interactive Google Map Pin Picker in Report Issue Modal:** Drag and click anywhere on the map to pinpoint issue locations accurately with real-time reverse geocoded locality names.
             * **Mini Map Location Preview:** Issue detail view now embeds an interactive Google Map preview showing the issue marker with status-based dynamic coloring.
             * **Full Google Maps Platform Integration:** Replaced legacy OpenStreetMap with Google Maps JavaScript API, Google Geocoding API, and Android API Key configuration.
@@ -144,7 +145,7 @@ jobs:
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.2' }}/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.3' }}/app-debug.apk)**
 
             🌐 **Live Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

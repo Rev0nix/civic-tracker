@@ -1,7 +1,5 @@
-export const GOOGLE_MAPS_API_KEY =
-  import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
-  document.querySelector('meta[name="google-maps-api-key"]')?.content ||
-  'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
+// The verified Google Maps Platform API key provided by the user
+export const GOOGLE_MAPS_API_KEY = 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
 
 export const GOOGLE_MAPS_MAP_ID =
   import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ||
@@ -11,6 +9,21 @@ export const GOOGLE_MAPS_MAP_ID =
 const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
 
 let googleMapsPromise = null;
+
+// Catch and notify on Google Maps authentication errors
+if (typeof window !== 'undefined') {
+  window.gm_authFailure = () => {
+    console.error('Google Maps Platform authentication failure: verify API key restrictions in Google Cloud Console.');
+    window.dispatchEvent(
+      new CustomEvent('lokify:map_auth_error', {
+        detail: {
+          message:
+            'Google Maps API key error. Ensure "Maps JavaScript API" is enabled in Google Cloud Console for key AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc.',
+        },
+      })
+    );
+  };
+}
 
 export const LOKIFY_DARK_MAP_STYLES = [
   { elementType: 'geometry', stylers: [{ color: '#101819' }] },
@@ -95,22 +108,29 @@ export function loadGoogleMaps() {
           return;
         }
         existingScript.addEventListener('load', () => resolve(window.google.maps));
-        existingScript.addEventListener('error', () => reject(new Error('Google Maps script failed to load.')));
+        existingScript.addEventListener('error', () => {
+          googleMapsPromise = null;
+          reject(new Error('Google Maps script failed to load.'));
+        });
         return;
       }
 
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsApiKey)}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsApiKey)}`;
       script.async = true;
       script.defer = true;
       script.onload = () => {
         if (window.google?.maps) {
           resolve(window.google.maps);
         } else {
+          googleMapsPromise = null;
           reject(new Error('Google Maps loaded but namespace not found.'));
         }
       };
-      script.onerror = () => reject(new Error('Google Maps could not be loaded.'));
+      script.onerror = () => {
+        googleMapsPromise = null;
+        reject(new Error('Google Maps could not be loaded.'));
+      };
       document.head.appendChild(script);
     });
   }
@@ -147,6 +167,22 @@ export async function reverseGeocode(latitude, longitude) {
       const data = await res.json();
       if (data && data.results && data.results[0]?.formatted_address) {
         return data.results[0].formatted_address;
+      }
+    }
+  } catch {
+    // Ignore
+  }
+
+  // Graceful fallback to Nominatim reverse geocode if Google Geocoding API is not activated
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.display_name) {
+        return data.display_name;
       }
     }
   } catch {
