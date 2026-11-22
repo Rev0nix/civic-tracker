@@ -1,7 +1,14 @@
-const googleMapsApiKey =
+export const GOOGLE_MAPS_API_KEY =
   import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
   document.querySelector('meta[name="google-maps-api-key"]')?.content ||
   'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
+
+export const GOOGLE_MAPS_MAP_ID =
+  import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ||
+  document.querySelector('meta[name="google-maps-map-id"]')?.content ||
+  '016089-E20F62-171E41';
+
+const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
 
 let googleMapsPromise = null;
 
@@ -128,17 +135,18 @@ export async function reverseGeocode(latitude, longitude) {
       if (address) return address;
     }
   } catch {
-    // Fall back to OpenStreetMap / Nominatim
+    // Fall back to Google Maps Geocoding REST API endpoint
   }
 
   try {
+    const key = googleMapsApiKey || 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18`
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(key)}`
     );
     if (res.ok) {
       const data = await res.json();
-      if (data && data.display_name) {
-        return data.display_name;
+      if (data && data.results && data.results[0]?.formatted_address) {
+        return data.results[0].formatted_address;
       }
     }
   } catch {

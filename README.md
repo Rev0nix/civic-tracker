@@ -75,7 +75,7 @@ Lokify embraces a modern dark civic-tech aesthetic built around:
 
 ## 🛠️ Technology Stack
 - **Frontend:** React 19, Vite 8, Tailwind CSS v4, Lucide React
-- **Mapping & Geocoding:** Google Maps JavaScript API (custom Lokify dark vector styles), Google Geocoder & Nominatim API
+- **Mapping & Geocoding:** Google Maps JavaScript API (custom Lokify dark vector styles), Google Geocoder & Google Maps Geocoding API
 - **Backend & Database:** Supabase (PostgreSQL, PostGIS Point geometry, Realtime subscriptions, Storage)
 - **Notification Services:** EmailJS SDK
 - **Mobile Container:** Capacitor Android native framework (`@capacitor/android`)

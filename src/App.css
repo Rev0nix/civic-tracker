@@ -40,10 +40,6 @@ code, kbd, samp, pre, .font-mono {
   scrollbar-width: none !important;
 }
 
-/* Google Maps Leaflet Clean-up */
-.leaflet-control-attribution {
-  display: none !important;
-}
 
 /* Custom transitions and tap feedback */
 button:active, a:active {
