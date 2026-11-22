@@ -1,0 +1,19 @@
+[package]
+name = "lokify-core"
+version = "1.2.3"
+edition = "2021"
+authors = ["Rev0nix <revanth@lokify.gov>"]
+description = "High-performance Civic Issue Geospatial Deduplication & Municipal Analysis Engine"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[[bin]]
+name = "lokify-cli"
+path = "src/main.rs"
+
+[lib]
+name = "lokify_core"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]

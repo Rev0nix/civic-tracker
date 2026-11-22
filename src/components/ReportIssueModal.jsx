@@ -18,7 +18,15 @@ import {
   LocateFixed,
   Layers,
 } from 'lucide-react';
-import { loadGoogleMaps, LOKIFY_DARK_MAP_STYLES, reverseGeocode } from '../googleMaps';
+import L from 'leaflet';
+import { loadGoogleMaps, LOKIFY_DARK_MAP_STYLES } from '../googleMaps';
+import {
+  reverseGeocodeUnified,
+  LOKIFY_DARK_TILE_URL,
+  LOKIFY_TILE_ATTRIBUTION,
+  createLeafletSvgIconHtml,
+  getPreferredMapEngine,
+} from '../services/mapEngine';
 
 const CATEGORY_CHIPS = [
   { id: '1', label: 'Pothole', icon: Car },
@@ -63,22 +71,32 @@ export default function ReportIssueModal({
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
+  const leafletMapRef = useRef(null);
+  const leafletMarkerRef = useRef(null);
+  const leafletTileRef = useRef(null);
+
   // Synchronize GPS location when updated if user hasn't explicitly moved the pin
   useEffect(() => {
     if (currentLocation && !userCustomCoords) {
       if (markerRef.current) {
         markerRef.current.setPosition(currentLocation);
       }
+      if (leafletMarkerRef.current) {
+        leafletMarkerRef.current.setLatLng([currentLocation.lat, currentLocation.lng]);
+      }
       if (mapInstanceRef.current) {
         mapInstanceRef.current.panTo(currentLocation);
       }
-      reverseGeocode(currentLocation.lat, currentLocation.lng).then((addr) => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.setView([currentLocation.lat, currentLocation.lng]);
+      }
+      reverseGeocodeUnified(currentLocation.lat, currentLocation.lng).then((addr) => {
         setGeocodedAddress(addr);
       });
     }
   }, [currentLocation, userCustomCoords]);
 
-  // Initialize Interactive Google Map in Modal
+  // Initialize Interactive Map (Dual-Engine: Google Maps + Leaflet Fallback)
   useEffect(() => {
     if (!isOpen) return;
     let active = true;
@@ -86,75 +104,141 @@ export default function ReportIssueModal({
     // Small delay to allow modal open transition
     const timer = setTimeout(() => {
       if (!mapContainerRef.current) return;
+      mapContainerRef.current.innerHTML = '';
 
-      loadGoogleMaps()
-        .then((maps) => {
-          if (!active || !mapContainerRef.current) return;
-          const initial = selectedCoords || currentLocation || { lat: 12.9716, lng: 77.5946 };
+      const initial = selectedCoords || currentLocation || { lat: 12.9716, lng: 77.5946 };
 
-          const map = new maps.Map(mapContainerRef.current, {
-            center: initial,
+      const initLeaflet = () => {
+        if (!active || !mapContainerRef.current) return;
+        try {
+          const lmap = L.map(mapContainerRef.current, {
+            center: [initial.lat, initial.lng],
             zoom: 16,
-            mapTypeId: maps.MapTypeId.ROADMAP,
-            styles: LOKIFY_DARK_MAP_STYLES,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: false,
-            zoomControl: true,
-            clickableIcons: false,
+            zoomControl: false,
           });
-          mapInstanceRef.current = map;
 
-          const marker = new maps.Marker({
-            position: initial,
-            map,
+          const tileUrl = isSatellite
+            ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            : LOKIFY_DARK_TILE_URL;
+          const attr = isSatellite ? 'Tiles &copy; Esri' : LOKIFY_TILE_ATTRIBUTION;
+
+          leafletTileRef.current = L.tileLayer(tileUrl, { attribution: attr, maxZoom: 19 }).addTo(lmap);
+          leafletMapRef.current = lmap;
+
+          const icon = L.divIcon({
+            html: createLeafletSvgIconHtml('#EF6666', 36),
+            className: 'custom-leaflet-pin',
+            iconSize: [36, 36],
+            iconAnchor: [18, 36],
+          });
+
+          const marker = L.marker([initial.lat, initial.lng], {
+            icon,
             draggable: true,
-            title: 'Drag or tap anywhere to place issue pin',
-            icon: {
-              path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-              fillColor: '#EF6666',
-              fillOpacity: 1,
-              strokeColor: '#080F0F',
-              strokeWeight: 2,
-              scale: 1.6,
-              anchor: new maps.Point(12, 22),
-            },
-          });
-          markerRef.current = marker;
+          }).addTo(lmap);
+          leafletMarkerRef.current = marker;
 
-          const updateCoords = (latLng) => {
-            const lat = latLng.lat();
-            const lng = latLng.lng();
+          const handleNewCoords = (lat, lng) => {
             setUserCustomCoords({ lat, lng });
-            reverseGeocode(lat, lng).then((addr) => {
+            reverseGeocodeUnified(lat, lng).then((addr) => {
               if (active) setGeocodedAddress(addr);
             });
           };
 
-          map.addListener('click', (e) => {
-            marker.setPosition(e.latLng);
-            updateCoords(e.latLng);
+          lmap.on('click', (e) => {
+            marker.setLatLng(e.latlng);
+            handleNewCoords(e.latlng.lat, e.latlng.lng);
           });
 
-          marker.addListener('dragend', (e) => {
-            updateCoords(e.latLng);
+          marker.on('dragend', () => {
+            const pos = marker.getLatLng();
+            handleNewCoords(pos.lat, pos.lng);
           });
 
-          reverseGeocode(initial.lat, initial.lng).then((addr) => {
+          reverseGeocodeUnified(initial.lat, initial.lng).then((addr) => {
             if (active) setGeocodedAddress(addr);
           });
-        })
-        .catch((err) => {
-          console.warn('Map initialization in modal:', err);
-        });
+        } catch (e) {
+          console.error('Leaflet modal init error:', e);
+        }
+      };
+
+      if (getPreferredMapEngine() === 'leaflet') {
+        initLeaflet();
+      } else {
+        loadGoogleMaps()
+          .then((maps) => {
+            if (!active || !mapContainerRef.current) return;
+
+            const map = new maps.Map(mapContainerRef.current, {
+              center: initial,
+              zoom: 16,
+              mapTypeId: isSatellite ? maps.MapTypeId.HYBRID : maps.MapTypeId.ROADMAP,
+              styles: isSatellite ? [] : LOKIFY_DARK_MAP_STYLES,
+              mapTypeControl: false,
+              streetViewControl: false,
+              fullscreenControl: false,
+              zoomControl: true,
+              clickableIcons: false,
+            });
+            mapInstanceRef.current = map;
+
+            const marker = new maps.Marker({
+              position: initial,
+              map,
+              draggable: true,
+              title: 'Drag or tap anywhere to place issue pin',
+              icon: {
+                path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+                fillColor: '#EF6666',
+                fillOpacity: 1,
+                strokeColor: '#080F0F',
+                strokeWeight: 2,
+                scale: 1.6,
+                anchor: new maps.Point(12, 22),
+              },
+            });
+            markerRef.current = marker;
+
+            const updateCoords = (latLng) => {
+              const lat = latLng.lat();
+              const lng = latLng.lng();
+              setUserCustomCoords({ lat, lng });
+              reverseGeocodeUnified(lat, lng).then((addr) => {
+                if (active) setGeocodedAddress(addr);
+              });
+            };
+
+            map.addListener('click', (e) => {
+              marker.setPosition(e.latLng);
+              updateCoords(e.latLng);
+            });
+
+            marker.addListener('dragend', (e) => {
+              updateCoords(e.latLng);
+            });
+
+            reverseGeocodeUnified(initial.lat, initial.lng).then((addr) => {
+              if (active) setGeocodedAddress(addr);
+            });
+          })
+          .catch((err) => {
+            console.warn('Google Maps modal fallback to Leaflet:', err);
+            initLeaflet();
+          });
+      }
     }, 150);
 
     return () => {
       active = false;
       clearTimeout(timer);
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, isSatellite]);
 
   if (!isOpen) return null;
 
@@ -380,11 +464,15 @@ export default function ReportIssueModal({
                     if (currentLocation) {
                       setUserCustomCoords(null);
                       if (markerRef.current) markerRef.current.setPosition(currentLocation);
+                      if (leafletMarkerRef.current) leafletMarkerRef.current.setLatLng([currentLocation.lat, currentLocation.lng]);
                       if (mapInstanceRef.current) {
                         mapInstanceRef.current.panTo(currentLocation);
                         mapInstanceRef.current.setZoom(17);
                       }
-                      reverseGeocode(currentLocation.lat, currentLocation.lng).then((addr) => setGeocodedAddress(addr));
+                      if (leafletMapRef.current) {
+                        leafletMapRef.current.setView([currentLocation.lat, currentLocation.lng], 17);
+                      }
+                      reverseGeocodeUnified(currentLocation.lat, currentLocation.lng).then((addr) => setGeocodedAddress(addr));
                     } else {
                       onRefreshLocation?.();
                     }

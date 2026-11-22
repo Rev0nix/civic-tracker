@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   MapPin,
   Check,
+  Compass,
 } from 'lucide-react';
 import { sendSmsNotification } from '../utils/smsService';
 
@@ -504,15 +505,32 @@ export default function AuthScreen({ onLogin }) {
                 </div>
               </form>
 
-              {/* Demo Pre-fill */}
-              <div className="mt-4 pt-3 border-t border-[#354144]/60 text-center">
+              {/* Demo Pre-fill & Instant Guest Access */}
+              <div className="mt-4 pt-3 border-t border-[#354144]/60 space-y-2 text-center">
                 <button
                   type="button"
                   onClick={fillCitizenDemo}
-                  className="text-[11px] font-mono text-[#A3DCE3] hover:underline bg-[#192223] border border-[#354144] px-3 py-1.5 rounded-full inline-flex items-center gap-1.5"
+                  className="w-full text-[11px] font-mono text-[#A3DCE3] hover:underline bg-[#192223] border border-[#354144] py-2 px-3 rounded-xl inline-flex items-center justify-center gap-1.5 transition hover:bg-[#202b2d]"
                 >
-                  <Sparkles size={11} />
+                  <Sparkles size={13} />
                   <span>Auto-fill Citizen Demo (10-digit phone + 8+ char pass)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onLogin({
+                      email: 'citizen.explorer@lokify.gov',
+                      phone: '9876543210',
+                      name: 'Citizen Explorer',
+                      locality: 'Bengaluru Central',
+                      role: 'citizen',
+                    });
+                  }}
+                  className="w-full text-xs font-mono font-semibold text-[#F0F4F4] hover:text-[#A3DCE3] bg-[#132B2F]/60 border border-[#28616A] py-2.5 px-3 rounded-xl inline-flex items-center justify-center gap-2 transition hover:bg-[#132B2F] active:scale-95 shadow-sm"
+                >
+                  <Compass size={14} className="text-[#A3DCE3]" />
+                  <span>Instant Guest Access (Explore App & Map)</span>
                 </button>
               </div>
             </div>

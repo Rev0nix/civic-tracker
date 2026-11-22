@@ -19,6 +19,12 @@ import {
   getCategoryIllustration,
 } from '../constants/theme';
 import { loadGoogleMaps, LOKIFY_DARK_MAP_STYLES, extractLocality } from '../googleMaps';
+import L from 'leaflet';
+import {
+  LOKIFY_DARK_TILE_URL,
+  createLeafletSvgIconHtml,
+  getPreferredMapEngine,
+} from '../services/mapEngine';
 
 export default function IssueDetailModal({
   issue,
@@ -56,35 +62,66 @@ export default function IssueDetailModal({
 
     const timer = setTimeout(() => {
       if (!previewMapRef.current) return;
-      loadGoogleMaps().then((maps) => {
+      previewMapRef.current.innerHTML = '';
+
+      const initLeaflet = () => {
         if (!active || !previewMapRef.current) return;
+        try {
+          const lmap = L.map(previewMapRef.current, {
+            center: [coords.lat, coords.lng],
+            zoom: 16,
+            zoomControl: false,
+            attributionControl: false,
+          });
+          L.tileLayer(LOKIFY_DARK_TILE_URL, { maxZoom: 19 }).addTo(lmap);
+          const icon = L.divIcon({
+            html: createLeafletSvgIconHtml(issue.status === 'Resolved' ? '#43C88A' : '#EF6666', 30),
+            className: 'custom-leaflet-marker',
+            iconSize: [30, 30],
+            iconAnchor: [15, 30],
+          });
+          L.marker([coords.lat, coords.lng], { icon }).addTo(lmap);
+        } catch (e) {
+          console.warn('Leaflet detail modal init error:', e);
+        }
+      };
 
-        const map = new maps.Map(previewMapRef.current, {
-          center: coords,
-          zoom: 16,
-          styles: LOKIFY_DARK_MAP_STYLES,
-          disableDefaultUI: true,
-          zoomControl: true,
-          clickableIcons: false,
-        });
+      if (getPreferredMapEngine() === 'leaflet') {
+        initLeaflet();
+      } else {
+        loadGoogleMaps()
+          .then((maps) => {
+            if (!active || !previewMapRef.current) return;
 
-        new maps.Marker({
-          position: coords,
-          map,
-          title: issue.title,
-          icon: {
-            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-            fillColor: issue.status === 'Resolved' ? '#43C88A' : '#EF6666',
-            fillOpacity: 1,
-            strokeColor: '#080F0F',
-            strokeWeight: 2,
-            scale: 1.5,
-            anchor: new maps.Point(12, 22),
-          },
-        });
-      }).catch((err) => {
-        console.warn('Mini map preview in IssueDetailModal:', err);
-      });
+            const map = new maps.Map(previewMapRef.current, {
+              center: coords,
+              zoom: 16,
+              styles: LOKIFY_DARK_MAP_STYLES,
+              disableDefaultUI: true,
+              zoomControl: true,
+              clickableIcons: false,
+            });
+
+            new maps.Marker({
+              position: coords,
+              map,
+              title: issue.title,
+              icon: {
+                path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+                fillColor: issue.status === 'Resolved' ? '#43C88A' : '#EF6666',
+                fillOpacity: 1,
+                strokeColor: '#080F0F',
+                strokeWeight: 2,
+                scale: 1.5,
+                anchor: new maps.Point(12, 22),
+              },
+            });
+          })
+          .catch((err) => {
+            console.warn('Google Maps preview fallback to Leaflet:', err);
+            initLeaflet();
+          });
+      }
     }, 150);
 
     return () => {

@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Layers, LocateFixed, ArrowUpRight, X } from 'lucide-react';
+import { Layers, LocateFixed, ArrowUpRight, X, Globe, Map as MapIcon } from 'lucide-react';
+import L from 'leaflet';
 import { loadGoogleMaps, LOKIFY_DARK_MAP_STYLES, extractLocality } from '../googleMaps';
 import { formatIssueId, STATUS_CONFIG, getCategoryName } from '../constants/theme';
-
-const DEFAULT_CENTER = { lat: 12.9716, lng: 77.5946 }; // Default Bengaluru coordinates
+import {
+  DEFAULT_COORDS,
+  LOKIFY_DARK_TILE_URL,
+  LOKIFY_TILE_ATTRIBUTION,
+  getPreferredMapEngine,
+  setPreferredMapEngine,
+  createLeafletSvgIconHtml,
+} from '../services/mapEngine';
 
 function parseCoords(loc, lat, lng) {
   if (lat != null && lng != null && !isNaN(Number(lat)) && !isNaN(Number(lng))) {
@@ -47,10 +54,21 @@ export default function CivicMap({
   height = 'h-[500px]',
 }) {
   const mapElement = useRef(null);
-  const mapInstanceRef = useRef(null);
+
+  // Engine state: 'google' | 'leaflet'
+  const [engine, setEngine] = useState(getPreferredMapEngine);
+
+  // Google Maps refs
+  const googleMapRef = useRef(null);
   const mapsSdkRef = useRef(null);
-  const markersRef = useRef([]);
-  const userMarkerRef = useRef(null);
+  const googleMarkersRef = useRef([]);
+  const googleUserMarkerRef = useRef(null);
+
+  // Leaflet refs
+  const leafletMapRef = useRef(null);
+  const leafletTileLayerRef = useRef(null);
+  const leafletMarkersRef = useRef([]);
+  const leafletUserMarkerRef = useRef(null);
 
   const [mapError, setMapError] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
@@ -65,82 +83,7 @@ export default function CivicMap({
     return null;
   }, [latitude, longitude]);
 
-  // Listen for Google Maps authentication failures
-  useEffect(() => {
-    const handleAuthError = (e) => {
-      setMapError(e.detail?.message || 'Google Maps API authorization failure');
-    };
-    window.addEventListener('lokify:map_auth_error', handleAuthError);
-    return () => window.removeEventListener('lokify:map_auth_error', handleAuthError);
-  }, []);
-
-  // Initialize Map with Lokify Dark Styling
-  useEffect(() => {
-    let active = true;
-
-    loadGoogleMaps()
-      .then((maps) => {
-        if (!active || !mapElement.current) return;
-        mapsSdkRef.current = maps;
-
-        const initialCenter = userCenter || DEFAULT_CENTER;
-
-        const map = new maps.Map(mapElement.current, {
-          center: initialCenter,
-          zoom: 14,
-          mapTypeId: maps.MapTypeId.ROADMAP,
-          styles: LOKIFY_DARK_MAP_STYLES,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          zoomControl: true,
-          zoomControlOptions: {
-            position: maps.ControlPosition.RIGHT_BOTTOM,
-          },
-          clickableIcons: false,
-        });
-
-        mapInstanceRef.current = map;
-        setIsLoaded(true);
-
-        maps.event.addListener(map, 'click', () => {
-          setSelectedPinIssue(null);
-        });
-      })
-      .catch((error) => {
-        if (active) setMapError(error.message || 'Failed to load Google Maps');
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [userCenter]);
-
-  // Update user position marker
-  useEffect(() => {
-    if (!mapInstanceRef.current || !mapsSdkRef.current || !userCenter) return;
-    const maps = mapsSdkRef.current;
-    const map = mapInstanceRef.current;
-
-    if (userMarkerRef.current) {
-      userMarkerRef.current.setPosition(userCenter);
-    } else {
-      userMarkerRef.current = new maps.Marker({
-        position: userCenter,
-        map,
-        title: 'You are here',
-        zIndex: 999,
-        icon: {
-          path: maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#A3DCE3',
-          fillOpacity: 1,
-          strokeColor: '#080F0F',
-          strokeWeight: 3,
-        },
-      });
-    }
-  }, [userCenter, isLoaded]);
+  const activeCenter = userCenter || DEFAULT_COORDS;
 
   // Filter issues
   const visibleIssues = useMemo(() => {
@@ -152,92 +95,289 @@ export default function CivicMap({
     });
   }, [issues, selectedFilter]);
 
-  // Update markers
+  // Listen for Google Maps authentication failures and auto-fallback to Leaflet
   useEffect(() => {
-    if (!mapInstanceRef.current || !mapsSdkRef.current || !isLoaded) return;
-    const maps = mapsSdkRef.current;
-    const map = mapInstanceRef.current;
+    const handleAuthError = (e) => {
+      console.warn('Google Maps auth error caught. Auto-switching to Leaflet Dark GIS engine:', e.detail);
+      setMapError('Google Maps API key not activated for web. Seamlessly switched to Leaflet Dark GIS engine.');
+      setEngine('leaflet');
+      setPreferredMapEngine('leaflet');
+    };
+    window.addEventListener('lokify:map_auth_error', handleAuthError);
+    return () => window.removeEventListener('lokify:map_auth_error', handleAuthError);
+  }, []);
 
-    // Clear old markers
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = [];
+  // Cleanup helper
+  const destroyCurrentMap = () => {
+    if (googleMapRef.current) {
+      googleMarkersRef.current.forEach((m) => m.setMap(null));
+      googleMarkersRef.current = [];
+      if (googleUserMarkerRef.current) googleUserMarkerRef.current.setMap(null);
+      googleUserMarkerRef.current = null;
+      googleMapRef.current = null;
+    }
+    if (leafletMapRef.current) {
+      leafletMarkersRef.current.forEach((m) => m.remove());
+      leafletMarkersRef.current = [];
+      if (leafletUserMarkerRef.current) leafletUserMarkerRef.current.remove();
+      leafletUserMarkerRef.current = null;
+      leafletMapRef.current.remove();
+      leafletMapRef.current = null;
+    }
+    if (mapElement.current) {
+      mapElement.current.innerHTML = '';
+    }
+    setIsLoaded(false);
+  };
 
-    visibleIssues.forEach((issue) => {
-      const coords = parseCoords(issue.location, issue.latitude, issue.longitude);
-      if (!coords) return;
+  // Switch engine manually
+  const toggleEngine = () => {
+    const nextEngine = engine === 'google' ? 'leaflet' : 'google';
+    setMapError('');
+    destroyCurrentMap();
+    setEngine(nextEngine);
+    setPreferredMapEngine(nextEngine);
+  };
 
-      const isResolved = issue.status === 'Resolved';
-      let pinColor = '#A3DCE3'; // Lokify teal default
-      if (isResolved) {
-        pinColor = '#43C88A'; // Resolved success green
-      } else if (String(issue.category_id) === '1') {
-        pinColor = '#EF6666'; // Pothole danger red
-      } else if (String(issue.category_id) === '2') {
-        pinColor = '#E9B85C'; // Streetlight amber
-      } else if (String(issue.category_id) === '3') {
-        pinColor = '#8DBBEB'; // Water cyan/light blue
-      } else if (String(issue.category_id) === '4') {
-        pinColor = '#D8B4FE'; // Garbage purple
+  // Initialize Map Engine (Google or Leaflet)
+  useEffect(() => {
+    let active = true;
+    if (!mapElement.current) return;
+
+    destroyCurrentMap();
+
+    if (engine === 'google') {
+      loadGoogleMaps()
+        .then((maps) => {
+          if (!active || !mapElement.current) return;
+          mapsSdkRef.current = maps;
+
+          const map = new maps.Map(mapElement.current, {
+            center: activeCenter,
+            zoom: 14,
+            mapTypeId: isSatellite ? maps.MapTypeId.HYBRID : maps.MapTypeId.ROADMAP,
+            styles: isSatellite ? [] : LOKIFY_DARK_MAP_STYLES,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+            zoomControl: true,
+            zoomControlOptions: {
+              position: maps.ControlPosition.RIGHT_BOTTOM,
+            },
+            clickableIcons: false,
+          });
+
+          googleMapRef.current = map;
+          setIsLoaded(true);
+
+          maps.event.addListener(map, 'click', () => {
+            setSelectedPinIssue(null);
+          });
+        })
+        .catch((err) => {
+          if (!active) return;
+          console.warn('Google Maps failed to load, falling back to Leaflet:', err);
+          setMapError('Google Maps load issue. Auto-switched to Leaflet Dark GIS.');
+          setEngine('leaflet');
+          setPreferredMapEngine('leaflet');
+        });
+    } else {
+      // Leaflet Engine
+      try {
+        const map = L.map(mapElement.current, {
+          center: [activeCenter.lat, activeCenter.lng],
+          zoom: 14,
+          zoomControl: false,
+        });
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        const tileUrl = isSatellite
+          ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+          : LOKIFY_DARK_TILE_URL;
+        const attr = isSatellite ? 'Tiles &copy; Esri' : LOKIFY_TILE_ATTRIBUTION;
+
+        const tileLayer = L.tileLayer(tileUrl, {
+          attribution: attr,
+          maxZoom: 19,
+        }).addTo(map);
+
+        leafletTileLayerRef.current = tileLayer;
+        leafletMapRef.current = map;
+
+        map.whenReady(() => {
+          if (active) setIsLoaded(true);
+        });
+
+        map.on('click', () => {
+          setSelectedPinIssue(null);
+        });
+      } catch (err) {
+        console.error('Leaflet initialization error:', err);
       }
+    }
 
-      const marker = new maps.Marker({
-        position: coords,
-        map,
-        title: `${issue.title} (${formatIssueId(issue.id)})`,
-        icon: {
-          path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-          fillColor: pinColor,
-          fillOpacity: 1,
-          strokeColor: '#080F0F',
-          strokeWeight: 2,
-          scale: 1.4,
-          anchor: new maps.Point(12, 22),
-        },
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine]);
+
+  // Update User Marker
+  useEffect(() => {
+    if (!isLoaded || !userCenter) return;
+
+    if (engine === 'google' && googleMapRef.current && mapsSdkRef.current) {
+      const maps = mapsSdkRef.current;
+      const map = googleMapRef.current;
+      if (googleUserMarkerRef.current) {
+        googleUserMarkerRef.current.setPosition(userCenter);
+      } else {
+        googleUserMarkerRef.current = new maps.Marker({
+          position: userCenter,
+          map,
+          title: 'You are here',
+          zIndex: 999,
+          icon: {
+            path: maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: '#A3DCE3',
+            fillOpacity: 1,
+            strokeColor: '#080F0F',
+            strokeWeight: 3,
+          },
+        });
+      }
+    } else if (engine === 'leaflet' && leafletMapRef.current) {
+      const map = leafletMapRef.current;
+      if (leafletUserMarkerRef.current) {
+        leafletUserMarkerRef.current.setLatLng([userCenter.lat, userCenter.lng]);
+      } else {
+        const userIcon = L.divIcon({
+          html: `<div class="w-4 h-4 rounded-full bg-[#A3DCE3] border-2 border-[#080F0F] gps-radar-pulse"></div>`,
+          className: 'user-gps-marker',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        });
+        leafletUserMarkerRef.current = L.marker([userCenter.lat, userCenter.lng], {
+          icon: userIcon,
+          zIndexOffset: 1000,
+        }).addTo(map);
+      }
+    }
+  }, [userCenter, isLoaded, engine]);
+
+  // Update Issue Markers
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    // Helper for category pin colors
+    const getPinColor = (issue) => {
+      if (issue.status === 'Resolved') return '#43C88A';
+      if (String(issue.category_id) === '1') return '#EF6666'; // Pothole
+      if (String(issue.category_id) === '2') return '#E9B85C'; // Streetlight
+      if (String(issue.category_id) === '3') return '#8DBBEB'; // Water
+      if (String(issue.category_id) === '4') return '#D8B4FE'; // Garbage
+      return '#A3DCE3';
+    };
+
+    if (engine === 'google' && googleMapRef.current && mapsSdkRef.current) {
+      const maps = mapsSdkRef.current;
+      const map = googleMapRef.current;
+
+      googleMarkersRef.current.forEach((m) => m.setMap(null));
+      googleMarkersRef.current = [];
+
+      visibleIssues.forEach((issue) => {
+        const coords = parseCoords(issue.location, issue.latitude, issue.longitude);
+        if (!coords) return;
+
+        const pinColor = getPinColor(issue);
+        const marker = new maps.Marker({
+          position: coords,
+          map,
+          title: `${issue.title} (${formatIssueId(issue.id)})`,
+          icon: {
+            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+            fillColor: pinColor,
+            fillOpacity: 1,
+            strokeColor: '#080F0F',
+            strokeWeight: 2,
+            scale: 1.4,
+            anchor: new maps.Point(12, 22),
+          },
+        });
+
+        marker.addListener('click', () => {
+          setSelectedPinIssue(issue);
+          map.panTo(coords);
+        });
+
+        googleMarkersRef.current.push(marker);
       });
+    } else if (engine === 'leaflet' && leafletMapRef.current) {
+      const map = leafletMapRef.current;
 
-      marker.addListener('click', () => {
-        setSelectedPinIssue(issue);
-        map.panTo(coords);
+      leafletMarkersRef.current.forEach((m) => m.remove());
+      leafletMarkersRef.current = [];
+
+      visibleIssues.forEach((issue) => {
+        const coords = parseCoords(issue.location, issue.latitude, issue.longitude);
+        if (!coords) return;
+
+        const pinColor = getPinColor(issue);
+        const icon = L.divIcon({
+          html: createLeafletSvgIconHtml(pinColor, 30),
+          className: 'custom-leaflet-marker',
+          iconSize: [30, 30],
+          iconAnchor: [15, 30],
+        });
+
+        const marker = L.marker([coords.lat, coords.lng], { icon, title: issue.title }).addTo(map);
+        marker.on('click', () => {
+          setSelectedPinIssue(issue);
+          map.panTo([coords.lat, coords.lng]);
+        });
+
+        leafletMarkersRef.current.push(marker);
       });
-
-      markersRef.current.push(marker);
-    });
-  }, [visibleIssues, isLoaded]);
+    }
+  }, [visibleIssues, isLoaded, engine]);
 
   // Toggle Satellite
   const handleToggleSatellite = () => {
-    if (!mapInstanceRef.current || !mapsSdkRef.current) return;
     const next = !isSatellite;
     setIsSatellite(next);
-    if (next) {
-      mapInstanceRef.current.setMapTypeId(mapsSdkRef.current.MapTypeId.HYBRID);
-    } else {
-      mapInstanceRef.current.setMapTypeId(mapsSdkRef.current.MapTypeId.ROADMAP);
-      mapInstanceRef.current.setOptions({ styles: LOKIFY_DARK_MAP_STYLES });
+
+    if (engine === 'google' && googleMapRef.current && mapsSdkRef.current) {
+      if (next) {
+        googleMapRef.current.setMapTypeId(mapsSdkRef.current.MapTypeId.HYBRID);
+      } else {
+        googleMapRef.current.setMapTypeId(mapsSdkRef.current.MapTypeId.ROADMAP);
+        googleMapRef.current.setOptions({ styles: LOKIFY_DARK_MAP_STYLES });
+      }
+    } else if (engine === 'leaflet' && leafletMapRef.current) {
+      if (leafletTileLayerRef.current) {
+        leafletTileLayerRef.current.remove();
+      }
+      const tileUrl = next
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        : LOKIFY_DARK_TILE_URL;
+      const attr = next ? 'Tiles &copy; Esri' : LOKIFY_TILE_ATTRIBUTION;
+      leafletTileLayerRef.current = L.tileLayer(tileUrl, { attribution: attr, maxZoom: 19 }).addTo(leafletMapRef.current);
     }
   };
 
-  // Recenter map
+  // Recenter Map
   const handleRecenter = () => {
-    if (!mapInstanceRef.current || !mapsSdkRef.current) return;
-    const map = mapInstanceRef.current;
-    const maps = mapsSdkRef.current;
+    const target = userCenter || DEFAULT_COORDS;
 
-    if (userCenter) {
-      map.panTo(userCenter);
-      map.setZoom(15);
-      return;
+    if (engine === 'google' && googleMapRef.current) {
+      googleMapRef.current.panTo(target);
+      googleMapRef.current.setZoom(15);
+    } else if (engine === 'leaflet' && leafletMapRef.current) {
+      leafletMapRef.current.setView([target.lat, target.lng], 15);
     }
-
-    if (markersRef.current.length > 0) {
-      const bounds = new maps.LatLngBounds();
-      markersRef.current.forEach((m) => bounds.extend(m.getPosition()));
-      map.fitBounds(bounds);
-      return;
-    }
-
-    map.panTo(DEFAULT_CENTER);
-    map.setZoom(13);
   };
 
   const totalCount = issues.length;
@@ -245,18 +385,27 @@ export default function CivicMap({
   const resolvedCount = issues.filter((i) => i.status === 'Resolved').length;
 
   return (
-    <div className={`relative w-full ${height} rounded-3xl overflow-hidden border border-[#354144] bg-[#101819] flex flex-col shadow-2xl`}>
-      {/* Map Canvas */}
-      <div ref={mapElement} className="w-full h-full" aria-label="Lokify Map" />
+    <div
+      className={`relative w-full ${height} rounded-3xl overflow-hidden border border-[#354144] bg-[#101819] flex flex-col shadow-2xl`}
+    >
+      {/* Map Container */}
+      <div ref={mapElement} className="w-full h-full" aria-label="Lokify Civic Map" />
 
+      {/* Map Error / Auto-switch Toast */}
       {mapError && (
-        <div className="absolute bottom-4 left-4 right-4 z-30 p-3 bg-[#321616] border border-[#5C2424] text-[#EF6666] text-xs font-mono font-medium rounded-2xl">
-          {mapError}
+        <div className="absolute top-16 left-4 right-4 z-30 p-2.5 bg-[#192223]/95 border border-[#354144] text-[#A3DCE3] text-xs font-mono rounded-2xl shadow-xl flex items-center justify-between gap-2 backdrop-blur-md">
+          <span className="truncate">{mapError}</span>
+          <button
+            onClick={() => setMapError('')}
+            className="p-1 text-[#758588] hover:text-[#F0F4F4] rounded-lg shrink-0"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 
       {/* Top Filter Chips */}
-      <div className="absolute top-4 left-4 right-16 z-10 flex items-center gap-2 overflow-x-auto no-scrollbar pointer-events-auto">
+      <div className="absolute top-4 left-4 right-32 z-10 flex items-center gap-2 overflow-x-auto no-scrollbar pointer-events-auto">
         {[
           { key: 'All', label: `All (${totalCount})` },
           { key: 'Active', label: `Active (${activeCount})` },
@@ -279,27 +428,41 @@ export default function CivicMap({
         })}
       </div>
 
-      {/* Top Right Controls */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+      {/* Top Right Controls & Engine Switcher */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
+        {/* Engine Switcher Toggle */}
         <button
-          onClick={handleToggleSatellite}
-          className={`w-9 h-9 rounded-2xl flex items-center justify-center transition border shadow-lg ${
-            isSatellite
-              ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
-              : 'bg-[#192223]/90 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
-          }`}
-          title="Toggle Satellite"
+          onClick={toggleEngine}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#192223]/95 border border-[#354144] hover:border-[#A3DCE3] text-[11px] font-mono text-[#A3DCE3] shadow-lg backdrop-blur-md transition active:scale-95"
+          title={`Currently using ${engine === 'google' ? 'Google Maps API' : 'Leaflet / Dark GIS'}. Click to toggle.`}
         >
-          <Layers size={16} />
+          {engine === 'google' ? <MapIcon size={14} /> : <Globe size={14} />}
+          <span>{engine === 'google' ? 'Google Maps' : 'Leaflet GIS'}</span>
         </button>
 
-        <button
-          onClick={handleRecenter}
-          className="w-9 h-9 rounded-2xl bg-[#192223]/90 text-[#A5B1B3] border border-[#354144] hover:text-[#A3DCE3] flex items-center justify-center transition shadow-lg"
-          title="Recenter location"
-        >
-          <LocateFixed size={16} />
-        </button>
+        <div className="flex gap-2">
+          {/* Satellite Toggle */}
+          <button
+            onClick={handleToggleSatellite}
+            className={`w-9 h-9 rounded-2xl flex items-center justify-center transition border shadow-lg backdrop-blur-md ${
+              isSatellite
+                ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
+                : 'bg-[#192223]/90 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
+            }`}
+            title="Toggle Satellite"
+          >
+            <Layers size={16} />
+          </button>
+
+          {/* Recenter */}
+          <button
+            onClick={handleRecenter}
+            className="w-9 h-9 rounded-2xl bg-[#192223]/90 text-[#A5B1B3] border border-[#354144] hover:text-[#A3DCE3] flex items-center justify-center transition shadow-lg backdrop-blur-md"
+            title="Recenter location"
+          >
+            <LocateFixed size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Selected Issue Preview Card at bottom */}
@@ -329,7 +492,8 @@ export default function CivicMap({
               {selectedPinIssue.title}
             </h4>
             <p className="text-xs text-[#758588] truncate mt-0.5">
-              {addresses[selectedPinIssue.id] || extractLocality(null, selectedPinIssue.latitude, selectedPinIssue.longitude)}
+              {addresses[selectedPinIssue.id] ||
+                extractLocality(null, selectedPinIssue.latitude, selectedPinIssue.longitude)}
             </p>
           </div>
 

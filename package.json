@@ -1,12 +1,16 @@
 {
   "name": "civic-tracker",
   "private": true,
-  "version": "1.2.3",
+  "version": "1.2.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test:maps": "./scripts/test_maps.sh",
+    "build:all": "./scripts/build.sh",
+    "rust:cli": "cd rust-core && cargo run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -15,9 +19,12 @@
     "@capacitor/core": "^8.6.0",
     "@emailjs/browser": "^5.0.3",
     "@supabase/supabase-js": "^2.118.0",
+    "@types/leaflet": "^1.9.22",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.60.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

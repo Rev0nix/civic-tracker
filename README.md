@@ -1,8 +1,35 @@
-# 🏛️ LOKIFY – Premium Android Civic Issue Reporting & Tracking
+# 🏛️ LOKIFY – Multi-Stack Civic Issue Reporting & Municipal Tracking Platform
 
-**Lokify** is a complete, modern, and production-grade civic issue reporting and municipal tracking application built for Android and modern web clients. It connects citizens directly with local municipal authorities to report, map, upvote, follow, and resolve neighborhood problems—including potholes, non-functional streetlights, water & sewage leaks, garbage overflows, and public safety hazards.
+**Lokify** is a complete, modern, and production-grade civic issue reporting and municipal tracking application built across **Kotlin, TypeScript, Rust, Shell, PowerShell, CSS, and modern web frameworks**. It connects citizens directly with local municipal authorities to report, map, upvote, follow, and resolve neighborhood problems—including potholes, non-functional streetlights, water & sewage leaks, garbage overflows, and public safety hazards.
 
 🌐 **Live Demo:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
+
+---
+
+## 🛠️ Multi-Language Polyglot Architecture
+
+Lokify is architected across specialized programming languages for optimal performance, type safety, and native integration:
+
+| Language | Layer / Component | File Locations & Highlights |
+| :--- | :--- | :--- |
+| **Kotlin** | Native Android Layer | `android/.../MainActivity.kt`, `CivicNativeBridge.kt` – Native GPS precision, Android activity lifecycle, hardware sensors. |
+| **TypeScript** | Domain Types & Map Engine | `src/types/civic.ts`, `src/services/mapEngine.ts` – Strictly-typed domain models, dual-engine map abstraction, Haversine distance. |
+| **Rust** | High-Performance Engine | `rust-core/src/lib.rs`, `rust-core/src/main.rs` – 100m spatial clustering, duplicate detection, and CLI benchmark (`lokify-cli`). |
+| **Shell (Bash)** | POSIX Automation | `scripts/build.sh`, `scripts/test_maps.sh`, `scripts/deploy.sh` – Automated CI/CD, build verification, and map telemetry diagnostics. |
+| **PowerShell** | Windows Automation | `scripts/build.ps1`, `scripts/test_maps.ps1`, `scripts/run_dev.ps1` – Cross-platform developer automation for Windows environments. |
+| **CSS** | Modern Design System | `src/App.css`, `src/index.css` – Glassmorphism tokens, Leaflet dark-tile overrides, GPS radar animations, custom scrollbars. |
+| **JavaScript (ESNext)** | Web & Mobile UI | `src/components/*.jsx` – Full reactive component tree with React 19. |
+
+---
+
+## 🗺️ Resilient Dual-Engine Map Architecture
+
+Lokify implements a zero-downtime dual-engine mapping system:
+1. **Primary Engine – Google Maps JavaScript API:** Configured with API key `AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc` and custom Lokify Dark GIS vector styles.
+2. **Fallback Engine – Leaflet & OpenStreetMap / CartoDB Dark:** If Google Maps API is unactivated, quota-limited, or blocked by domain rules, Lokify **instantly and automatically falls back to Leaflet** with high-contrast CartoDB dark tiles.
+3. **On-the-Fly Engine Switcher:** Users can manually toggle between `Google Maps` and `Leaflet GIS` with 1 click in the top map toolbar.
+4. **Interactive Pin Picker:** Click or drag pins in both engines within the Report Issue modal.
+5. **Reverse Geocoding Fallback:** Queries Google Maps Geocoding, falling back to OpenStreetMap Nominatim for 100% reliable street and neighborhood names.
 
 ---
 
