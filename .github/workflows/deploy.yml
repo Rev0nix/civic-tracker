@@ -3,8 +3,6 @@ name: Deploy and Release Lokify
 on:
   push:
     branches: [ main ]
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -14,7 +12,7 @@ permissions:
 
 concurrency:
   group: pages-and-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
