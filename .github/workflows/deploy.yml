@@ -41,7 +41,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc'
+          VITE_GOOGLE_MAPS_API_KEY: '016089-E20F62-171E41'
 
       - name: Deploy to gh-pages branch (backup)
         uses: peaceiris/actions-gh-pages@v4
@@ -97,7 +97,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc'
+          VITE_GOOGLE_MAPS_API_KEY: '016089-E20F62-171E41'
 
       - name: Sync Capacitor Android Project
         run: npx cap sync android
@@ -116,32 +116,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.4' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.4' }} – Production Web & Mobile Release"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.5' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.5' }} – Production Web & Mobile Release"
           make_latest: true
           body: |
-            ## 🏛️ Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.4' }} – Multi-Stack Production Release
+            ## 🏛️ Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.5' }} – Multi-Stack Production Release
 
             Welcome to the official production release of **Lokify**, the modern civic issue reporting and municipal tracking platform.
 
-            ### 🚀 What's New in v1.2.4:
-            * **Multi-Language Architecture:**
-              * **TypeScript:** Strict type definitions (`src/types/civic.ts`) and unified map engine controller (`src/services/mapEngine.ts`).
-              * **Kotlin:** Migrated native Android layer to Kotlin (`MainActivity.kt` and `CivicNativeBridge.kt`) with Kotlin Gradle plugin.
-              * **Rust:** High-performance spatial clustering and duplicate detection engine (`rust-core/src/lib.rs`) and CLI (`lokify-cli`).
-              * **Shell:** Automated multi-platform build and map diagnostics tool (`scripts/build.sh`, `scripts/test_maps.sh`).
-              * **PowerShell:** Windows PowerShell build and diagnostic scripts (`scripts/build.ps1`, `scripts/test_maps.ps1`, `scripts/run_dev.ps1`).
-              * **CSS:** Glassmorphism UI tokens, GPS radar pulse rings, and custom dark-mode GIS tile styling in `src/App.css`.
-            * **Dual-Engine Resilient Map Architecture:** Primary Google Maps JavaScript API with automatic zero-downtime fallback to Leaflet Dark GIS vector tiles. Includes on-the-fly engine toggle.
-            * **Instant Guest Exploration:** One-click instant guest access on the authentication screen to explore the map and feed without barrier.
-            * **Interactive Pin Picker:** Click/drag pin placement with real-time reverse geocoding in the Report Issue modal.
-            * **Mini Map Preview:** Real-time map previews inside the Issue Detail drawer.
+            ### 🚀 What's New in v1.2.5:
+            * **Dedicated Civic GIS Map Tab:** First-class Map navigation on desktop header and mobile bottom bar with real-time issue markers and locate-me GPS radar.
+            * **Google Maps API Key Update:** Configured `"016089-E20F62-171E41"` with dual-engine fallback to ensure zero downtime.
+            * **Branded App Image & Modern Vector Logo:** Generated high-resolution vector and raster assets (`favicon.svg`, `favicon.png`, `hero.png`, and Android adaptive icons).
+            * **Multi-Language Architecture:** Kotlin (Android Bridge), TypeScript (GIS & Types), Rust (Spatial Engine CLI), POSIX Shell, PowerShell, and CSS Tokens.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.4' }}/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.5' }}/app-debug.apk)**
 
             🌐 **Live Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

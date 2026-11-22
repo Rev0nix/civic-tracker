@@ -17,6 +17,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { sendSmsNotification } from '../utils/smsService';
+import AppLogo from './AppLogo';
 
 export default function AuthScreen({ onLogin }) {
   const [role, setRole] = useState('citizen'); // 'citizen' | 'admin'
@@ -206,6 +207,23 @@ export default function AuthScreen({ onLogin }) {
             Report neighborhood infrastructure defects—potholes, streetlights, drainage, and garbage—with GPS locking and instant carrier SMS progress notifications.
           </p>
 
+          {/* App Image & GIS Map Preview */}
+          <div className="relative rounded-2xl overflow-hidden border border-[#28616A]/40 bg-[#101819] max-w-md mx-auto lg:mx-0 shadow-2xl group">
+            <img
+              src="/civic-tracker/assets/hero.png"
+              alt="Lokify Smart Civic Platform"
+              className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#080F0F] via-transparent to-transparent opacity-60" />
+            <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-[11px] font-mono text-[#A3DCE3] bg-[#080F0F]/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#28616A]/50">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#43C88A] animate-ping" />
+                Dual GIS Map Active
+              </span>
+              <span className="text-[#758588]">API Key: 016089-E20F62-171E41</span>
+            </div>
+          </div>
+
           {/* Platform Highlights */}
           <div className="grid grid-cols-2 gap-3 pt-2 max-w-md mx-auto lg:mx-0">
             <div className="bg-[#101819] border border-[#354144] p-3.5 rounded-2xl flex items-center gap-3 text-left">
@@ -247,9 +265,7 @@ export default function AuthScreen({ onLogin }) {
           {/* Header Branding */}
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#354144]">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] font-mono font-black text-xl flex items-center justify-center shadow-lg shadow-[#132B2F]/60">
-                LK
-              </div>
+              <AppLogo size="md" />
               <div>
                 <h2 className="text-lg font-black text-[#F0F4F4] font-mono tracking-tight">
                   Lokify Authentication

@@ -3,7 +3,7 @@
 # ==============================================================================
 [CmdletBinding()]
 param(
-    [string]$ApiKey = "AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc"
+    [string]$ApiKey = "016089-E20F62-171E41"
 )
 
 Write-Host "============================================================" -ForegroundColor Cyan

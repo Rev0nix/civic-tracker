@@ -1,5 +1,6 @@
 import {
   Home,
+  MapPin,
   ClipboardList,
   Bell,
   User,
@@ -8,6 +9,7 @@ import {
   ShieldCheck,
   Phone,
 } from 'lucide-react';
+import AppLogo from './AppLogo';
 
 export default function DesktopHeader({
   activeTab,
@@ -21,6 +23,7 @@ export default function DesktopHeader({
 }) {
   const navTabs = [
     { id: 'feed', label: 'Feed', icon: Home },
+    { id: 'map', label: 'Civic Map', icon: MapPin },
     { id: 'my-issues', label: 'My Issues', icon: ClipboardList },
     { id: 'alerts', label: 'Alerts', icon: Bell, badge: unreadAlertsCount },
     { id: 'profile', label: 'Profile', icon: User },
@@ -29,11 +32,9 @@ export default function DesktopHeader({
   return (
     <header className="hidden md:block sticky top-0 z-40 bg-[#101819]/95 backdrop-blur-xl border-b border-[#354144] px-6 py-3 select-none">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
-        {/* Brand Left */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] font-mono font-black text-lg flex items-center justify-center shadow-md shadow-[#132B2F]/40">
-            LK
-          </div>
+        {/* Brand Left with Modern App Logo */}
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => onTabChange('feed')}>
+          <AppLogo size="sm" />
           <div>
             <div className="flex items-center gap-2">
               <span className="text-lg font-black tracking-tight text-[#F0F4F4] font-mono">
@@ -49,7 +50,7 @@ export default function DesktopHeader({
           </div>
         </div>
 
-        {/* Center Navigation Tabs */}
+        {/* Center Navigation Tabs (includes Civic Map) */}
         <nav className="flex items-center gap-2 bg-[#192223] border border-[#354144] p-1.5 rounded-2xl">
           {navTabs.map((tab) => {
             const Icon = tab.icon;

@@ -1,24 +1,26 @@
-// The verified Google Maps Platform API key provided by the user
-export const GOOGLE_MAPS_API_KEY = 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
+// The Google Maps Platform API key provided by the user
+export const GOOGLE_MAPS_API_KEY =
+  import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+  document.querySelector('meta[name="google-maps-api-key"]')?.content ||
+  '016089-E20F62-171E41';
+
+export const GOOGLE_MAPS_FALLBACK_KEY = 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
 
 export const GOOGLE_MAPS_MAP_ID =
   import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ||
   document.querySelector('meta[name="google-maps-map-id"]')?.content ||
   '016089-E20F62-171E41';
 
-const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
-
 let googleMapsPromise = null;
 
 // Catch and notify on Google Maps authentication errors
 if (typeof window !== 'undefined') {
   window.gm_authFailure = () => {
-    console.error('Google Maps Platform authentication failure: verify API key restrictions in Google Cloud Console.');
+    console.warn(`Google Maps Platform authentication failure for key: ${GOOGLE_MAPS_API_KEY}`);
     window.dispatchEvent(
       new CustomEvent('lokify:map_auth_error', {
         detail: {
-          message:
-            'Google Maps API key error. Ensure "Maps JavaScript API" is enabled in Google Cloud Console for key AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc.',
+          message: `Google Maps key "${GOOGLE_MAPS_API_KEY}" reported authentication restriction. Fallback engine activated.`,
         },
       })
     );
@@ -96,7 +98,7 @@ export const LOKIFY_DARK_MAP_STYLES = [
   },
 ];
 
-export function loadGoogleMaps() {
+export function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
   if (window.google?.maps) return Promise.resolve(window.google.maps);
 
   if (!googleMapsPromise) {
@@ -115,23 +117,45 @@ export function loadGoogleMaps() {
         return;
       }
 
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(googleMapsApiKey)}`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        if (window.google?.maps) {
-          resolve(window.google.maps);
+      function injectScript(key, onFail) {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&map_ids=${encodeURIComponent(GOOGLE_MAPS_MAP_ID)}`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          if (window.google?.maps) {
+            resolve(window.google.maps);
+          } else if (onFail) {
+            onFail();
+          } else {
+            googleMapsPromise = null;
+            reject(new Error('Google Maps loaded but namespace not found.'));
+          }
+        };
+        script.onerror = () => {
+          if (onFail) {
+            onFail();
+          } else {
+            googleMapsPromise = null;
+            reject(new Error('Google Maps could not be loaded.'));
+          }
+        };
+        document.head.appendChild(script);
+      }
+
+      // Try primary key requested by user ("016089-E20F62-171E41"), then fallback key
+      injectScript(apiKey, () => {
+        if (apiKey !== GOOGLE_MAPS_FALLBACK_KEY) {
+          console.warn(`Primary key "${apiKey}" did not initialize; attempting fallback key "${GOOGLE_MAPS_FALLBACK_KEY}".`);
+          injectScript(GOOGLE_MAPS_FALLBACK_KEY, () => {
+            googleMapsPromise = null;
+            reject(new Error('Google Maps failed to load; using Leaflet Dark GIS.'));
+          });
         } else {
           googleMapsPromise = null;
-          reject(new Error('Google Maps loaded but namespace not found.'));
+          reject(new Error('Google Maps failed to load; using Leaflet Dark GIS.'));
         }
-      };
-      script.onerror = () => {
-        googleMapsPromise = null;
-        reject(new Error('Google Maps could not be loaded.'));
-      };
-      document.head.appendChild(script);
+      });
     });
   }
 
@@ -155,13 +179,13 @@ export async function reverseGeocode(latitude, longitude) {
       if (address) return address;
     }
   } catch {
-    // Fall back to Google Maps Geocoding REST API endpoint
+    // Fall back to REST endpoints
   }
 
+  // Attempt REST geocoding with user key
   try {
-    const key = googleMapsApiKey || 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
     const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(key)}`
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}`
     );
     if (res.ok) {
       const data = await res.json();
@@ -170,10 +194,25 @@ export async function reverseGeocode(latitude, longitude) {
       }
     }
   } catch {
-    // Ignore
+    // Fall back to secondary key
   }
 
-  // Graceful fallback to Nominatim reverse geocode if Google Geocoding API is not activated
+  // Attempt REST geocoding with fallback key
+  try {
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(GOOGLE_MAPS_FALLBACK_KEY)}`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.results && data.results[0]?.formatted_address) {
+        return data.results[0].formatted_address;
+      }
+    }
+  } catch {
+    // Fall back to Nominatim
+  }
+
+  // Graceful fallback to Nominatim reverse geocode
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
@@ -199,7 +238,6 @@ export function extractLocality(address, fallbackLat, fallbackLng) {
   }
   const parts = address.split(',').map((p) => p.trim());
   if (parts.length >= 2) {
-    // Usually the second or first segment is the neighborhood/sublocality
     const sub = parts[0].length < 25 ? parts[0] : parts[1];
     return sub || 'Near Ward Office';
   }

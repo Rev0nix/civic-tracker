@@ -16,7 +16,9 @@ import ReportIssueModal from './components/ReportIssueModal';
 import IssueDetailModal from './components/IssueDetailModal';
 import AdminModal from './components/AdminModal';
 import AiAssistantModal from './components/AiAssistantModal';
-import { Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
+import CivicMap from './components/CivicMap';
+import AppLogo from './components/AppLogo';
+import { Bell, CheckCircle2, AlertTriangle, MapPin, Plus } from 'lucide-react';
 import './App.css';
 
 // Initial reference alerts
@@ -567,9 +569,7 @@ export default function App() {
         {/* Animated Startup Splash Screen */}
         {showSplash && (
           <div className="fixed inset-0 z-50 bg-[#080F0F] flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-300">
-            <div className="w-20 h-20 rounded-3xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] flex items-center justify-center text-3xl font-black mb-6 shadow-2xl shadow-[#A3DCE3]/20 animate-pulse">
-              LK
-            </div>
+            <AppLogo size="xl" className="mb-6 animate-pulse" />
             <h1 className="text-4xl font-extrabold tracking-tight text-[#F0F4F4] mb-2 font-mono">
               LOKIFY
             </h1>
@@ -652,6 +652,52 @@ export default function App() {
             upvotedIssueIds={upvotedIssueIds}
             onShareIssue={handleShare}
           />
+        )}
+
+        {activeTab === 'map' && (
+          <div className="py-6 px-4 max-w-7xl mx-auto space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#354144]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-black font-mono tracking-tight text-[#F0F4F4]">
+                    Civic GIS Map
+                  </h2>
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#132B2F] text-[#A3DCE3] border border-[#28616A]">
+                    Live Spatial Radar
+                  </span>
+                </div>
+                <p className="text-xs font-mono text-[#A5B1B3] mt-0.5">
+                  Real-time geospatial map of municipal issues. Dual engine: Google Maps (Key: 016089-E20F62-171E41) & Leaflet Dark GIS.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={acquireGPSLocation}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#192223] hover:bg-[#202B2D] border border-[#354144] text-[#A3DCE3] text-xs font-mono font-semibold transition"
+                >
+                  <MapPin size={14} />
+                  <span>Locate Me</span>
+                </button>
+                <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] text-xs font-mono font-bold transition shadow-md"
+                >
+                  <Plus size={14} strokeWidth={2.5} />
+                  <span>Report Issue</span>
+                </button>
+              </div>
+            </div>
+
+            <CivicMap
+              latitude={userLocation?.lat}
+              longitude={userLocation?.lng}
+              issues={issues}
+              addresses={addresses}
+              onSelectIssue={(issue) => setSelectedIssue(issue)}
+              height="h-[640px]"
+            />
+          </div>
         )}
 
         {activeTab === 'my-issues' && (

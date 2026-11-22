@@ -25,6 +25,7 @@ import {
   createLeafletSvgIconHtml,
   getPreferredMapEngine,
 } from '../services/mapEngine';
+import AppLogo from './AppLogo';
 
 export default function IssueDetailModal({
   issue,
@@ -372,9 +373,7 @@ export default function IssueDetailModal({
           {/* Reported By & Verification */}
           <section className="bg-[#192223] border border-[#354144] rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#202B2D] border border-[#354144] text-[#A3DCE3] font-bold font-mono text-sm flex items-center justify-center">
-                LK
-              </div>
+              <AppLogo size="sm" />
               <div>
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] block">
                   REPORTED BY

@@ -4,7 +4,7 @@
 # ==============================================================================
 set -euo pipefail
 
-API_KEY="${1:-AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc}"
+API_KEY="${1:-016089-E20F62-171E41}"
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

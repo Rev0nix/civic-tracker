@@ -1,8 +1,9 @@
-import { Home, ClipboardList, Bell, User } from 'lucide-react';
+import { Home, MapPin, ClipboardList, Bell, User } from 'lucide-react';
 
 export default function BottomNav({ activeTab, onTabChange, unreadAlertsCount = 0 }) {
   const tabs = [
     { id: 'feed', label: 'Feed', icon: Home },
+    { id: 'map', label: 'Map', icon: MapPin },
     { id: 'my-issues', label: 'My Issues', icon: ClipboardList },
     { id: 'alerts', label: 'Alerts', icon: Bell, badge: unreadAlertsCount },
     { id: 'profile', label: 'Profile', icon: User },
@@ -10,7 +11,7 @@ export default function BottomNav({ activeTab, onTabChange, unreadAlertsCount = 
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] px-4 py-2"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] px-2 py-2"
       aria-label="Bottom navigation"
     >
       <div className="max-w-md mx-auto flex items-center justify-between">
@@ -22,7 +23,7 @@ export default function BottomNav({ activeTab, onTabChange, unreadAlertsCount = 
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`relative flex flex-col items-center justify-center py-1.5 px-4 rounded-2xl transition-all duration-200 select-none ${
+              className={`relative flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 select-none ${
                 isActive
                   ? 'bg-[#315C60] text-[#A3DCE3]'
                   : 'text-[#758588] hover:text-[#A5B1B3] active:scale-95'
@@ -37,7 +38,7 @@ export default function BottomNav({ activeTab, onTabChange, unreadAlertsCount = 
                 )}
               </div>
               <span
-                className={`text-[11px] mt-1 font-medium tracking-tight ${
+                className={`text-[10px] mt-1 font-medium tracking-tight ${
                   isActive ? 'font-semibold text-[#A3DCE3]' : 'text-[#758588]'
                 }`}
               >
