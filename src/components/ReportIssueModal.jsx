@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   X,
   Camera,
@@ -15,7 +15,10 @@ import {
   HelpCircle,
   Phone,
   Mail,
+  LocateFixed,
+  Layers,
 } from 'lucide-react';
+import { loadGoogleMaps, LOKIFY_DARK_MAP_STYLES, reverseGeocode } from '../googleMaps';
 
 const CATEGORY_CHIPS = [
   { id: '1', label: 'Pothole', icon: Car },
@@ -48,8 +51,110 @@ export default function ReportIssueModal({
   const [validationError, setValidationError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Map & Pin Picker State
+  const [userCustomCoords, setUserCustomCoords] = useState(null);
+  const selectedCoords = userCustomCoords || currentLocation || { lat: 12.9716, lng: 77.5946 };
+  const [geocodedAddress, setGeocodedAddress] = useState('');
+  const [isSatellite, setIsSatellite] = useState(false);
+
   const fileInputCamera = useRef(null);
   const fileInputGallery = useRef(null);
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+
+  // Synchronize GPS location when updated if user hasn't explicitly moved the pin
+  useEffect(() => {
+    if (currentLocation && !userCustomCoords) {
+      if (markerRef.current) {
+        markerRef.current.setPosition(currentLocation);
+      }
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.panTo(currentLocation);
+      }
+      reverseGeocode(currentLocation.lat, currentLocation.lng).then((addr) => {
+        setGeocodedAddress(addr);
+      });
+    }
+  }, [currentLocation, userCustomCoords]);
+
+  // Initialize Interactive Google Map in Modal
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+
+    // Small delay to allow modal open transition
+    const timer = setTimeout(() => {
+      if (!mapContainerRef.current) return;
+
+      loadGoogleMaps()
+        .then((maps) => {
+          if (!active || !mapContainerRef.current) return;
+          const initial = selectedCoords || currentLocation || { lat: 12.9716, lng: 77.5946 };
+
+          const map = new maps.Map(mapContainerRef.current, {
+            center: initial,
+            zoom: 16,
+            mapTypeId: maps.MapTypeId.ROADMAP,
+            styles: LOKIFY_DARK_MAP_STYLES,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+            zoomControl: true,
+            clickableIcons: false,
+          });
+          mapInstanceRef.current = map;
+
+          const marker = new maps.Marker({
+            position: initial,
+            map,
+            draggable: true,
+            title: 'Drag or tap anywhere to place issue pin',
+            icon: {
+              path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+              fillColor: '#EF6666',
+              fillOpacity: 1,
+              strokeColor: '#080F0F',
+              strokeWeight: 2,
+              scale: 1.6,
+              anchor: new maps.Point(12, 22),
+            },
+          });
+          markerRef.current = marker;
+
+          const updateCoords = (latLng) => {
+            const lat = latLng.lat();
+            const lng = latLng.lng();
+            setUserCustomCoords({ lat, lng });
+            reverseGeocode(lat, lng).then((addr) => {
+              if (active) setGeocodedAddress(addr);
+            });
+          };
+
+          map.addListener('click', (e) => {
+            marker.setPosition(e.latLng);
+            updateCoords(e.latLng);
+          });
+
+          marker.addListener('dragend', (e) => {
+            updateCoords(e.latLng);
+          });
+
+          reverseGeocode(initial.lat, initial.lng).then((addr) => {
+            if (active) setGeocodedAddress(addr);
+          });
+        })
+        .catch((err) => {
+          console.warn('Map initialization in modal:', err);
+        });
+    }, 150);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -79,7 +184,8 @@ export default function ReportIssueModal({
       setValidationError('Please select an issue category.');
       return;
     }
-    if (!currentLocation) {
+    const finalLocation = selectedCoords || currentLocation;
+    if (!finalLocation) {
       setValidationError('Valid GPS location is required. Tap "Refresh GPS" to acquire location.');
       return;
     }
@@ -97,7 +203,7 @@ export default function ReportIssueModal({
         userEmail: userEmail.trim() || initialEmail,
         userPhone: userPhone.trim() || initialPhone,
         file,
-        location: currentLocation,
+        location: finalLocation,
       });
       onClose();
     } catch (err) {
@@ -249,44 +355,107 @@ export default function ReportIssueModal({
             </div>
           </div>
 
-          {/* 4. Location Pinning */}
+          {/* 4. Interactive Google Map Location Pinning */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3]">
-                Location <span className="text-[#EF6666]">*</span>
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#A3DCE3]" />
+                <span>Issue Location & Map Pin <span className="text-[#EF6666]">*</span></span>
               </label>
-              <button
-                type="button"
-                onClick={onRefreshLocation}
-                className="flex items-center gap-1 text-[11px] font-mono text-[#A3DCE3] hover:underline"
-              >
-                <RefreshCw size={11} />
-                <span>Refresh GPS</span>
-              </button>
+              <span className="text-[10px] font-mono text-[#A3DCE3] bg-[#132B2F] border border-[#28616A] px-2 py-0.5 rounded-full">
+                Tap or drag pin to position
+              </span>
             </div>
 
-            <div className="bg-[#192223] border border-[#354144] p-3.5 rounded-xl flex items-center justify-between gap-3">
+            {/* Interactive Map Canvas */}
+            <div className="relative w-full h-52 sm:h-60 rounded-2xl overflow-hidden border border-[#354144] bg-[#080F0F] mb-2 shadow-lg">
+              <div ref={mapContainerRef} className="w-full h-full" />
+
+              {/* Floating Map Controls */}
+              <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-1.5">
+                {/* Snap to Device GPS */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentLocation) {
+                      setUserCustomCoords(null);
+                      if (markerRef.current) markerRef.current.setPosition(currentLocation);
+                      if (mapInstanceRef.current) {
+                        mapInstanceRef.current.panTo(currentLocation);
+                        mapInstanceRef.current.setZoom(17);
+                      }
+                      reverseGeocode(currentLocation.lat, currentLocation.lng).then((addr) => setGeocodedAddress(addr));
+                    } else {
+                      onRefreshLocation?.();
+                    }
+                  }}
+                  className="w-8 h-8 rounded-xl bg-[#101819]/90 hover:bg-[#192223] backdrop-blur-md border border-[#354144] hover:border-[#A3DCE3] text-[#A3DCE3] flex items-center justify-center shadow-md active:scale-95 transition"
+                  title="Snap Pin to Live Device GPS"
+                >
+                  <LocateFixed size={16} />
+                </button>
+
+                {/* Satellite Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!mapInstanceRef.current) return;
+                    const next = !isSatellite;
+                    setIsSatellite(next);
+                    if (window.google?.maps) {
+                      mapInstanceRef.current.setMapTypeId(
+                        next ? window.google.maps.MapTypeId.HYBRID : window.google.maps.MapTypeId.ROADMAP
+                      );
+                      if (!next) {
+                        mapInstanceRef.current.setOptions({ styles: LOKIFY_DARK_MAP_STYLES });
+                      }
+                    }
+                  }}
+                  className={`w-8 h-8 rounded-xl backdrop-blur-md border flex items-center justify-center shadow-md active:scale-95 transition ${
+                    isSatellite
+                      ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3]'
+                      : 'bg-[#101819]/90 border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4]'
+                  }`}
+                  title="Toggle Satellite Imagery"
+                >
+                  <Layers size={15} />
+                </button>
+              </div>
+
+              {/* Live Pin Info Strip */}
+              <div className="absolute bottom-2 left-2 right-2 z-10 bg-[#101819]/95 backdrop-blur-md border border-[#354144] px-3 py-1.5 rounded-xl flex items-center justify-between text-[11px] font-mono">
+                <span className="text-[#A3DCE3] flex items-center gap-1.5 truncate">
+                  <span className="w-2 h-2 rounded-full bg-[#EF6666] animate-pulse" />
+                  <span>Pin: {selectedCoords.lat.toFixed(5)}, {selectedCoords.lng.toFixed(5)}</span>
+                </span>
+                <span className="text-[#758588] text-[10px] shrink-0">Tap map to move</span>
+              </div>
+            </div>
+
+            {/* Resolved Address & Locality Card */}
+            <div className="bg-[#192223] border border-[#354144] p-3 rounded-xl flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] flex items-center justify-center shrink-0">
                   <MapPin size={15} />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-xs font-mono font-bold text-[#F0F4F4] block truncate">
-                    {currentLocation
-                      ? `${currentLocation.lat.toFixed(5)}, ${currentLocation.lng.toFixed(5)}`
-                      : 'Locking GPS signal...'}
+                  <span className="text-xs font-bold text-[#F0F4F4] block truncate">
+                    {geocodedAddress || 'Resolving reverse geocoded locality...'}
                   </span>
                   <span className="text-[11px] text-[#758588] font-mono truncate block">
-                    {locationStatus || 'High accuracy mobile lock'}
+                    {userCustomCoords ? 'Custom map location selected' : (locationStatus || 'GPS location locked')}
                   </span>
                 </div>
               </div>
 
-              {currentLocation && (
-                <span className="text-[10px] font-mono font-bold text-[#43C88A] bg-[#112C20] border border-[#1D5C3F] px-2.5 py-1 rounded-full shrink-0">
-                  Locked
-                </span>
-              )}
+              <button
+                type="button"
+                onClick={onRefreshLocation}
+                className="flex items-center gap-1 text-[11px] font-mono text-[#A3DCE3] hover:underline bg-[#132B2F] hover:bg-[#1c3e44] px-3 py-1.5 rounded-xl border border-[#28616A] shrink-0 transition"
+              >
+                <RefreshCw size={11} />
+                <span>GPS Refresh</span>
+              </button>
             </div>
           </div>
 

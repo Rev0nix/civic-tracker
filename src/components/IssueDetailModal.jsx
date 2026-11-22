@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   MapPin,
@@ -18,7 +18,7 @@ import {
   getRelativeTime,
   getCategoryIllustration,
 } from '../constants/theme';
-import { extractLocality } from '../googleMaps';
+import { loadGoogleMaps, LOKIFY_DARK_MAP_STYLES, extractLocality } from '../googleMaps';
 
 export default function IssueDetailModal({
   issue,
@@ -31,18 +31,11 @@ export default function IssueDetailModal({
 }) {
   const [isFollowed, setIsFollowed] = useState(false);
   const [confirmedStatus, setConfirmedStatus] = useState(null); // 'confirmed' | 'disputed'
-
-  if (!issue) return null;
-
-  const statusCfg = STATUS_CONFIG[issue.status] || STATUS_CONFIG.Open;
-  const formattedId = formatIssueId(issue.id);
-  const categoryLabel = getCategoryName(issue.category_id);
-  const relativeTime = getRelativeTime(issue.created_at);
-  const imageSrc = issue.photo_url || getCategoryIllustration(issue.category_id);
+  const previewMapRef = useRef(null);
 
   // Parse location coordinates
   let coords = null;
-  if (issue.location) {
+  if (issue?.location) {
     if (typeof issue.location === 'object' && issue.location.coordinates) {
       coords = { lng: issue.location.coordinates[0], lat: issue.location.coordinates[1] };
     } else if (typeof issue.location === 'string') {
@@ -52,9 +45,59 @@ export default function IssueDetailModal({
       }
     }
   }
-  if (!coords && issue.latitude && issue.longitude) {
+  if (!coords && issue?.latitude && issue?.longitude) {
     coords = { lat: Number(issue.latitude), lng: Number(issue.longitude) };
   }
+
+  // Initialize Mini Map Preview
+  useEffect(() => {
+    if (!issue || !coords) return;
+    let active = true;
+
+    const timer = setTimeout(() => {
+      if (!previewMapRef.current) return;
+      loadGoogleMaps().then((maps) => {
+        if (!active || !previewMapRef.current) return;
+
+        const map = new maps.Map(previewMapRef.current, {
+          center: coords,
+          zoom: 16,
+          styles: LOKIFY_DARK_MAP_STYLES,
+          disableDefaultUI: true,
+          zoomControl: true,
+          clickableIcons: false,
+        });
+
+        new maps.Marker({
+          position: coords,
+          map,
+          title: issue.title,
+          icon: {
+            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+            fillColor: issue.status === 'Resolved' ? '#43C88A' : '#EF6666',
+            fillOpacity: 1,
+            strokeColor: '#080F0F',
+            strokeWeight: 2,
+            scale: 1.5,
+            anchor: new maps.Point(12, 22),
+          },
+        });
+      });
+    }, 150);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [issue, coords]);
+
+  if (!issue) return null;
+
+  const statusCfg = STATUS_CONFIG[issue.status] || STATUS_CONFIG.Open;
+  const formattedId = formatIssueId(issue.id);
+  const categoryLabel = getCategoryName(issue.category_id);
+  const relativeTime = getRelativeTime(issue.created_at);
+  const imageSrc = issue.photo_url || getCategoryIllustration(issue.category_id);
 
   const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
   const localityName = addressText
@@ -240,8 +283,15 @@ export default function IssueDetailModal({
           {/* Location Section */}
           <section className="bg-[#192223] border border-[#354144] rounded-3xl p-5">
             <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] mb-3">
-              LOCATION
+              LOCATION & MAP PIN
             </h3>
+
+            {/* Embedded Mini Google Map */}
+            {coords && (
+              <div className="relative w-full h-44 rounded-2xl overflow-hidden border border-[#354144] bg-[#080F0F] mb-3 shadow-inner">
+                <div ref={previewMapRef} className="w-full h-full" />
+              </div>
+            )}
 
             <div className="flex items-start gap-3 mb-3">
               <div className="w-9 h-9 rounded-2xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] flex items-center justify-center shrink-0">
