@@ -586,6 +586,11 @@ export default function App() {
         <AuthScreen
           onLogin={(user) => {
             setCurrentUser(user);
+            try {
+              localStorage.setItem('lokify_auth_session', JSON.stringify(user));
+            } catch {
+              // Ignore storage errors in private browsing
+            }
             showToast(`Welcome ${user.name}! SMS alerts verified.`, 'success');
           }}
         />

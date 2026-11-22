@@ -130,213 +130,175 @@ export default function ProfileScreen({
   ];
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-28 pt-4 px-4 sm:px-6 max-w-2xl mx-auto">
-      {/* Header Profile Card */}
-      <section className="bg-[#192223] border border-[#354144] rounded-3xl p-6 sm:p-7 mb-6 relative overflow-hidden shadow-xl">
-        <div className="flex items-start justify-between gap-4 relative z-10">
-          <div className="flex items-center gap-4">
-            {/* Avatar */}
-            <div className="w-16 h-16 rounded-3xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] font-mono font-extrabold text-xl flex items-center justify-center shadow-lg shadow-[#132B2F]/50">
-              {userName
-                .split(' ')
-                .map((n) => n[0])
-                .join('')
-                .slice(0, 2)
-                .toUpperCase() || 'LK'}
+    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-28 pt-4 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full">
+      {/* Header Title */}
+      <div className="mb-6">
+        <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-[#758588] block mb-1">
+          CITIZEN ACCOUNT & SETTINGS
+        </span>
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#F0F4F4]">
+          Profile & Preferences
+        </h1>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column (Profile, Stats, Municipal Admin, Sign Out) */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Header Profile Card */}
+          <section className="bg-[#192223] border border-[#354144] rounded-3xl p-6 sm:p-7 relative overflow-hidden shadow-xl">
+            <div className="flex items-start justify-between gap-4 relative z-10">
+              <div className="flex items-center gap-4">
+                {/* Avatar */}
+                <div className="w-16 h-16 rounded-3xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] font-mono font-extrabold text-xl flex items-center justify-center shadow-lg shadow-[#132B2F]/50">
+                  {userName
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase() || 'LK'}
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-black text-[#F0F4F4] tracking-tight">
+                      {userName}
+                    </h2>
+                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#112C20] text-[#43C88A] border border-[#1D5C3F]">
+                      Verified
+                    </span>
+                  </div>
+
+                  {userPhone && (
+                    <p className="text-xs font-mono text-[#A3DCE3] mt-1 flex items-center gap-1.5">
+                      <Phone size={12} />
+                      <span>{userPhone}</span>
+                    </p>
+                  )}
+
+                  <p className="text-xs font-mono text-[#A5B1B3] mt-0.5 flex items-center gap-1.5">
+                    <Mail size={12} className="text-[#A3DCE3]" />
+                    <span className="truncate max-w-[180px] sm:max-w-xs">{userEmail || 'No email attached'}</span>
+                  </p>
+
+                  <p className="text-xs font-mono text-[#758588] mt-0.5 flex items-center gap-1.5">
+                    <MapPin size={12} className="text-[#A3DCE3]" />
+                    <span>{userLocality}</span>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-2.5 rounded-2xl bg-[#202B2D] border border-[#354144] text-[#A5B1B3] hover:text-[#A3DCE3] transition active:scale-95"
+                title="Edit Profile"
+              >
+                <Edit3 size={16} />
+              </button>
             </div>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-[#F0F4F4] tracking-tight">
-                  {userName}
-                </h1>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#112C20] text-[#43C88A] border border-[#1D5C3F]">
-                  Verified
-                </span>
+            {/* Edit Profile Form */}
+            {isEditing && (
+              <div className="mt-5 pt-5 border-t border-[#354144] animate-in fade-in duration-200">
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A3DCE3] mb-3">
+                  EDIT CITIZEN CREDENTIALS
+                </h4>
+                <form onSubmit={handleSaveProfile} className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-mono text-[#758588] block mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-mono text-[#758588] block mb-1">Phone Number (SMS)</label>
+                    <input
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3] font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-mono text-[#758588] block mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-mono text-[#758588] block mb-1">Locality / Ward</label>
+                    <input
+                      type="text"
+                      value={editLocality}
+                      onChange={(e) => setEditLocality(e.target.value)}
+                      className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3]"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="submit"
+                      className="bg-[#A3DCE3] text-[#080F0F] font-bold text-xs px-4 py-2 rounded-xl"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="bg-[#202B2D] text-[#A5B1B3] text-xs px-3 py-2 rounded-xl"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
               </div>
+            )}
+          </section>
 
-              {userPhone && (
-                <p className="text-xs font-mono text-[#A3DCE3] mt-1 flex items-center gap-1.5">
-                  <Phone size={12} />
-                  <span>{userPhone}</span>
-                </p>
-              )}
-
-              <p className="text-xs font-mono text-[#A5B1B3] mt-0.5 flex items-center gap-1.5">
-                <Mail size={12} className="text-[#A3DCE3]" />
-                <span className="truncate max-w-[180px] sm:max-w-xs">{userEmail || 'No email attached'}</span>
-              </p>
-
-              <p className="text-xs font-mono text-[#758588] mt-0.5 flex items-center gap-1.5">
-                <MapPin size={12} className="text-[#A3DCE3]" />
-                <span>{userLocality}</span>
-              </p>
+          {/* Statistics 4-Grid */}
+          <section className="grid grid-cols-2 gap-3">
+            <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#758588] block">
+                Total Reports
+              </span>
+              <span className="text-2xl font-black text-[#F0F4F4] mt-1 block">
+                {myIssuesCount}
+              </span>
             </div>
-          </div>
 
-          <button
-            onClick={() => setIsEditing(true)}
-            className="p-2.5 rounded-2xl bg-[#202B2D] border border-[#354144] text-[#A5B1B3] hover:text-[#A3DCE3] transition active:scale-95"
-            title="Edit Profile"
-          >
-            <Edit3 size={16} />
-          </button>
-        </div>
-
-        {/* Edit Profile Form Modal */}
-        {isEditing && (
-          <div className="mt-5 pt-5 border-t border-[#354144] animate-in fade-in duration-200">
-            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A3DCE3] mb-3">
-              EDIT CITIZEN CREDENTIALS
-            </h4>
-            <form onSubmit={handleSaveProfile} className="space-y-3">
-              <div>
-                <label className="text-[11px] font-mono text-[#758588] block mb-1">Full Name</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3]"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-mono text-[#758588] block mb-1">Phone Number (SMS)</label>
-                <input
-                  type="tel"
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3] font-mono"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-mono text-[#758588] block mb-1">Email Address</label>
-                <input
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3]"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-mono text-[#758588] block mb-1">Locality / Ward</label>
-                <input
-                  type="text"
-                  value={editLocality}
-                  onChange={(e) => setEditLocality(e.target.value)}
-                  className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3]"
-                />
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="submit"
-                  className="bg-[#A3DCE3] text-[#080F0F] font-bold text-xs px-4 py-2 rounded-xl"
-                >
-                  Save Changes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="bg-[#202B2D] text-[#A5B1B3] text-xs px-3 py-2 rounded-xl"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-      </section>
-
-      {/* Statistics 4-Grid */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#758588] block">
-            Total Reports
-          </span>
-          <span className="text-2xl font-black text-[#F0F4F4] mt-1 block">
-            {myIssuesCount}
-          </span>
-        </div>
-
-        <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#43C88A] block">
-            Resolved
-          </span>
-          <span className="text-2xl font-black text-[#43C88A] mt-1 block">
-            {resolvedCount}
-          </span>
-        </div>
-
-        <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#38BDF8] block">
-            Active
-          </span>
-          <span className="text-2xl font-black text-[#38BDF8] mt-1 block">
-            {Math.max(0, activeCount)}
-          </span>
-        </div>
-
-        <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#A3DCE3] block">
-            Upvotes
-          </span>
-          <span className="text-2xl font-black text-[#A3DCE3] mt-1 block">
-            👍 {upvotesReceived}
-          </span>
-        </div>
-      </section>
-
-      {/* Menu Cards */}
-      <div className="space-y-6">
-        {menuSections.map((section) => (
-          <div key={section.title}>
-            <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#758588] mb-3 px-2">
-              {section.title}
-            </h3>
-            <div className="bg-[#192223] border border-[#354144] rounded-3xl overflow-hidden divide-y divide-[#354144]/60">
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={item.onClick}
-                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-[#202B2D] transition text-left group"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-[#202B2D] text-[#A3DCE3] flex items-center justify-center shrink-0 border border-[#354144]">
-                        <Icon size={16} />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-sm font-semibold text-[#F0F4F4] group-hover:text-[#A3DCE3] transition-colors block">
-                          {item.label}
-                        </span>
-                        {item.subtitle && (
-                          <span className="text-[11px] text-[#758588] font-mono block">
-                            {item.subtitle}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {item.badge && (
-                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-[#132B2F] text-[#A3DCE3] border border-[#28616A]">
-                          {item.badge}
-                        </span>
-                      )}
-                      <ChevronRight size={16} className="text-[#758588] group-hover:text-[#F0F4F4]" />
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#43C88A] block">
+                Resolved
+              </span>
+              <span className="text-2xl font-black text-[#43C88A] mt-1 block">
+                {resolvedCount}
+              </span>
             </div>
-          </div>
-        ))}
 
-        {/* Municipal Authority Admin Portal Button */}
-        <div>
-          <h3 className="text-[11px] font-mono font-bold tracking-widest uppercase text-[#758588] mb-3 px-2">
-            MUNICIPAL AUTHORITIES
-          </h3>
+            <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#38BDF8] block">
+                Active
+              </span>
+              <span className="text-2xl font-black text-[#38BDF8] mt-1 block">
+                {Math.max(0, activeCount)}
+              </span>
+            </div>
+
+            <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#A3DCE3] block">
+                Upvotes
+              </span>
+              <span className="text-2xl font-black text-[#A3DCE3] mt-1 block">
+                👍 {upvotesReceived}
+              </span>
+            </div>
+          </section>
+
+          {/* Municipal Authority Admin Portal Button */}
           <div className="bg-[#192223] border border-[#354144] rounded-3xl p-5 flex items-center justify-between">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-2xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] flex items-center justify-center">
@@ -359,17 +321,65 @@ export default function ProfileScreen({
               {isAdminActive ? 'Open Center' : 'Sign In'}
             </button>
           </div>
+
+          {/* Sign Out Button */}
+          <div className="pt-2">
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center justify-center gap-2 bg-[#192223] hover:bg-[#321616] text-[#EF6666] border border-[#354144] hover:border-[#5C2424] py-3.5 rounded-2xl font-mono text-xs font-semibold transition active:scale-98"
+            >
+              <LogOut size={16} />
+              <span>Sign Out of Lokify</span>
+            </button>
+          </div>
         </div>
 
-        {/* Sign Out Button */}
-        <div className="pt-2">
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center justify-center gap-2 bg-[#192223] hover:bg-[#321616] text-[#EF6666] border border-[#354144] hover:border-[#5C2424] py-3.5 rounded-2xl font-mono text-xs font-semibold transition active:scale-98"
-          >
-            <LogOut size={16} />
-            <span>Sign Out of Lokify</span>
-          </button>
+        {/* Right Column (Menu Sections) */}
+        <div className="lg:col-span-7 space-y-6">
+          {menuSections.map((section) => (
+            <div key={section.title}>
+              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#758588] mb-3 px-2">
+                {section.title}
+              </h3>
+              <div className="bg-[#192223] border border-[#354144] rounded-3xl overflow-hidden divide-y divide-[#354144]/60">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={item.onClick}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-[#202B2D] transition text-left group"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-[#202B2D] text-[#A3DCE3] flex items-center justify-center shrink-0 border border-[#354144]">
+                          <Icon size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-sm font-semibold text-[#F0F4F4] group-hover:text-[#A3DCE3] transition-colors block">
+                            {item.label}
+                          </span>
+                          {item.subtitle && (
+                            <span className="text-[11px] text-[#758588] font-mono block">
+                              {item.subtitle}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {item.badge && (
+                          <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-[#132B2F] text-[#A3DCE3] border border-[#28616A]">
+                            {item.badge}
+                          </span>
+                        )}
+                        <ChevronRight size={16} className="text-[#758588] group-hover:text-[#F0F4F4]" />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

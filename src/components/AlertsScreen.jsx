@@ -131,7 +131,7 @@ export default function AlertsScreen({
   };
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-28 pt-4 px-4 sm:px-6 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-28 pt-4 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
       {/* Header */}
       <header className="mb-6 flex items-center justify-between">
         <div>
@@ -177,7 +177,7 @@ export default function AlertsScreen({
               <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] mb-3 px-1">
                 Today
               </h2>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {groupedAlerts.today.map(renderAlertCard)}
               </div>
             </section>
@@ -189,7 +189,7 @@ export default function AlertsScreen({
               <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] mb-3 px-1">
                 Yesterday
               </h2>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {groupedAlerts.yesterday.map(renderAlertCard)}
               </div>
             </section>
@@ -201,7 +201,7 @@ export default function AlertsScreen({
               <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] mb-3 px-1">
                 Earlier
               </h2>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {groupedAlerts.earlier.map(renderAlertCard)}
               </div>
             </section>

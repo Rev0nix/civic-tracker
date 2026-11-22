@@ -91,19 +91,22 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.1.0' }}
-          name: "Lokify v1.1.0 – Production Web & Mobile Release"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.0' }}
+          name: "Lokify v1.2.0 – Production Web & Mobile Release"
           body: |
-            ## 🏛️ Lokify v1.1.0 – Production Release
+            ## 🏛️ Lokify v1.2.0 – Production Release
 
             Welcome to the official production release of **Lokify**, the modern civic issue reporting and municipal tracking platform.
 
             ### 🚀 What's New:
-            * **Responsive Web & Mobile Architecture:** Optimized experience for desktop web browsers with a sticky website navigation header, plus mobile viewports with bottom navigation.
-            * **Mandatory Dual Authentication Portal:** Separate dedicated logins for **Citizens** (Common People) and **Municipal Officials** (Government Administrators).
-            * **Enhanced Credential Protection:** Mandatory 8+ character password strength validation, 10-digit mobile phone number check, and Gmail/email verification.
-            * **Real-Time SMS Alert Service:** Integrated SMS notifications dispatched to citizens upon issue submission and municipal status updates.
-            * **Interactive Dark Google Map:** Custom vector dark map with status- and category-coded pins, satellite toggle, and live locality locking.
+            * **Expansive Website & Mobile Architecture:** Modern responsive web design with full desktop width (`max-w-7xl`), multi-column analytics, category filters, and a persistent website navigation header.
+            * **Mandatory Dual Authentication Portal:** Distinct and dedicated portals for **Citizens** (Common People) and **Municipal Officials** (Government Administrators).
+            * **Strict Credential Protection:**
+              - Mandatory 10-digit mobile phone number validation with real-time format checks.
+              - Standard RFC email address verification (e.g. Gmail).
+              - 8+ character password validation with a live 4-tier visual strength meter.
+            * **Real-Time Carrier SMS Gateway:** Instant SMS status dispatch to citizen mobile numbers upon report submission, status updates, and resolutions.
+            * **Interactive Dark Google Map:** Custom dark-themed municipal GIS map with category/status pins, satellite toggle, and live GPS locking.
             * **Complete 5-Stage Status Timeline:** Visual progress tracker connecting `Open` ➔ `Acknowledged` ➔ `Assigned` ➔ `In Progress` ➔ `Resolved`.
             * **Municipal Official Admin Center:** Passcode-protected administrative controls for status updates, issue deletion, and one-click `.csv` spreadsheet export.
             * **Multilingual AI Assistant:** Floating civic guidance assistant supporting English and Kannada.
@@ -112,7 +115,7 @@ jobs:
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/v1.1.0/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/v1.2.0/app-debug.apk)**
 
             🌐 **Live Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |
