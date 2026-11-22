@@ -5,6 +5,77 @@ const googleMapsApiKey =
 
 let googleMapsPromise = null;
 
+export const LOKIFY_DARK_MAP_STYLES = [
+  { elementType: 'geometry', stylers: [{ color: '#101819' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#080F0F' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#A5B1B3' }] },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#A3DCE3' }],
+  },
+  {
+    featureType: 'poi',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#758588' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry',
+    stylers: [{ color: '#142525' }],
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#43C88A' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry',
+    stylers: [{ color: '#192223' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#253538' }],
+  },
+  {
+    featureType: 'road',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#A5B1B3' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry',
+    stylers: [{ color: '#202B2D' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#28616A' }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#F0F4F4' }],
+  },
+  {
+    featureType: 'transit',
+    elementType: 'geometry',
+    stylers: [{ color: '#162325' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#0B1718' }],
+  },
+  {
+    featureType: 'water',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#28616A' }],
+  },
+];
+
 export function loadGoogleMaps() {
   if (window.google?.maps) return Promise.resolve(window.google.maps);
 
@@ -57,7 +128,7 @@ export async function reverseGeocode(latitude, longitude) {
       if (address) return address;
     }
   } catch {
-    // Fall back to Nominatim if Google Geocoding is not enabled
+    // Fall back to OpenStreetMap / Nominatim
   }
 
   try {
@@ -71,8 +142,22 @@ export async function reverseGeocode(latitude, longitude) {
       }
     }
   } catch {
-    // ignore
+    // Ignore
   }
 
-  return `GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+  return `GPS: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+}
+
+// Extract a clean short locality (e.g., "Anna Nagar" or "Indiranagar") from an address or coordinates
+export function extractLocality(address, fallbackLat, fallbackLng) {
+  if (!address || typeof address !== 'string') {
+    return fallbackLat && fallbackLng ? `Near ${fallbackLat.toFixed(3)}, ${fallbackLng.toFixed(3)}` : 'City Center';
+  }
+  const parts = address.split(',').map((p) => p.trim());
+  if (parts.length >= 2) {
+    // Usually the second or first segment is the neighborhood/sublocality
+    const sub = parts[0].length < 25 ? parts[0] : parts[1];
+    return sub || 'Near Ward Office';
+  }
+  return parts[0] || 'Local Area';
 }

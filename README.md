@@ -1,104 +1,133 @@
-# 🏛️ CivicTrack
+# 🏛️ LOKIFY – Premium Android Civic Issue Reporting & Tracking
 
-**CivicTrack** is a modern, responsive, and full-stack municipal issue-reporting and tracking platform. Designed to bridge the gap between citizens and local government bodies, it enables everyday users to report municipal infrastructure problems—such as damaged potholes, faulty street lights, broken water/drainage pipes, and garbage overflows—with high precision. Concurrently, it provides municipal authorities with a dedicated administrative control center to manage, filter, analyze, and resolve these reports in real-time.
+**Lokify** is a complete, modern, and production-grade civic issue reporting and municipal tracking application built for Android and modern web clients. It connects citizens directly with local municipal authorities to report, map, upvote, follow, and resolve neighborhood problems—including potholes, non-functional streetlights, water & sewage leaks, garbage overflows, and public safety hazards.
 
 🌐 **Live Demo:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
 
 ---
 
-## 🚀 Core Modules & Functionality
+## 🎨 Design System & Visual Direction
 
-### A. Startup Splash & Onboarding
-- **Introductory Landing Screen:** Displays a sleek, animated startup splash screen on launch while initializing GPS locks and verifying system environment status.
+Lokify embraces a modern dark civic-tech aesthetic built around:
+- **Main Background:** `#080F0F` (Deep black-green)
+- **Secondary Background:** `#101819`
+- **Card Background:** `#192223` (Dark charcoal)
+- **Elevated Surfaces:** `#202B2D`
+- **Accent Teals:** `#A3DCE3` (Primary), `#28616A` (Secondary), `#315C60` (Active state)
+- **Typography:** Inter, Manrope for headings & body; JetBrains Mono for technical labels, timestamps, and issue IDs (`LK-2481`)
+- **Status Badges:**
+  - `Open`: Neutral grey (`#A5B1B3`)
+  - `Acknowledged`: Muted Teal (`#A3DCE3`)
+  - `Assigned`: Light Blue (`#8DBBEB`)
+  - `In Progress`: Active Cyan (`#38BDF8`)
+  - `Resolved`: Success Green (`#43C88A`)
+  - `Reopened`: Danger Red (`#EF6666`)
 
-### B. The Citizen Portal & Reporting Workflow
-- **Precise GPS Location Locking:** When reporting an issue, the app requests high-accuracy device GPS coordinates (`navigator.geolocation`) and reverse-geocodes them via the OpenStreetMap/Nominatim API into readable, exact street addresses.
-- **AI Duplicate Detection:** Automatically calculates distances (Haversine formula) to check if a similar issue was recently reported nearby within a 100-meter radius, offering users the option to upvote existing reports instead.
-- **AI Smart Priority Scoring:** Automatically analyzes issue text keywords to categorize urgency levels (`Critical`, `Medium`, or `Low`).
-- **Client-Side Image Compression:** High-resolution user photos are automatically compressed down in the browser using HTML5 Canvas before uploading to save storage and mobile bandwidth.
-- **Visual Progress Timeline:** Every issue card features an interactive 3-step milestone progress bar (`Submitted` ➔ `In Progress` ➔ `Resolved`) giving citizens clear visual feedback.
-- **Automated Email Notifications:** Integrated with EmailJS to automatically trigger an email notification to the citizen's registered address when an official marks their issue as **Resolved**.
-- **Community Upvoting:** Citizens can upvote existing infrastructure reports to highlight community priority and urgency.
+---
 
-### C. The Municipal Admin Portal
-- **Secured Access Control:** Hidden behind a discrete three-dot menu (`•••`) in the header requiring an admin passcode (`admin123`) to keep administrative controls private.
-- **Executive Summary Analytics:** Summary cards tracking total reports, counts for each submission state, and total community upvotes.
-- **Advanced Multi-Field Search & Filters:** Filter reports instantly by category, status, or keyword search across titles, descriptions, and street addresses.
-- **CSV Data Export:** Export filtered municipal report data directly to `.csv` spreadsheets for offline reporting and municipal audits.
-- **Live Database Synchronization:** Powered by Supabase Realtime channels so status changes and new reports reflect instantly across all connected screens.
+## 📱 Core Screens & Architecture
 
-### D. In-App OTA Updates
-- **Over-the-Air Version Checker:** Connects with Supabase database version tables to check for application updates on startup or via manual checks, prompting users when a new release is available.
+### 1. Feed / Home (`FeedScreen.jsx`)
+- **Header:** Uppercase section label `YOUR AREA`, `Issues near you` title, live GPS locality indicator with one-tap refresh.
+- **Search & Filters:** Real-time search query filtering, pill-shaped horizontal category selector (`All`, `Pothole`, `Streetlight`, `Garbage`, `Water & Sewage`, `Drainage`, `Road Damage`, `Public Safety`).
+- **Interactive Map Toggle:** Switch between rich list view and full dark-mode Google Map view with custom category pins.
+- **Issue Cards:** Large photo preview, issue title, formatted ID (`LK-xxxx`), category, status pill, relative timestamp (`2h ago`), locality, interactive upvote/support counter, and share action.
+- **Floating Action Button:** `+ Report issue` pill positioned above bottom navigation.
+
+### 2. My Issues (`MyIssuesScreen.jsx`)
+- Displays exclusively reports posted from the active user's device / email identity.
+- Tabs: `All`, `Open`, `In Progress`, `Resolved`.
+- Shows issue thumbnail, title, status, location, and official municipal authority updates.
+- Elegant empty state with decorative teal shape and `Report your first issue` action.
+
+### 3. Alerts & Activity (`AlertsScreen.jsx`)
+- Notifications grouped into `Today`, `Yesterday`, and `Earlier`.
+- Status alerts (work started, issue resolved, authority comments, acknowledgments).
+- Unread badge counter reflected on the bottom navigation bar with one-tap `Mark all read`.
+
+### 4. Report an Issue (`ReportIssueModal.jsx`)
+- Full sheet modal with camera (`Take Photo` with `capture="environment"`) and gallery selection.
+- Selectable category chips with icons.
+- Live GPS location locking with reverse geocoded locality.
+- Description input with live `0/500` character counter.
+- AI Duplicate Detection (<100m radius check) and AI Smart Priority scoring.
+
+### 5. Issue Details (`IssueDetailModal.jsx`)
+- Dedicated issue details overlay with hero photo.
+- **Vertical Connected Timeline:** Displays progression through `Open` ➔ `Acknowledged` ➔ `Assigned` ➔ `In Progress` ➔ `Resolved` with highlighted active milestone.
+- Location card with coordinates and Google Maps navigation link.
+- Community verified badge, upvote button, follow toggle, and share action.
+- Citizen feedback prompt to confirm fixed state or report dispute.
+
+### 6. User Profile (`ProfileScreen.jsx`)
+- Citizen avatar, email, and locality with interactive profile editing.
+- Summary analytics: Total Reports, Resolved, Active, and Upvotes.
+- Preference menus for notifications, location accuracy, privacy, and multilingual AI Assistant (English & Kannada).
+- Gateway to the Municipal Admin Control Center.
+
+### 7. Municipal Admin Center (`AdminModal.jsx`)
+- Passcode-authenticated administrative suite (`admin123`).
+- Executive analytics dashboard (Total, Open, In Progress, Resolved).
+- Real-time status modification triggering automated citizen email notifications via EmailJS.
+- Report deletion and one-click `.csv` municipal data export.
 
 ---
 
 ## 🛠️ Technology Stack
-- **Frontend:** React, Vite, Tailwind CSS, Custom SVGs
-- **Mapping & Geocoding:** Leaflet, React-Leaflet, OpenStreetMap / Nominatim API
-- **Backend, Auth & Storage:** Supabase (PostgreSQL Database, Row Storage, Realtime Subscriptions)
-- **Notifications:** EmailJS Browser SDK
-- **Hosting & CI/CD:** GitHub Pages (Automated via GitHub Actions)
-- **PWA & Mobile Support:** Capacitor Android wrapper and PWA manifest support
+- **Frontend:** React 19, Vite 8, Tailwind CSS v4, Lucide React
+- **Mapping & Geocoding:** Google Maps JavaScript API (custom Lokify dark vector styles), Google Geocoder & Nominatim API
+- **Backend & Database:** Supabase (PostgreSQL, PostGIS Point geometry, Realtime subscriptions, Storage)
+- **Notification Services:** EmailJS SDK
+- **Mobile Container:** Capacitor Android native framework (`@capacitor/android`)
 
 ---
 
-## 📂 System Architecture & Directory Structure
+## 📂 Source Code Structure
 ```text
-civic-tracker/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml       # Automated GitHub Actions CI/CD pipeline
-├── android/                 # Capacitor Android native project files
-├── public/
-│   ├── manifest.json        # PWA configuration manifest for mobile installation
-│   └── favicon.svg          # App branding asset
-├── src/
-│   ├── App.jsx              # Main application component, UI views, and state logic
-│   ├── App.css              # Custom layout styles
-│   ├── index.css            # Tailwind CSS directives
-│   ├── main.jsx             # React DOM root entry point
-│   └── supabaseClient.js    # Supabase database and storage connection client
-├── index.html               # Root HTML document embedding PWA meta tags
-├── package.json             # Project dependencies and npm scripts
-└── vite.config.js           # Vite build and bundling configurations
+src/
+├── components/
+│   ├── BottomNav.jsx         # 4-destination fixed bottom navigation bar
+│   ├── FeedScreen.jsx        # Screen 1: Feed with search, filters & map toggle
+│   ├── MyIssuesScreen.jsx    # Screen 2: User's submitted issues & empty state
+│   ├── AlertsScreen.jsx      # Screen 3: Activity alerts grouped by date
+│   ├── ReportIssueModal.jsx  # Screen 4: Photo capture, GPS & category form
+│   ├── IssueDetailModal.jsx  # Screen 5: Vertical status timeline & verification
+│   ├── ProfileScreen.jsx     # Screen 6: Citizen profile, metrics & settings
+│   ├── AdminModal.jsx        # Municipal official control center & CSV export
+│   ├── CivicMap.jsx          # Interactive Google Map with custom dark theme
+│   └── AiAssistantModal.jsx  # Multilingual AI assistant (English/Kannada)
+├── constants/
+│   └── theme.js              # Lokify colors, categories, status badges & formatters
+├── utils/
+│   └── issueHelpers.js       # Image compression, duplicate check & location parsers
+├── googleMaps.js             # Google Maps loader, dark styling & reverse geocoder
+├── supabaseClient.js         # Supabase client instance
+├── App.jsx                   # Master state coordinator & realtime subscriptions
+├── App.css                   # Custom typography & Android design rules
+├── index.css                 # Tailwind directives
+└── main.jsx                  # Application entry point
+```
 
-Getting Started Locally
-Prerequisites
-Node.js and npm installed on your machine.
+---
 
-A Supabase project with an issues table, app_versions table, and an issue-photos storage bucket.
+## 🚀 Building & Running Locally
 
-Installation & Setup
-1.Clone the repository:
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-    git clone [https://github.com/Rev0nix/civic-tracker.git](https://github.com/Rev0nix/civic-tracker.git)
-    cd civic-tracker
+2. **Start Vite development server:**
+   ```bash
+   npm run dev
+   ```
 
-2.Install dependencies:
+3. **Build and test production bundle:**
+   ```bash
+   npm run build
+   ```
 
-    npm install
-
-3.Configure environment variables:
-Create a .env.local file in the root directory and add your Supabase credentials:
-
-    VITE_SUPABASE_URL=your_supabase_project_url
-    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-4.Run the development server:
-    npm run dev
-
-🚢 Deployment & Mobile Build
-CivicTrack is configured for automated continuous deployment to GitHub Pages via GitHub Actions whenever changes are pushed to the main branch.
-
-1.To build and sync for Android locally:
-
-    npm run build && npx cap sync && cd android && ./gradlew assembleDebug
-
-2.To push manual updates:
-
-    git add .
-    git commit -m "Update project features and UI components"
-    git push origin main    
-
-### 📥 Download App
-[Download Latest Debug APK v1.0.0](https://github.com/Rev0nix/civic-tracker/releases/download/v1.0.0/app-debug.apk)
+4. **Sync with Android native project:**
+   ```bash
+   npx cap sync android
+   ```

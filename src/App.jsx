@@ -1,1315 +1,756 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ArrowUpRight, Camera, Landmark, MapPin, MessageCircle, Search, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
-import CivicMap from './components/CivicMap';
-import { reverseGeocode } from './googleMaps';
+import { reverseGeocode, extractLocality } from './googleMaps';
+import { analyzePriority, calculateDistance, compressImage, parseLocation } from './utils/issueHelpers';
+import { sendSmsNotification } from './utils/smsService';
+import AuthScreen from './components/AuthScreen';
+import DesktopHeader from './components/DesktopHeader';
+import BottomNav from './components/BottomNav';
+import SmsBanner from './components/SmsBanner';
+import FeedScreen from './components/FeedScreen';
+import MyIssuesScreen from './components/MyIssuesScreen';
+import AlertsScreen from './components/AlertsScreen';
+import ProfileScreen from './components/ProfileScreen';
+import ReportIssueModal from './components/ReportIssueModal';
+import IssueDetailModal from './components/IssueDetailModal';
+import AdminModal from './components/AdminModal';
+import AiAssistantModal from './components/AiAssistantModal';
+import { Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
+import './App.css';
 
-const categoryNames = {
-  1: 'Roads & Potholes',
-  2: 'Street Lighting',
-  3: 'Water & Drainage',
-  4: 'Sanitation & Garbage',
-};
-
-const categoryBadges = {
-  1: 'bg-rose-50 text-rose-700 border-rose-200/80',
-  2: 'bg-amber-50 text-amber-700 border-amber-200/80',
-  3: 'bg-cyan-50 text-cyan-700 border-cyan-200/80',
-  4: 'bg-purple-50 text-purple-700 border-purple-200/80',
-};
-
-// Distance calculator helper for AI Duplicate Detection (Haversine formula in meters)
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371e3;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
-
-// AI Smart Priority Scoring Analyzer
-const analyzePriority = (title, description) => {
-  const text = `${title} ${description}`.toLowerCase();
-  if (text.includes('danger') || text.includes('accident') || text.includes('burst') || text.includes('severe') || text.includes('live wire') || text.includes('overflow')) {
-    return 'Critical';
-  } else if (text.includes('broken') || text.includes('damaged') || text.includes('leak') || text.includes('dark')) {
-    return 'Medium';
-  }
-  return 'Low';
-};
-
-const getDeviceId = () => {
-  let deviceId = localStorage.getItem('civic_tracker_device_id');
-  if (!deviceId) {
-    deviceId = 'device_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-    localStorage.setItem('civic_tracker_device_id', deviceId);
-  }
-  return deviceId;
-};
-
-// Canvas Image Compression Helper
-const compressImage = (file) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (blob) => {
-            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
-              type: 'image/jpeg',
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          },
-          'image/jpeg',
-          0.75
-        );
-      };
-    };
-  });
-};
-
-// Universal Location Parser
-const parseLocation = (loc) => {
-  if (!loc) return null;
-
-  if (typeof loc === 'object') {
-    if (loc.coordinates && Array.isArray(loc.coordinates) && loc.coordinates.length >= 2) {
-      return { lng: parseFloat(loc.coordinates[0]), lat: parseFloat(loc.coordinates[1]) };
-    }
-    if (loc.lat && loc.lng) return { lat: parseFloat(loc.lat), lng: parseFloat(loc.lng) };
-  }
-
-  if (typeof loc === 'string') {
-    const pointMatch = loc.match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
-    if (pointMatch) {
-      return { lng: parseFloat(pointMatch[1]), lat: parseFloat(pointMatch[2]) };
-    }
-
-    const parts = loc.split(',');
-    if (parts.length === 2) {
-      const p1 = parseFloat(parts[0]);
-      const p2 = parseFloat(parts[1]);
-      if (!isNaN(p1) && !isNaN(p2)) {
-        if (Math.abs(p1) <= 90 && Math.abs(p2) <= 180) {
-          return { lat: p1, lng: p2 };
-        }
-        return { lat: p2, lng: p1 };
-      }
-    }
-  }
-  return null;
-};
-
-// Visual Progress Timeline Component
-function ProgressTimeline({ status }) {
-  const steps = ['Submitted', 'In Progress', 'Resolved'];
-  const currentIndex = steps.indexOf(status) !== -1 ? steps.indexOf(status) : 0;
-
-  return (
-    <div className="w-full my-4 px-1">
-      <div className="flex items-center justify-between relative">
-        <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-slate-200/80 -translate-y-1/2 z-0 rounded-full" />
-        <div
-          className="absolute top-1/2 left-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 -translate-y-1/2 z-0 transition-all duration-500 rounded-full shadow-sm"
-          style={{ width: `${(currentIndex / (steps.length - 1)) * 100}%` }}
-        />
-        {steps.map((step, idx) => {
-          const isCompleted = idx <= currentIndex;
-          const isCurrent = idx === currentIndex;
-          return (
-            <div key={step} className="relative z-10 flex flex-col items-center">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all duration-300 ${
-                  isCompleted
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-white'
-                    : 'bg-white border-2 border-slate-300 text-slate-400'
-                } ${isCurrent ? 'ring-4 ring-indigo-200/80 scale-110' : ''}`}
-              >
-                {isCompleted ? '✓' : idx + 1}
-              </div>
-              <span
-                className={`text-[11px] mt-1.5 font-bold tracking-tight ${
-                  isCompleted ? 'text-slate-900' : 'text-slate-400'
-                }`}
-              >
-                {step}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+// Initial reference alerts
+const DEFAULT_ALERTS = [
+  {
+    id: 'alt-1',
+    issue_id: '2481',
+    type: 'work_started',
+    title: 'Work has started on drainage',
+    description: 'Work has started. The drain near the bus stop will be cleared this week. SMS sent to registered mobile.',
+    status: 'In Progress',
+    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    read: false,
+  },
+  {
+    id: 'alt-2',
+    issue_id: '2480',
+    type: 'resolved',
+    title: 'Broken road surface repaired',
+    description: 'Marked fixed. Confirm it looks right from your side on site. SMS confirmation dispatched.',
+    status: 'Resolved',
+    created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    read: false,
+  },
+  {
+    id: 'alt-3',
+    issue_id: '2479',
+    type: 'reply',
+    title: 'Authority response on drinking water line',
+    description: 'Admin: The valve line maintenance is scheduled for Thursday morning.',
+    status: 'Assigned',
+    created_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+  {
+    id: 'alt-4',
+    issue_id: '2478',
+    type: 'acknowledged',
+    title: 'Pothole hazard acknowledged',
+    description: 'Your report was acknowledged by the ward office inspection team.',
+    status: 'Acknowledged',
+    created_at: new Date(Date.now() - 50 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+];
 
 export default function App() {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminPass, setAdminPass] = useState('');
-  const [showAdminMenu, setShowAdminMenu] = useState(false);
-  const menuRef = useRef(null);
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lokify_auth_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  // Form State
-  const [title, setTitle] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState('1');
-  const [file, setFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [location, setLocation] = useState(null);
-  const [locStatus, setLocStatus] = useState('Acquiring live GPS location...');
-
-  // Data State
+  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'my-issues' | 'alerts' | 'profile'
   const [issues, setIssues] = useState([]);
   const [addresses, setAddresses] = useState({});
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [loading, setLoading] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState('Acquiring live GPS...');
+  const [currentLocality, setCurrentLocality] = useState('Locating...');
 
-  // Status Notification Banner State
-  const [notification, setNotification] = useState(null);
+  // User Profile & Device
+  const [deviceId] = useState(() => {
+    let id = localStorage.getItem('lokify_device_id');
+    if (!id) {
+      id = 'lk_dev_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+      localStorage.setItem('lokify_device_id', id);
+    }
+    return id;
+  });
 
-  // Admin Modal Detailed View State
-  const [adminSelectedIssue, setAdminSelectedIssue] = useState(null);
-  const [modalAddressText, setModalAddressText] = useState('Resolving location...');
+  // Upvoted & Followed IDs
+  const [upvotedIssueIds, setUpvotedIssueIds] = useState(() => {
+    const saved = localStorage.getItem('lokify_upvotes');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  // AI Chatbot Drawer State
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState([
-    { sender: 'bot', text: 'Namaste! I am your Civic AI Assistant. Ask me about issue statuses, municipal guidelines, or reporting timelines in English or Kannada.' }
-  ]);
+  // Alerts & Notifications
+  const [alerts, setAlerts] = useState(() => {
+    const saved = localStorage.getItem('lokify_alerts');
+    return saved ? JSON.parse(saved) : DEFAULT_ALERTS;
+  });
 
-  const deviceId = getDeviceId();
+  // Modals & Navigation state
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState(null);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [adminOverride, setAdminOverride] = useState(false);
+  const isAdmin = currentUser?.role === 'admin' || adminOverride;
 
-  const [toastMessage, setToastMessage] = useState(null);
-  const [selectedFilter, setSelectedFilter] = useState('All');
-
-  // Splash Screen State
+  // Splash Screen & Toast
   const [showSplash, setShowSplash] = useState(true);
+  const [toast, setToast] = useState(null);
 
-  // Auto-hide splash after 2.5 seconds once checks finish
+  // Auto-dismiss splash screen after 1.8s
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2500);
+    const timer = setTimeout(() => setShowSplash(false), 1800);
     return () => clearTimeout(timer);
   }, []);
 
-  // Close admin menu when clicking outside
+  // Sync auth state to localStorage
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowAdminMenu(false);
-      }
+    if (currentUser) {
+      localStorage.setItem('lokify_auth_session', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('lokify_auth_session');
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('lokify_alerts', JSON.stringify(alerts));
+  }, [alerts]);
+
+  useEffect(() => {
+    localStorage.setItem('lokify_upvotes', JSON.stringify(upvotedIssueIds));
+  }, [upvotedIssueIds]);
+
+  const showToast = useCallback((message, type = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
   }, []);
 
-  // Real-time Notification useEffect
-  useEffect(() => {
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'issues' },
-        (payload) => {
-          const updatedIssue = payload.new;
-          setToastMessage(`📢 Issue #${updatedIssue.id} status updated to: ${updatedIssue.status}`);
+  // GPS Acquisition
+  const acquireGPSLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationStatus('Geolocation is not supported by your browser/device.');
+      return;
+    }
 
-          if (typeof fetchIssues === 'function') {
-            fetchIssues();
+    setLocationStatus('Acquiring high accuracy GPS lock...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setLocationStatus(`Locked: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
+
+        try {
+          const address = await reverseGeocode(coords.lat, coords.lng);
+          if (address) {
+            const loc = extractLocality(address, coords.lat, coords.lng);
+            setCurrentLocality(loc);
+          }
+        } catch {
+          setCurrentLocality('City Center');
+        }
+      },
+      () => {
+        // Fallback network position
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setUserLocation(coords);
+            setLocationStatus(`Network Location: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
+            try {
+              const address = await reverseGeocode(coords.lat, coords.lng);
+              if (address) {
+                setCurrentLocality(extractLocality(address, coords.lat, coords.lng));
+              }
+            } catch {
+              setCurrentLocality('City Center');
+            }
+          },
+          () => {
+            setLocationStatus('Please enable device location permissions.');
+            setCurrentLocality('Anna Nagar');
+          },
+          { enableHighAccuracy: false, timeout: 10000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  // Reverse geocode missing addresses asynchronously
+  const resolveMissingAddresses = useCallback(async (list) => {
+    const updates = {};
+    for (const item of list) {
+      if (!addresses[item.id]) {
+        const coords = parseLocation(item.location, item.latitude, item.longitude);
+        if (coords) {
+          try {
+            const addr = await reverseGeocode(coords.lat, coords.lng);
+            if (addr) updates[item.id] = addr;
+          } catch {
+            // Ignore failure
+          }
+        }
+      }
+    }
+    if (Object.keys(updates).length > 0) {
+      setAddresses((prev) => ({ ...prev, ...updates }));
+    }
+  }, [addresses]);
+
+  // Fetch issues from Supabase
+  const fetchIssues = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('issues')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) {
+        setIssues(data);
+        resolveMissingAddresses(data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch issues from Supabase:', err.message);
+    }
+  }, [resolveMissingAddresses]);
+
+  // Initial load & Supabase Realtime channel
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchIssues();
+      acquireGPSLocation();
+    }, 0);
+
+    const channel = supabase
+      .channel('lokify-public-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, (payload) => {
+        fetchIssues();
+
+        if (payload.eventType === 'UPDATE' && payload.new) {
+          const updated = payload.new;
+          showToast(`Issue #${updated.id} status updated to: ${updated.status}`, 'success');
+
+          // Send real-time SMS to the logged-in user if it belongs to them
+          if (currentUser?.phone) {
+            sendSmsNotification({
+              toPhone: currentUser.phone,
+              issueId: String(updated.id),
+              message: `Lokify SMS: Report #${updated.id} ("${updated.title}") status changed to: ${updated.status}.`,
+              eventType: 'STATUS_UPDATE',
+            });
           }
 
-          setTimeout(() => {
-            setToastMessage(null);
-          }, 5000);
+          // Add to local activity alerts
+          const newAlert = {
+            id: 'alt_' + Date.now(),
+            issue_id: String(updated.id),
+            type: updated.status === 'Resolved' ? 'resolved' : 'work_started',
+            title: `Report "${updated.title}" updated`,
+            description: `The status was changed to ${updated.status} by municipal officials. SMS sent.`,
+            status: updated.status,
+            created_at: new Date().toISOString(),
+            read: false,
+          };
+          setAlerts((prev) => [newAlert, ...prev]);
         }
-      )
+      })
       .subscribe();
 
     return () => {
+      clearTimeout(timer);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchIssues, acquireGPSLocation, showToast, currentUser?.phone]);
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setImagePreview(URL.createObjectURL(selectedFile));
-    } else {
-      setFile(null);
-      setImagePreview(null);
-    }
-  };
-
-  const getExactGPSLocation = () => {
-    setLocStatus('Requesting GPS lock from mobile device...');
-    if (!navigator.geolocation) {
-      setLocStatus('Geolocation is not supported by your browser.');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setLocation(coords);
-        setLocStatus(`GPS Locked: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
-      },
-      () => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            setLocation(coords);
-            setLocStatus(`Network Location: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
-          },
-          (fallbackErr) => {
-            setLocStatus(`GPS Error (${fallbackErr.code}): Please turn ON device location.`);
-          },
-          { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
-        );
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  useEffect(() => {
-    fetchIssues();
-    getExactGPSLocation();
-
-    const channel = supabase
-      .channel('public:issues')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues' }, (payload) => {
-        fetchIssues();
-        if (payload.eventType === 'UPDATE' && payload.new) {
-          const updatedIssue = payload.new;
-          if (updatedIssue.device_id === deviceId || isAdmin) {
-            triggerNotification(`Report "${updatedIssue.title}" status updated to: ${updatedIssue.status}`);
-          }
+  // Check for duplicates within 100 meters
+  const checkDuplicate = (catId, loc) => {
+    if (!loc) return null;
+    for (const issue of issues) {
+      if (String(issue.category_id) === String(catId)) {
+        const coords = parseLocation(issue.location, issue.latitude, issue.longitude);
+        if (coords) {
+          const dist = calculateDistance(loc.lat, loc.lng, coords.lat, coords.lng);
+          if (dist <= 100) return { issue, dist: Math.round(dist) };
         }
-      })
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [isAdmin]);
-
-  // In-App OTA Version Checker
-  useEffect(() => {
-    async function checkAppVersion() {
-      try {
-        const { data, error } = await supabase
-          .from('app_versions')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (error || !data) return;
-
-        const currentAppVersion = '1.0.0';
-
-        if (data.version !== currentAppVersion) {
-          const userWantsUpdate = window.confirm(
-            `🚀 New Update Available (v${data.version})!\n\nWhat's new: ${data.changelog || 'Performance improvements & bug fixes'}\n\nTap OK to update instantly.`
-          );
-
-          if (userWantsUpdate) {
-            window.location.href = data.update_url;
-          }
-        }
-      } catch (err) {
-        console.warn('Version check skipped offline:', err);
       }
     }
-
-    checkAppVersion();
-  }, []);
-
-  const triggerNotification = (msg) => {
-    setNotification(msg);
-    setTimeout(() => {
-      setNotification(null);
-    }, 5000);
+    return null;
   };
 
-  const sendResolvedEmail = (recipientEmail, issueTitle, newStatus) => {
-    if (!recipientEmail) return;
-
-    const templateParams = {
-      email: recipientEmail,
-      issue_title: issueTitle,
-      status: newStatus
-    };
-
-    emailjs
-      .send(
-        'service_7v8m16b',
-        'template_vtc51wn',
-        templateParams,
-        'hIQcr3HDUS9AFupsd'
-      )
-      .then(
-        () => triggerNotification('Notification email dispatched to citizen!'),
-        (err) => console.warn('Email send error:', err.text || err)
+  // Handle new issue submission
+  const handlePostReport = async ({ title, categoryId, description, userEmail, userPhone, file, location }) => {
+    // 1. Duplicate check
+    const dup = checkDuplicate(categoryId, location);
+    if (dup) {
+      const proceed = window.confirm(
+        `⚠️ Similar Report Found:\n"${dup.issue.title}" was reported ~${dup.dist}m away.\n\nTap OK to submit anyway, or Cancel to inspect existing report.`
       );
-  };
-
-  const fetchIssues = async () => {
-    let query = supabase
-      .from('issues')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (!isAdmin) {
-      query = query.eq('device_id', deviceId);
-    }
-
-    const { data, error } = await query;
-    if (!error && data) {
-      setIssues(data);
-      resolveAddresses(data);
-    }
-  };
-
-  const resolveAddresses = async (issueList) => {
-    const newAddresses = {};
-    for (const issue of issueList) {
-      const coords = parseLocation(issue.location);
-      if (coords && !addresses[issue.id]) {
-        try {
-          const address = await reverseGeocode(coords.lat, coords.lng);
-          newAddresses[issue.id] = address || `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
-        } catch {
-          newAddresses[issue.id] = `GPS: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
-        }
-      }
-    }
-    setAddresses((prev) => ({ ...prev, ...newAddresses }));
-  };
-
-  useEffect(() => {
-    if (!adminSelectedIssue) return;
-
-    const coords = parseLocation(adminSelectedIssue.location);
-    if (!coords) {
-      setModalAddressText('No location data attached to this report.');
-      return;
-    }
-
-    setModalAddressText(`Resolving address for Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)}...`);
-
-    reverseGeocode(coords.lat, coords.lng)
-      .then((address) => {
-        setModalAddressText(address || `Lat: ${coords.lat.toFixed(6)}, Lng: ${coords.lng.toFixed(6)}`);
-      })
-      .catch(() => {
-        setModalAddressText(`Lat: ${coords.lat.toFixed(6)}, Lng: ${coords.lng.toFixed(6)}`);
-      });
-  }, [adminSelectedIssue]);
-
-  const checkForDuplicates = () => {
-    if (!location) return null;
-    const nearby = issues.filter(issue => {
-      if (issue.category_id !== parseInt(categoryId)) return false;
-      const coords = parseLocation(issue.location);
-      if (!coords) return false;
-      const distance = calculateDistance(location.lat, location.lng, coords.lat, coords.lng);
-      return distance <= 100;
-    });
-    return nearby.length > 0 ? nearby[0] : null;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!location) {
-      alert('GPS location is required. Please tap "Refresh GPS Location" and grant location permission.');
-      return;
-    }
-
-    const duplicate = checkForDuplicates();
-    if (duplicate) {
-      const proceed = window.confirm(`⚠️ AI Notice: An issue similar to "${duplicate.title}" was already reported ~${Math.round(calculateDistance(location.lat, location.lng, parseLocation(duplicate.location).lat, parseLocation(duplicate.location).lng))}m away. Would you like to upvote that report instead?`);
-      if (proceed) {
-        handleUpvote(duplicate.id, duplicate.upvotes);
+      if (!proceed) {
+        setSelectedIssue(dup.issue);
         return;
       }
     }
 
-    setLoading(true);
+    // 2. Client-side Image compression and upload
+    let photoUrl = null;
+    if (file) {
+      const compressed = await compressImage(file);
+      const filePath = `lokify_${Date.now()}_${compressed.name}`;
 
-    try {
-      let photoUrl = null;
-      if (file) {
-        const compressedFile = await compressImage(file);
-        const filePath = `${Date.now()}_${compressedFile.name}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('issue-photos')
+        .upload(filePath, compressed);
 
-        const { error: uploadError } = await supabase.storage
-          .from('issue-photos')
-          .upload(filePath, compressedFile);
-        if (uploadError) throw uploadError;
-
+      if (uploadErr) {
+        console.warn('Storage bucket upload issue, continuing with submission:', uploadErr.message);
+      } else {
         photoUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/issue-photos/${filePath}`;
       }
-
-      const priorityScore = analyzePriority(title, description);
-      const pointLocation = `POINT(${location.lng} ${location.lat})`;
-
-      const { error: insertError } = await supabase.from('issues').insert([
-        {
-          title,
-          user_email: userEmail,
-          description,
-          photo_url: photoUrl,
-          location: pointLocation,
-          category_id: parseInt(categoryId),
-          status: 'Submitted',
-          device_id: deviceId,
-          upvotes: 0,
-          priority: priorityScore,
-        },
-      ]);
-
-      if (insertError) throw insertError;
-
-      setTitle('');
-      setUserEmail('');
-      setDescription('');
-      setFile(null);
-      setImagePreview(null);
-      fetchIssues();
-      triggerNotification('Issue reported successfully!');
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const handleUpvote = async (id, currentUpvotes) => {
-    const { error } = await supabase
-      .from('issues')
-      .update({ upvotes: (currentUpvotes || 0) + 1 })
-      .eq('id', id);
+    // 3. AI Smart Priority
+    const priority = analyzePriority(title, description);
+    const pointLocation = `POINT(${location.lng} ${location.lat})`;
+    const targetEmail = userEmail || currentUser?.email || 'citizen@lokify.gov';
+    const targetPhone = userPhone || currentUser?.phone || '+91 98451 23456';
 
-    if (error) alert('Could not upvote: ' + error.message);
-    else fetchIssues();
-  };
-
-  const handleStatusChange = async (issueItem, newStatus) => {
-    const { error } = await supabase
-      .from('issues')
-      .update({ status: newStatus })
-      .eq('id', issueItem.id);
-
-    if (error) {
-      alert('Failed to update status: ' + error.message);
-    } else {
-      if (adminSelectedIssue && adminSelectedIssue.id === issueItem.id) {
-        setAdminSelectedIssue((prev) => ({ ...prev, status: newStatus }));
-      }
-
-      if (newStatus === 'Resolved' && issueItem.user_email) {
-        sendResolvedEmail(issueItem.user_email, issueItem.title, newStatus);
-      }
-
-      triggerNotification(`Status updated to "${newStatus}"`);
-      fetchIssues();
-    }
-  };
-
-  const exportToCSV = () => {
-    if (filteredIssues.length === 0) return alert('No issues available to export.');
-
-    const headers = ['ID', 'Title', 'User Email', 'Description', 'Category ID', 'Status', 'Priority', 'Upvotes', 'Location', 'Created At'];
-    const rows = filteredIssues.map(issue => [
-      issue.id,
-      `"${issue.title.replace(/"/g, '""')}"`,
-      `"${issue.user_email || ''}"`,
-      `"${(issue.description || '').replace(/"/g, '""')}"`,
-      issue.category_id,
-      issue.status,
-      issue.priority || 'Low',
-      issue.upvotes || 0,
-      `"${JSON.stringify(issue.location || '')}"`,
-      new Date(issue.created_at).toLocaleString()
+    // 4. Insert into Supabase
+    const { error: insertErr } = await supabase.from('issues').insert([
+      {
+        title,
+        user_email: targetEmail,
+        description,
+        photo_url: photoUrl,
+        location: pointLocation,
+        category_id: parseInt(categoryId, 10),
+        status: 'Submitted',
+        device_id: deviceId,
+        upvotes: 0,
+        priority,
+      },
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `civic_tracker_reports_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (insertErr) throw insertErr;
+
+    // 5. Send Realtime SMS Notification to Citizen
+    sendSmsNotification({
+      toPhone: targetPhone,
+      message: `Lokify SMS: Report "${title}" has been registered successfully. Tracking active. You will receive SMS alerts as officials work on it.`,
+      eventType: 'REPORT_SUBMITTED',
+    });
+
+    // 6. Update state & alert
+    fetchIssues();
+    showToast('Report posted successfully! SMS alert dispatched to your mobile.', 'success');
+
+    // Add alert
+    const creationAlert = {
+      id: 'alt_' + Date.now(),
+      type: 'acknowledged',
+      title: 'Report Submitted',
+      description: `Your issue "${title}" has been registered. SMS sent to ${targetPhone}.`,
+      status: 'Open',
+      created_at: new Date().toISOString(),
+      read: false,
+    };
+    setAlerts((prev) => [creationAlert, ...prev]);
   };
 
-  const handleAdminLogin = (e) => {
-    e.preventDefault();
-    if (adminPass === 'admin123') {
-      setIsAdmin(true);
-      setAdminPass('');
-      setShowAdminMenu(false);
-    } else {
-      alert('Invalid Passcode');
+  // Handle Upvotes
+  const handleUpvote = async (issueId, currentVotes = 0) => {
+    if (upvotedIssueIds.includes(issueId)) {
+      showToast('You already supported this issue.', 'info');
+      return;
+    }
+
+    setUpvotedIssueIds((prev) => [...prev, issueId]);
+    setIssues((prev) =>
+      prev.map((i) => (i.id === issueId ? { ...i, upvotes: (i.upvotes || 0) + 1 } : i))
+    );
+
+    try {
+      await supabase
+        .from('issues')
+        .update({ upvotes: (currentVotes || 0) + 1 })
+        .eq('id', issueId);
+      showToast('Vote registered! Elevated community priority.', 'success');
+    } catch {
+      // Ignored
     }
   };
 
-  const handleCardClick = (issue) => {
-    setAdminSelectedIssue(issue);
-  };
+  // Handle Share
+  const handleShare = async (issue) => {
+    const shareData = {
+      title: issue.title,
+      text: `Lokify Civic Report: ${issue.title} (Status: ${issue.status})`,
+      url: window.location.href,
+    };
 
-  const handleChatSend = (e) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    const userMsg = chatInput;
-    setChatMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
-    setChatInput('');
-
-    setTimeout(() => {
-      let botReply = "I can help you track issues or understand municipal guidelines. Try asking about 'potholes', 'status', or 'timeline'.";
-      const q = userMsg.toLowerCase();
-      if (q.includes('status') || q.includes('track') || q.includes('ಸ್ಥಿತಿ')) {
-        botReply = "You can view your submitted issues directly on this dashboard. Admins update statuses between 'Submitted', 'In Progress', and 'Resolved'.";
-      } else if (q.includes('pothole') || q.includes('road') || q.includes('ಗುಂಡಿ')) {
-        botReply = "Road and pothole issues are categorized under Priority 1. Critical safety hazards receive accelerated municipal review.";
-      } else if (q.includes('kannada') || q.includes('ಕನ್ನಡ')) {
-        botReply = "Namaskara! CivicTrack municipal portal ಮುಖಾಂತರ ನಿಮ್ಮ ಹತ್ತಿರದ ಸಮಸ್ಯೆಗಳನ್ನು ಸುಲಭವಾಗಿ ವರದಿ ಮಾಡಬಹುದು.";
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        // Fallback
       }
-      setChatMessages(prev => [...prev, { sender: 'bot', text: botReply }]);
-    }, 600);
-  };
-
-  const filteredIssues = issues.filter((i) => {
-    const matchCategory = filterCategory === 'all' || i.category_id === parseInt(filterCategory);
-    const matchStatus = filterStatus === 'all' || i.status === filterStatus;
-
-    if (selectedFilter !== 'All') {
-      if (selectedFilter === 'Resolved' && i.status !== 'Resolved') return false;
-      if (selectedFilter !== 'Resolved' && categoryNames[i.category_id] !== selectedFilter) return false;
     }
 
-    const query = searchQuery.toLowerCase();
-    const addressStr = addresses[i.id] || '';
-    const matchSearch =
-      !query ||
-      i.title.toLowerCase().includes(query) ||
-      (i.description && i.description.toLowerCase().includes(query)) ||
-      addressStr.toLowerCase().includes(query);
+    navigator.clipboard.writeText(
+      `Lokify Report: ${issue.title} (#${issue.id})\nView on: ${window.location.href}`
+    );
+    showToast('Report link copied to clipboard!', 'info');
+  };
 
-    return matchCategory && matchStatus && matchSearch;
-  });
-
-  const totalIssues = issues.length;
-  const submittedCount = issues.filter(i => i.status === 'Submitted').length;
-  const inProgressCount = issues.filter(i => i.status === 'In Progress').length;
-  const resolvedCount = issues.filter(i => i.status === 'Resolved').length;
-  const totalUpvotes = issues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
-
-  const modalCoords = adminSelectedIssue ? parseLocation(adminSelectedIssue.location) : null;
-
-  const handleDeleteIssue = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this report?")) return;
-
+  // Handle Status Update (Admin)
+  const handleAdminStatusChange = async (issueItem, newStatus) => {
     try {
       const { error } = await supabase
         .from('issues')
-        .delete()
-        .eq('id', id);
+        .update({ status: newStatus })
+        .eq('id', issueItem.id);
 
       if (error) throw error;
 
-      setIssues(prevIssues => prevIssues.filter(issue => issue.id !== id));
-      setAdminSelectedIssue(null);
-      alert("Report deleted successfully!");
+      setIssues((prev) =>
+        prev.map((i) => (i.id === issueItem.id ? { ...i, status: newStatus } : i))
+      );
+
+      if (selectedIssue && selectedIssue.id === issueItem.id) {
+        setSelectedIssue((prev) => ({ ...prev, status: newStatus }));
+      }
+
+      showToast(`Status updated to "${newStatus}"`, 'success');
+
+      // Dispatch SMS
+      const citizenPhone = issueItem.user_phone || currentUser?.phone || '+91 98451 23456';
+      sendSmsNotification({
+        toPhone: citizenPhone,
+        issueId: String(issueItem.id),
+        message: `Lokify Alert: Your issue #${issueItem.id} ("${issueItem.title}") was updated to "${newStatus}" by Ward Officer.`,
+        eventType: 'STATUS_UPDATE',
+      });
+
+      // Dispatch Email if citizen email exists & status is Resolved
+      if (newStatus === 'Resolved' && issueItem.user_email) {
+        emailjs
+          .send(
+            'service_7v8m16b',
+            'template_vtc51wn',
+            {
+              email: issueItem.user_email,
+              issue_title: issueItem.title,
+              status: newStatus,
+            },
+            'hIQcr3HDUS9AFupsd'
+          )
+          .catch((err) => console.warn('EmailJS error:', err));
+      }
     } catch (err) {
-      console.error("Error deleting issue:", err.message);
-      alert("Failed to delete report: " + err.message);
+      showToast('Error updating status: ' + err.message, 'error');
     }
   };
 
-  return (
-    <div className="civic-app min-h-screen bg-[#F8FAFC] text-slate-700 font-sans antialiased pb-16 selection:bg-indigo-700 selection:text-white">
+  // Handle Issue Delete (Admin)
+  const handleDeleteIssue = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this municipal report?')) return;
 
-      {showSplash && (
-        <div className="fixed inset-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 text-white flex flex-col items-center justify-center z-[99999] p-6 text-center select-none">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center text-4xl font-black shadow-2xl shadow-indigo-500/50 mb-6 animate-pulse">
-            🏛️
-          </div>
-          <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-white via-indigo-200 to-purple-300 bg-clip-text text-transparent">
-            CivicTrack
-          </h1>
-          <p className="text-xs font-semibold text-indigo-300/80 max-w-xs mb-8 leading-relaxed">
-            Smart Municipal Infrastructure Tracking
-          </p>
-        </div>
-      )}
+    try {
+      const { error } = await supabase.from('issues').delete().eq('id', id);
+      if (error) throw error;
 
-      {notification && (
-        <div className="fixed top-5 right-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl z-[10001] transition transform flex items-center gap-3 text-sm font-bold border border-white/20 animate-bounce backdrop-blur-lg">
-          <span className="text-xl">🔔</span> {notification}
-        </div>
-      )}
+      setIssues((prev) => prev.filter((i) => i.id !== id));
+      if (selectedIssue && selectedIssue.id === id) {
+        setSelectedIssue(null);
+      }
+      showToast('Report deleted successfully.', 'info');
+    } catch (err) {
+      showToast('Failed to delete report: ' + err.message, 'error');
+    }
+  };
 
-      <header className="app-header sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/80 shadow-xs">
-        <div className="app-header-inner max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
-          <div className="app-brand flex items-center gap-3">
-            <div className="brand-mark w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-800 via-indigo-600 to-purple-300 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-indigo-300/50">
-              <Landmark size={22} strokeWidth={2.2} />
+  // Export CSV
+  const handleExportCSV = () => {
+    if (issues.length === 0) {
+      showToast('No reports available to export.', 'error');
+      return;
+    }
+
+    const headers = ['ID', 'Title', 'Citizen Email', 'Category ID', 'Status', 'Priority', 'Upvotes', 'Created At'];
+    const rows = issues.map((i) => [
+      i.id,
+      `"${(i.title || '').replace(/"/g, '""')}"`,
+      `"${i.user_email || ''}"`,
+      i.category_id,
+      i.status,
+      i.priority || 'Low',
+      i.upvotes || 0,
+      new Date(i.created_at).toISOString(),
+    ]);
+
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lokify_reports_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    showToast('Municipal CSV file generated!', 'success');
+  };
+
+  // Citizen Confirmation
+  const handleConfirmFixed = (issueId, isFixed) => {
+    showToast(
+      isFixed ? 'Confirmed! Marked as community-verified fixed.' : 'Dispute logged! Ward team will reinspect.',
+      isFixed ? 'success' : 'info'
+    );
+  };
+
+  // Mark all read in alerts
+  const handleMarkAllAlertsRead = () => {
+    setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
+    showToast('All alerts marked as read', 'info');
+  };
+
+  const handleMarkAlertRead = (alertId) => {
+    setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, read: true } : a)));
+  };
+
+  const handleSelectAlert = (alert) => {
+    if (alert.issue_id) {
+      const match = issues.find((i) => String(i.id) === String(alert.issue_id));
+      if (match) {
+        setSelectedIssue(match);
+      }
+    }
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    if (window.confirm('Sign out of your Lokify session?')) {
+      setCurrentUser(null);
+      localStorage.removeItem('lokify_auth_session');
+      showToast('Signed out successfully.', 'info');
+    }
+  };
+
+  const unreadAlertsCount = alerts.filter((a) => !a.read).length;
+  const myIssues = issues.filter(
+    (i) => (deviceId && i.device_id === deviceId) || (currentUser?.email && i.user_email === currentUser.email)
+  );
+  const upvotesReceived = myIssues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
+
+  // If user is not logged in, enforce the Login Screen for both Web & App!
+  if (!currentUser) {
+    return (
+      <div className="bg-[#080F0F] min-h-screen text-[#F0F4F4]">
+        {/* Animated Startup Splash Screen */}
+        {showSplash && (
+          <div className="fixed inset-0 z-50 bg-[#080F0F] flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-300">
+            <div className="w-20 h-20 rounded-3xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] flex items-center justify-center text-3xl font-black mb-6 shadow-2xl shadow-[#A3DCE3]/20 animate-pulse">
+              LK
             </div>
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-800">
-                CivicTrack
-              </h1>
-              <span className="brand-caption">Your neighborhood, in the loop</span>
-            </div>
-          </div>
-
-          <nav className="primary-nav" aria-label="Main navigation">
-            <a className="active" href="#feed"><Landmark size={17} /> Feed</a>
-            <a href="#map"><MapPin size={17} /> Map</a>
-            {!isAdmin && <a href="#report"><Camera size={17} /> Report</a>}
-          </nav>
-
-          <div className="flex items-center gap-3">
-            {isAdmin ? (
-              <div className="flex flex-col items-end gap-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse inline-block" />
-                    Admin Active
-                  </span>
-                  <button
-                    onClick={() => setIsAdmin(false)}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold px-3 py-1 rounded-xl transition border border-slate-300/80 active:scale-95 whitespace-nowrap shadow-2xs"
-                  >
-                    Exit
-                  </button>
-                </div>
-                <button
-                  onClick={exportToCSV}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs transition active:scale-95 flex items-center gap-1 whitespace-nowrap"
-                >
-                  📥 Export CSV
-                </button>
-              </div>
-            ) : (
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={() => setShowAdminMenu(!showAdminMenu)}
-                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition font-bold text-lg leading-none"
-                  aria-label="More options"
-                >
-                  •••
-                </button>
-
-                {showAdminMenu && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-50">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Admin Access</p>
-                    <form onSubmit={handleAdminLogin} className="flex flex-col gap-2">
-                      <input
-                        type="password"
-                        placeholder="Enter Passcode"
-                        value={adminPass}
-                        onChange={(e) => setAdminPass(e.target.value)}
-                        className="p-2.5 border border-slate-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:outline-none w-full bg-slate-50 font-mono"
-                        autoFocus
-                      />
-                      <button
-                        type="submit"
-                        className="bg-slate-900 hover:bg-black text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md active:scale-95 w-full"
-                      >
-                        Authenticate
-                      </button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="app-main max-w-6xl mx-auto px-4 sm:px-6 pt-8">
-        {isAdmin && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-8">
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs text-center hover:shadow-md transition">
-              <span className="text-[11px] text-slate-400 uppercase font-extrabold tracking-wider">Total Reports</span>
-              <p className="text-3xl sm:text-4xl font-black text-slate-900 mt-1">{totalIssues}</p>
-            </div>
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 border border-amber-200/80 p-4 sm:p-5 rounded-2xl shadow-xs text-center hover:shadow-md transition">
-              <span className="text-[11px] text-amber-700 uppercase font-extrabold tracking-wider">Submitted</span>
-              <p className="text-3xl sm:text-4xl font-black text-amber-800 mt-1">{submittedCount}</p>
-            </div>
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 border border-blue-200/80 p-4 sm:p-5 rounded-2xl shadow-xs text-center hover:shadow-md transition">
-              <span className="text-[11px] text-blue-700 uppercase font-extrabold tracking-wider">In Progress</span>
-              <p className="text-3xl sm:text-4xl font-black text-blue-800 mt-1">{inProgressCount}</p>
-            </div>
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 border border-emerald-200/80 p-4 sm:p-5 rounded-2xl shadow-xs text-center hover:shadow-md transition">
-              <span className="text-[11px] text-emerald-700 uppercase font-extrabold tracking-wider">Resolved</span>
-              <p className="text-3xl sm:text-4xl font-black text-emerald-800 mt-1">{resolvedCount}</p>
-            </div>
-            <div className="bg-gradient-to-br from-indigo-50 to-purple-50/50 border border-indigo-200/80 p-4 sm:p-5 rounded-2xl shadow-xs text-center col-span-2 sm:col-span-1 hover:shadow-md transition">
-              <span className="text-[11px] text-indigo-700 uppercase font-extrabold tracking-wider">Total Upvotes</span>
-              <p className="text-3xl sm:text-4xl font-black text-indigo-900 mt-1">👍 {totalUpvotes}</p>
-            </div>
-          </div>
-        )}
-
-        {!isAdmin && (
-          <form id="report" onSubmit={handleSubmit} className="report-composer bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md shadow-slate-200/50 mb-10 transition">
-            <div className="composer-heading flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <span className="composer-icon w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-xl"><Camera size={19} /></span>
-                <div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight">Share a neighborhood issue</h2>
-                  <p className="text-xs font-semibold text-slate-500">A photo and precise location help your community act.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
-                  Issue Title <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., Damaged Pothole near Main Road"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="p-3.5 border border-slate-300/80 rounded-2xl w-full bg-slate-50/60 text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition shadow-xs"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
-                  Email Address <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  placeholder="your.email@example.com"
-                  value={userEmail}
-                  onChange={(e) => setUserEmail(e.target.value)}
-                  className="p-3.5 border border-slate-300/80 rounded-2xl w-full bg-slate-50/60 text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition shadow-xs"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
-                  Issue Category
-                </label>
-                <select
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="p-3.5 border border-slate-300/80 rounded-2xl w-full bg-slate-50/60 text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition shadow-xs font-medium"
-                >
-                  <option value="1">Roads & Potholes</option>
-                  <option value="2">Street Lighting</option>
-                  <option value="3">Water & Drainage</option>
-                  <option value="4">Sanitation & Garbage</option>
-                </select>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600">
-                    Live GPS Location <span className="text-rose-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={getExactGPSLocation}
-                    className="text-xs text-indigo-600 font-bold hover:underline bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 transition active:scale-95"
-                  >
-                    🔄 Refresh GPS
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  readOnly
-                  value={location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'Acquiring GPS signal...'}
-                  className="p-3.5 border border-slate-300/80 rounded-2xl w-full bg-slate-100/80 text-slate-800 font-mono text-sm"
-                />
-                <span className="text-[11px] text-indigo-600 font-semibold block mt-1.5">{locStatus}</span>
-              </div>
-            </div>
-
-            <div className="mb-5">
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
-                Detailed Description
-              </label>
-              <textarea
-                placeholder="Describe landmark details, hazard level, or relevant landmarks..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="p-3.5 border border-slate-300/80 rounded-2xl w-full bg-slate-50/60 text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition shadow-xs h-28"
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 mb-2">
-                Upload Photo Proof
-              </label>
-
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <label className="cursor-pointer bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-extrabold py-3 px-4 rounded-2xl text-center transition active:scale-95 flex items-center justify-center gap-2">
-                  <span>📷</span> Take Photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-
-                <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-extrabold py-3 px-4 rounded-2xl text-center transition active:scale-95 flex items-center justify-center gap-2">
-                  <span>🖼️</span> Gallery
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {imagePreview && (
-                <div className="mt-4 relative w-40 h-40 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || !location}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold py-4 px-9 rounded-2xl transition shadow-lg shadow-indigo-300/50 disabled:opacity-50 disabled:shadow-none w-full sm:w-auto active:scale-98"
-            >
-              {loading ? 'Submitting...' : 'Submit Official Report'}
-            </button>
-          </form>
-        )}
-
-        <div id="feed" className="feed-filters flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-          {['All', 'Roads', 'Lighting', 'Water', 'Sanitation', 'Resolved'].map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setSelectedFilter(filter)}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition active:scale-95 shadow-2xs ${selectedFilter === filter
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                }`}
-            >
-              {filter === 'All' ? '🌐 All Reports' : filter}
-            </button>
-          ))}
-        </div>
-
-        {/* Interactive Map View */}
-        <div id="map" className="map-section mb-10">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-            <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">Interactive Map View</h2>
-              <p className="text-xs font-semibold text-slate-500">Live spatial overview of reported community issues</p>
-            </div>
-            <div className="flex gap-2.5 text-xs font-bold text-slate-600 flex-wrap bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-xs"></span> Roads</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-xs"></span> Lighting</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-cyan-500 inline-block shadow-xs"></span> Water</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-purple-500 inline-block shadow-xs"></span> Sanitation</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-xs"></span> Resolved</span>
-            </div>
-          </div>
-
-          <div className="w-full">
-            <CivicMap
-              latitude={location?.lat}
-              longitude={location?.lng}
-              issues={issues}
-              addresses={addresses}
-              categoryNames={categoryNames}
-              onSelectIssue={(issue) => setAdminSelectedIssue(issue)}
-            />
-          </div>
-        </div>
-
-        <div className="feed-toolbar flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              {isAdmin ? 'Manage All Reports' : 'My Reported Issues'}
-            </h2>
-            <p className="text-xs font-semibold text-slate-500 mt-0.5">
-              Showing {filteredIssues.length} active report(s)
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#F0F4F4] mb-2 font-mono">
+              LOKIFY
+            </h1>
+            <p className="text-xs font-mono text-[#A5B1B3] tracking-widest uppercase">
+              Civic Issue Reporting & Municipal Tracking
             </p>
           </div>
+        )}
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <div className="search-field">
-                <Search size={17} aria-hidden="true" />
-                <input
-              type="text"
-              placeholder="Search reports, places, details"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="p-3 border border-slate-300/80 rounded-2xl bg-white text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none flex-1 sm:w-64 shadow-xs font-medium"
-            />
-              </div>
+        {/* Global SMS Alert Pop-up */}
+        <SmsBanner />
 
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="p-3 border border-slate-300/80 rounded-2xl bg-white text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-xs font-semibold"
-            >
-              <option value="all">All Categories</option>
-              <option value="1">Roads & Potholes</option>
-              <option value="2">Street Lighting</option>
-              <option value="3">Water & Drainage</option>
-              <option value="4">Sanitation & Garbage</option>
-            </select>
+        {/* Dedicated Authentication Screen */}
+        <AuthScreen
+          onLogin={(user) => {
+            setCurrentUser(user);
+            showToast(`Welcome ${user.name}! SMS alerts verified.`, 'success');
+          }}
+        />
+      </div>
+    );
+  }
 
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="p-3 border border-slate-300/80 rounded-2xl bg-white text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-xs font-semibold"
-            >
-              <option value="all">All Statuses</option>
-              <option value="Submitted">Submitted</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Resolved">Resolved</option>
-            </select>
-          </div>
+  return (
+    <div className="bg-[#080F0F] text-[#F0F4F4] min-h-screen relative font-sans flex flex-col">
+      {/* Live Carrier SMS Heads-Up Notification Banner */}
+      <SmsBanner />
+
+      {/* Desktop Website Top Header */}
+      <DesktopHeader
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
+        unreadAlertsCount={unreadAlertsCount}
+        currentUser={currentUser}
+        currentLocality={currentLocality}
+        onOpenReport={() => setIsReportModalOpen(true)}
+        onLogout={handleLogout}
+        onOpenAdminPortal={() => setIsAdminModalOpen(true)}
+      />
+
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-3 duration-300 ${
+            toast.type === 'success'
+              ? 'bg-[#112C20] border-[#1D5C3F] text-[#43C88A]'
+              : toast.type === 'error'
+              ? 'bg-[#321616] border-[#5C2424] text-[#EF6666]'
+              : 'bg-[#192223] border-[#354144] text-[#A3DCE3]'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 size={18} className="shrink-0" />
+          ) : toast.type === 'error' ? (
+            <AlertTriangle size={18} className="shrink-0" />
+          ) : (
+            <Bell size={18} className="shrink-0" />
+          )}
+          <span className="text-xs font-mono font-medium leading-relaxed">{toast.message}</span>
         </div>
+      )}
 
-        {filteredIssues.length === 0 ? (
-          <div className="empty-feed p-14 border border-slate-200/90 rounded-3xl bg-white text-center text-slate-500 shadow-xs">
-            <span className="text-4xl block mb-3">🔍</span>
-            <p className="font-extrabold text-slate-800 text-lg">No matching reports found</p>
-            <span className="text-xs font-semibold text-slate-400">Try adjusting your search query or reset status filters</span>
-          </div>
-        ) : (
-          <div className="issue-feed grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredIssues.map((issue) => {
-              const locText = addresses[issue.id];
-              const coords = parseLocation(issue.location);
-              const googleMapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null;
+      {/* Active Tab Screen */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-0 sm:px-4">
+        {activeTab === 'feed' && (
+          <FeedScreen
+            issues={issues}
+            addresses={addresses}
+            currentLocality={currentLocality}
+            userLocation={userLocation}
+            onRefreshLocation={acquireGPSLocation}
+            onSelectIssue={(issue) => setSelectedIssue(issue)}
+            onOpenReport={() => setIsReportModalOpen(true)}
+            onUpvote={handleUpvote}
+            upvotedIssueIds={upvotedIssueIds}
+            onShareIssue={handleShare}
+          />
+        )}
 
-              return (
-                <article
-                  key={issue.id}
-                  onClick={() => handleCardClick(issue)}
-                  className={`issue-post p-6 border border-slate-200/90 rounded-3xl bg-white shadow-xs hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between transition duration-300 ${isAdmin ? 'hover:border-indigo-400 cursor-pointer' : ''
-                    }`}
-                >
-                  <div className="issue-post-main">
-                    <div className="issue-post-head">
-                      <div className="issue-author-mark"><Landmark size={17} /></div>
-                      <div className="issue-author-copy">
-                        <strong>Community report</strong>
-                        <span>#{issue.id} · {new Date(issue.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <span className={`issue-status text-xs font-black px-3.5 py-1 rounded-full whitespace-nowrap shadow-xs ${issue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                        issue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                          'bg-blue-100 text-blue-800 border border-blue-200'
-                        }`}>
-                        {issue.status}
-                      </span>
-                    </div>
+        {activeTab === 'my-issues' && (
+          <MyIssuesScreen
+            issues={issues}
+            addresses={addresses}
+            currentDeviceId={deviceId}
+            currentUserEmail={currentUser?.email}
+            onSelectIssue={(issue) => setSelectedIssue(issue)}
+            onOpenReport={() => setIsReportModalOpen(true)}
+          />
+        )}
 
-                    {issue.photo_url && (
-                      <img
-                        src={issue.photo_url}
-                        alt="Proof"
-                        className="issue-photo w-full h-48 object-cover rounded-2xl mb-4 border border-slate-200 shadow-inner"
-                      />
-                    )}
-                    {!issue.photo_url && <div className="issue-photo-placeholder"><Camera size={24} /><span>Photo not attached</span></div>}
+        {activeTab === 'alerts' && (
+          <AlertsScreen
+            alerts={alerts}
+            onMarkAllRead={handleMarkAllAlertsRead}
+            onMarkRead={handleMarkAlertRead}
+            onSelectAlert={handleSelectAlert}
+          />
+        )}
 
-                    <div className="issue-post-content">
-                      <div className="flex gap-2 items-center mb-2 flex-wrap">
-                        <span className={`text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border inline-block ${categoryBadges[issue.category_id] || 'bg-slate-100 text-slate-700 border-slate-200'
-                          }`}>
-                          {categoryNames[issue.category_id] || 'Civic Issue'}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-black text-slate-900 leading-snug">{issue.title}</h3>
-                      <p className="text-slate-600 text-sm mb-4 leading-relaxed font-medium">{issue.description}</p>
-                      <ProgressTimeline status={issue.status} />
-                    </div>
-                  </div>
-
-                  <div className="issue-post-footer">
-
-                    {coords && (
-                      <div className="issue-location bg-slate-50 p-4 rounded-2xl border border-slate-200/80 mb-4 text-xs flex flex-col gap-2">
-                        <div className="flex items-center gap-1.5 text-slate-800 font-extrabold">
-                          <MapPin size={14} /> <span>Location</span>
-                        </div>
-                        <p className="text-slate-800 font-semibold leading-relaxed bg-white p-3 rounded-xl border border-slate-200/90 text-xs shadow-2xs">
-                          {locText || `Latitude: ${coords.lat.toFixed(5)}, Longitude: ${coords.lng.toFixed(5)}`}
-                        </p>
-                        <div className="flex justify-between items-center pt-1 text-[11px] font-mono text-slate-500">
-                          <span>GPS: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>
-                          {googleMapsUrl && (
-                            <a
-                              href={googleMapsUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-indigo-600 font-sans font-black hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              Google Maps ↗
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="issue-post-actions flex justify-between items-center py-2.5 border-t border-slate-100">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpvote(issue.id, issue.upvotes);
-                        }}
-                        className="upvote-button flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black px-4 py-2 rounded-xl transition active:scale-95"
-                      >
-                        <ArrowUpRight size={15} /> Support ({issue.upvotes || 0})
-                      </button>
-                      {isAdmin ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAdminSelectedIssue(issue);
-                          }}
-                          className="text-indigo-700 bg-indigo-50 hover:bg-indigo-100 text-xs font-extrabold px-3.5 py-2 rounded-xl transition border border-indigo-100 active:scale-95"
-                        >
-                          🔍 View Details ↗
-                        </button>
-                      ) : (
-                        <span className="text-[11px] font-semibold text-slate-400">
-                          {new Date(issue.created_at).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-
-                    {isAdmin && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center justify-between pt-3.5 border-t border-slate-100 gap-2 mt-2"
-                      >
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs font-bold text-slate-600">Update Status:</label>
-                          <select
-                            value={issue.status}
-                            onChange={(e) => handleStatusChange(issue, e.target.value)}
-                            className="p-2 border border-slate-300 rounded-xl text-xs bg-slate-50 text-slate-900 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                          >
-                            <option value="Submitted">Submitted</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Resolved">Resolved</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+        {activeTab === 'profile' && (
+          <ProfileScreen
+            userName={currentUser?.name}
+            userEmail={currentUser?.email}
+            userPhone={currentUser?.phone}
+            userLocality={currentLocality}
+            issues={issues}
+            myIssuesCount={myIssues.length}
+            upvotesReceived={upvotesReceived}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+            onOpenAdminPortal={() => setIsAdminModalOpen(true)}
+            isAdminActive={isAdmin}
+            onLogout={handleLogout}
+            onOpenAiAssistant={() => setIsAiModalOpen(true)}
+            onUpdateProfile={(updated) => {
+              setCurrentUser((prev) => ({ ...prev, ...updated }));
+              showToast('Profile & SMS routing updated!', 'success');
+            }}
+          />
         )}
       </main>
 
-      <nav className="mobile-nav" aria-label="Quick navigation">
-        <a href="#feed"><Landmark size={19} /><span>Feed</span></a>
-        <a href="#map"><MapPin size={19} /><span>Map</span></a>
-        {!isAdmin && <a href="#report"><Camera size={19} /><span>Report</span></a>}
-      </nav>
-
-      <div className="fixed bottom-5 right-5 z-[9999]">
-        {!isChatOpen ? (
-          <button onClick={() => setIsChatOpen(true)} className="chat-launch bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl font-bold flex items-center gap-2 transition active:scale-95">
-            <MessageCircle size={18} /> Ask Civic AI
-          </button>
-        ) : (
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-80 sm:w-96 flex flex-col h-[420px] overflow-hidden">
-            <div className="bg-indigo-600 text-white p-4 flex justify-between items-center font-bold">
-              <span>🤖 Civic AI Assistant</span>
-              <button onClick={() => setIsChatOpen(false)} className="text-white hover:text-slate-200" aria-label="Close assistant"><X size={18} /></button>
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 text-xs">
-              {chatMessages.map((m, idx) => (
-                <div key={idx} className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${m.sender === 'user' ? 'bg-indigo-600 text-white ml-auto' : 'bg-white text-slate-800 border border-slate-200'}`}>
-                  {m.text}
-                </div>
-              ))}
-            </div>
-            <form onSubmit={handleChatSend} className="p-3 border-t bg-white flex gap-2">
-              <input type="text" placeholder="Ask in English or Kannada..." value={chatInput} onChange={e => setChatInput(e.target.value)} className="flex-1 p-2 border rounded-xl text-xs bg-slate-50 focus:outline-none" />
-              <button type="submit" className="bg-indigo-600 text-white text-xs px-4 py-2 rounded-xl font-bold">Send</button>
-            </form>
-          </div>
-        )}
+      {/* Mobile Fixed Bottom Navigation (visible on mobile screens) */}
+      <div className="md:hidden">
+        <BottomNav
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab)}
+          unreadAlertsCount={unreadAlertsCount}
+        />
       </div>
 
-      {adminSelectedIssue && (
-        <div
-          className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto"
-          onClick={() => setAdminSelectedIssue(null)}
-        >
-          <div
-            className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto border border-slate-200 z-[10000]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setAdminSelectedIssue(null)}
-              className="absolute top-5 right-5 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-lg transition"
-            >
-              &times;
-            </button>
+      {/* Screen 4: Report Issue Modal Sheet */}
+      <ReportIssueModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        onSubmit={handlePostReport}
+        currentLocation={userLocation}
+        locationStatus={locationStatus}
+        onRefreshLocation={acquireGPSLocation}
+        initialEmail={currentUser?.email}
+        initialPhone={currentUser?.phone}
+      />
 
-            <div className="flex items-start justify-between gap-4 mb-6 pr-8">
-              <div>
-                <span className="text-xs font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full inline-block mb-2">
-                  📌 Report ID #{adminSelectedIssue.id} • {categoryNames[adminSelectedIssue.category_id]}
-                </span>
-                <h2 className="text-2xl font-black text-slate-900 leading-snug">{adminSelectedIssue.title}</h2>
-                {adminSelectedIssue.user_email && (
-                  <p className="text-xs text-indigo-800 font-bold mt-1 flex items-center gap-1.5">
-                    <span>📧</span> Citizen Contact: {adminSelectedIssue.user_email}
-                  </p>
-                )}
-              </div>
-              <span className={`text-xs font-black px-4 py-1.5 rounded-full whitespace-nowrap shadow-xs ${
-                adminSelectedIssue.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                adminSelectedIssue.status === 'In Progress' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                'bg-blue-100 text-blue-800 border border-blue-200'
-              }`}>
-                {adminSelectedIssue.status}
-              </span>
-            </div>
+      {/* Screen 5: Dedicated Issue Details Modal */}
+      <IssueDetailModal
+        issue={selectedIssue}
+        onClose={() => setSelectedIssue(null)}
+        addressText={selectedIssue ? addresses[selectedIssue.id] : ''}
+        onUpvote={handleUpvote}
+        isUpvoted={selectedIssue ? upvotedIssueIds.includes(selectedIssue.id) : false}
+        onShare={handleShare}
+        onConfirmFixed={handleConfirmFixed}
+      />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {adminSelectedIssue.photo_url ? (
-                <div>
-                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Visual Evidence</h4>
-                  <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-inner bg-slate-50 h-64">
-                    <img
-                      src={adminSelectedIssue.photo_url}
-                      alt="Proof"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center bg-slate-50 rounded-2xl border border-slate-200 p-6 text-slate-400 text-xs font-bold h-64">
-                  No photo attached
-                </div>
-              )}
+      {/* Municipal Authority Admin Center */}
+      <AdminModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        isAdmin={isAdmin}
+        onAuthenticate={(authStatus) => {
+          setAdminOverride(authStatus);
+          showToast('Authenticated as Municipal Official', 'success');
+        }}
+        onExitAdmin={() => {
+          setAdminOverride(false);
+          showToast('Exited Admin Mode', 'info');
+        }}
+        issues={issues}
+        onUpdateStatus={handleAdminStatusChange}
+        onDeleteIssue={handleDeleteIssue}
+        onExportCSV={handleExportCSV}
+        onSelectIssue={(issue) => {
+          setIsAdminModalOpen(false);
+          setSelectedIssue(issue);
+        }}
+      />
 
-              <div className="flex flex-col justify-between">
-                <div>
-                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Location Coordinates</h4>
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4">
-                    <p className="text-xs font-bold text-slate-800 leading-relaxed mb-2">
-                      📍 {modalAddressText}
-                    </p>
-                    {modalCoords && (
-                      <a
-                        href={`https://www.google.com/maps?q=${modalCoords.lat},${modalCoords.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-indigo-600 font-bold text-xs hover:underline block"
-                      >
-                        Open in Google Maps ↗
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Full Description</h4>
-              <p className="text-slate-800 bg-slate-50 p-4 rounded-2xl border border-slate-200 whitespace-pre-wrap leading-relaxed text-sm font-medium">
-                {adminSelectedIssue.description || 'No detailed description provided.'}
-              </p>
-            </div>
-
-            {isAdmin && (
-              <div className="flex flex-col sm:flex-row items-center justify-between pt-5 border-t border-slate-200 bg-slate-50 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 p-5 sm:p-6 rounded-b-3xl gap-4">
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <label className="text-xs font-extrabold text-slate-700 whitespace-nowrap">Change Status:</label>
-                  <select
-                    value={adminSelectedIssue.status}
-                    onChange={(e) => handleStatusChange(adminSelectedIssue, e.target.value)}
-                    className="p-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none flex-1 sm:w-44 shadow-xs"
-                  >
-                    <option value="Submitted">Submitted</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
-                  </select>
-                </div>
-
-                <button
-                  onClick={() => handleDeleteIssue(adminSelectedIssue.id)}
-                  className="bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 text-xs px-5 py-2.5 rounded-xl font-extrabold shadow-xs active:scale-95 transition w-full sm:w-auto"
-                >
-                  Delete Report
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-[99999] bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-indigo-500/50 flex items-center gap-3 animate-bounce">
-          <span className="text-xl">🔔</span>
-          <p className="text-xs font-bold tracking-wide">{toastMessage}</p>
-        </div>
-      )}
-
+      {/* Multilingual Civic AI Assistant */}
+      <AiAssistantModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+      />
     </div>
   );
 }
