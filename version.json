@@ -1,9 +1,9 @@
 {
-  "version": "1.3.8",
-  "versionCode": 10308,
-  "releaseName": "Lokify v1.3.8 – Satellite Report & Category Fix",
-  "releaseNotes": "• Foreign Key Fix: Resolved issues_category_id_fkey constraint by mapping UI categories safely to validated database categories with auto-retry.\n• Input First Layout: Inputs (Title, Category, Description, Contact details) now appear first on Report an Issue page.\n• Dedicated Satellite View: Report page map features high-resolution aerial Satellite imagery with street and landmark overlays.\n• Maintained Play Protect unharmful security profile.",
-  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.3.8/app-release.apk",
-  "fileSize": "3.6 MB",
-  "publishedAt": "2026-11-24T12:45:00Z"
+  "version": "1.3.9",
+  "versionCode": 10309,
+  "releaseName": "Lokify v1.3.9 – In-Card Admin Controls & In-App APK Updater",
+  "releaseNotes": "• Report Card Admin Controls: Municipal officers can now inspect all details and update status/SMS right from each report card's detail view.\n• Removed standalone Admin Control Center.\n• Direct In-App APK Updater: Updates download and launch installer directly in the app with zero browser redirect.",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.3.9/app-release.apk",
+  "fileSize": "4.5 MB",
+  "publishedAt": "2026-11-24T13:30:00Z"
 }

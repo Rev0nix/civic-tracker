@@ -10,6 +10,11 @@ import {
   ExternalLink,
   Phone,
   Mail,
+  Trash2,
+  Clock,
+  AlertTriangle,
+  RotateCcw,
+  Send,
 } from 'lucide-react';
 import {
   STATUS_CONFIG,
@@ -34,9 +39,13 @@ export default function IssueDetailModal({
   isUpvoted = false,
   onShare,
   onConfirmFixed,
+  isAdmin = false,
+  onUpdateStatus,
+  onDeleteIssue,
 }) {
   const [isFollowed, setIsFollowed] = useState(false);
   const [confirmedStatus, setConfirmedStatus] = useState(null); // 'confirmed' | 'disputed'
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const previewMapRef = useRef(null);
 
   // Parse location coordinates
@@ -131,6 +140,21 @@ export default function IssueDetailModal({
 
   const isResolved = issue.status === 'Resolved';
 
+  const handleAdminStatusChange = async (newStatus) => {
+    if (issue.status === newStatus || statusUpdating) return;
+    setStatusUpdating(true);
+    try {
+      if (onUpdateStatus) {
+        await onUpdateStatus(issue, newStatus);
+      }
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
+  const citizenPhone = issue.user_phone || '+91 98451 23456';
+  const cleanPhone = citizenPhone.replace(/\s+/g, '');
+
   return (
     <div className="fixed inset-0 z-50 bg-[#080F0F]/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
       <div
@@ -147,9 +171,17 @@ export default function IssueDetailModal({
             <span>Back</span>
           </button>
 
-          <span className="text-xs font-mono font-bold text-[#A3DCE3]">
-            {formattedId}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold text-[#A3DCE3]">
+              {formattedId}
+            </span>
+            {isAdmin && (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#132B2F] text-[#A3DCE3] border border-[#28616A] flex items-center gap-1">
+                <ShieldCheck size={11} />
+                <span>OFFICER REVIEW</span>
+              </span>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             <button
@@ -178,7 +210,7 @@ export default function IssueDetailModal({
           <div className="absolute inset-0 bg-gradient-to-t from-[#101819] via-transparent to-black/30" />
 
           {/* Status Badge Over Image */}
-          <div className="absolute bottom-4 left-5">
+          <div className="absolute bottom-4 left-5 flex items-center gap-2">
             <span
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold backdrop-blur-md border shadow-lg"
               style={{
@@ -193,6 +225,20 @@ export default function IssueDetailModal({
               />
               {statusCfg.label}
             </span>
+
+            {issue.priority && (
+              <span
+                className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border backdrop-blur-md ${
+                  issue.priority === 'High'
+                    ? 'bg-[#321616]/90 border-[#5C2424] text-[#EF6666]'
+                    : issue.priority === 'Medium'
+                    ? 'bg-[#2A2315]/90 border-[#5C4824] text-[#E9B85C]'
+                    : 'bg-[#112C20]/90 border-[#1D5C3F] text-[#43C88A]'
+                }`}
+              >
+                {issue.priority} Priority
+              </span>
+            )}
           </div>
         </div>
 
@@ -213,6 +259,129 @@ export default function IssueDetailModal({
             </h1>
           </div>
 
+          {/* ============================================================== */}
+          {/* EXCLUSIVE ADMIN CONTROLS: ONLY ADMIN CAN CONTROL THIS REPORT!   */}
+          {/* ============================================================== */}
+          {isAdmin && (
+            <section className="bg-gradient-to-b from-[#132B2F]/80 to-[#101819] border-2 border-[#28616A] rounded-3xl p-5 shadow-2xl relative overflow-hidden animate-in fade-in duration-200">
+              <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-[#28616A]/60">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#28616A]/40 border border-[#A3DCE3] text-[#A3DCE3] flex items-center justify-center">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#A3DCE3] block">
+                      OFFICIAL WARD OFFICER CONTROLS
+                    </span>
+                    <h3 className="text-sm font-bold text-[#F0F4F4]">
+                      Control Report & Dispatch Citizen SMS
+                    </h3>
+                  </div>
+                </div>
+
+                {onDeleteIssue && (
+                  <button
+                    onClick={() => onDeleteIssue(issue.id)}
+                    className="flex items-center gap-1 bg-[#321616] hover:bg-[#481d1d] text-[#EF6666] border border-[#5C2424] px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition active:scale-95"
+                    title="Delete Report"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Instant Status Control Buttons */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-mono text-[#A5B1B3] block">
+                  Select Status to update database & dispatch instant SMS:
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {/* Submitted / Open */}
+                  <button
+                    onClick={() => handleAdminStatusChange('Submitted')}
+                    disabled={statusUpdating}
+                    className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center justify-center gap-1.5 transition active:scale-95 ${
+                      issue.status === 'Submitted' || issue.status === 'Open'
+                        ? 'bg-[#2A2315] border-[#E9B85C] text-[#E9B85C] ring-2 ring-[#E9B85C]/30 shadow-lg'
+                        : 'bg-[#192223] border-[#354144] text-[#758588] hover:text-[#F0F4F4] hover:border-[#758588]'
+                    }`}
+                  >
+                    <Clock size={16} />
+                    <span>Open / New</span>
+                  </button>
+
+                  {/* In Progress */}
+                  <button
+                    onClick={() => handleAdminStatusChange('In Progress')}
+                    disabled={statusUpdating}
+                    className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center justify-center gap-1.5 transition active:scale-95 ${
+                      issue.status === 'In Progress'
+                        ? 'bg-[#122A36] border-[#38BDF8] text-[#38BDF8] ring-2 ring-[#38BDF8]/30 shadow-lg'
+                        : 'bg-[#192223] border-[#354144] text-[#758588] hover:text-[#F0F4F4] hover:border-[#758588]'
+                    }`}
+                  >
+                    <AlertTriangle size={16} />
+                    <span>In Progress</span>
+                  </button>
+
+                  {/* Resolved */}
+                  <button
+                    onClick={() => handleAdminStatusChange('Resolved')}
+                    disabled={statusUpdating}
+                    className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center justify-center gap-1.5 transition active:scale-95 ${
+                      issue.status === 'Resolved'
+                        ? 'bg-[#112C20] border-[#43C88A] text-[#43C88A] ring-2 ring-[#43C88A]/30 shadow-lg'
+                        : 'bg-[#192223] border-[#354144] text-[#758588] hover:text-[#F0F4F4] hover:border-[#758588]'
+                    }`}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>Mark Resolved</span>
+                  </button>
+
+                  {/* Reopened / Follow-up */}
+                  <button
+                    onClick={() => handleAdminStatusChange('Acknowledged')}
+                    disabled={statusUpdating}
+                    className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center justify-center gap-1.5 transition active:scale-95 ${
+                      issue.status === 'Acknowledged'
+                        ? 'bg-[#201C2B] border-[#A78BFA] text-[#A78BFA] ring-2 ring-[#A78BFA]/30 shadow-lg'
+                        : 'bg-[#192223] border-[#354144] text-[#758588] hover:text-[#F0F4F4] hover:border-[#758588]'
+                    }`}
+                  >
+                    <RotateCcw size={16} />
+                    <span>Acknowledged</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Citizen Direct Outreach Toolbar */}
+              <div className="mt-4 pt-3.5 border-t border-[#28616A]/50 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                <div className="flex items-center gap-2 text-[#A5B1B3]">
+                  <span>Citizen Contact:</span>
+                  <span className="text-[#A3DCE3] font-bold">{citizenPhone}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`tel:${cleanPhone}`}
+                    className="flex items-center gap-1 bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#A3DCE3] text-[#A3DCE3] px-3 py-1.5 rounded-xl transition"
+                  >
+                    <Phone size={12} />
+                    <span>Call</span>
+                  </a>
+                  <a
+                    href={`sms:${cleanPhone}?body=Regarding Lokify Report ${formattedId} (${issue.title}): `}
+                    className="flex items-center gap-1 bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#A3DCE3] text-[#A3DCE3] px-3 py-1.5 rounded-xl transition"
+                  >
+                    <Send size={12} />
+                    <span>Direct SMS</span>
+                  </a>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Status Timeline */}
           <section className="bg-[#192223] border border-[#354144] rounded-3xl p-5">
             <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] mb-4">
@@ -223,7 +392,6 @@ export default function IssueDetailModal({
               {timelineSteps.map((step, idx) => {
                 const state = getStepState(step.key);
                 if (step.key === 'Resolved' && !isResolved && state !== 'active') {
-                  // Only show resolved milestone if completed or active
                   return null;
                 }
 
@@ -350,6 +518,12 @@ export default function IssueDetailModal({
                     <span className="flex items-center gap-1">
                       <Mail size={11} className="text-[#A3DCE3]" />
                       <span>{issue.user_email}</span>
+                    </span>
+                  )}
+                  {issue.user_phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone size={11} className="text-[#A3DCE3]" />
+                      <span>{issue.user_phone}</span>
                     </span>
                   )}
                 </div>

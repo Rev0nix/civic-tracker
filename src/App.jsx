@@ -14,7 +14,7 @@ import AlertsScreen from './components/AlertsScreen';
 import ProfileScreen from './components/ProfileScreen';
 import ReportIssueModal from './components/ReportIssueModal';
 import IssueDetailModal from './components/IssueDetailModal';
-import AdminModal from './components/AdminModal';
+import AdminAuthDialog from './components/AdminAuthDialog';
 import AiAssistantModal from './components/AiAssistantModal';
 import LokAiScreen from './components/LokAiScreen';
 import InAppUpdateModal from './components/InAppUpdateModal';
@@ -686,8 +686,16 @@ export default function App() {
         currentLocality={currentLocality}
         onRefreshLocation={acquireGPSLocation}
         currentUser={currentUser}
+        isAdmin={isAdmin}
         onLogout={handleLogout}
-        onOpenAdminPortal={() => setIsAdminModalOpen(true)}
+        onOpenAdminPortal={() => {
+          if (isAdmin) {
+            setAdminOverride(false);
+            showToast('Exited Ward Officer Mode. Now in Citizen View.', 'info');
+          } else {
+            setIsAdminModalOpen(true);
+          }
+        }}
         onOpenAlerts={() => {
           if (activeTab !== 'alerts') setPreviousTab(activeTab);
           setActiveTab('alerts');
@@ -733,6 +741,12 @@ export default function App() {
               onUpvote={handleUpvote}
               upvotedIssueIds={upvotedIssueIds}
               onShareIssue={handleShare}
+              isAdmin={isAdmin}
+              onExportCSV={handleExportCSV}
+              onExitAdmin={() => {
+                setAdminOverride(false);
+                showToast('Exited Ward Officer Mode. Now in Citizen View.', 'info');
+              }}
             />
           )}
 
@@ -787,6 +801,15 @@ export default function App() {
               issues={issues}
               myIssuesCount={myIssues.length}
               upvotesReceived={upvotesReceived}
+              isAdmin={isAdmin}
+              onToggleAdmin={() => {
+                if (isAdmin) {
+                  setAdminOverride(false);
+                  showToast('Exited Ward Officer Mode. Now in Citizen View.', 'info');
+                } else {
+                  setIsAdminModalOpen(true);
+                }
+              }}
               onNavigateTab={(tab) => setActiveTab(tab)}
               onLogout={handleLogout}
               onCheckUpdate={handleManualUpdateCheck}
@@ -822,7 +845,7 @@ export default function App() {
         initialPhone={currentUser?.phone}
       />
 
-      {/* Screen 5: Dedicated Issue Details Modal */}
+      {/* Screen 5: Dedicated Issue Details Modal with Officer Controls */}
       <IssueDetailModal
         issue={selectedIssue}
         onClose={() => setSelectedIssue(null)}
@@ -831,28 +854,18 @@ export default function App() {
         isUpvoted={selectedIssue ? upvotedIssueIds.includes(selectedIssue.id) : false}
         onShare={handleShare}
         onConfirmFixed={handleConfirmFixed}
-      />
-
-      {/* Municipal Authority Admin Center */}
-      <AdminModal
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
         isAdmin={isAdmin}
-        onAuthenticate={(authStatus) => {
-          setAdminOverride(authStatus);
-          showToast('Authenticated as Municipal Official', 'success');
-        }}
-        onExitAdmin={() => {
-          setAdminOverride(false);
-          showToast('Exited Admin Mode', 'info');
-        }}
-        issues={issues}
         onUpdateStatus={handleAdminStatusChange}
         onDeleteIssue={handleDeleteIssue}
-        onExportCSV={handleExportCSV}
-        onSelectIssue={(issue) => {
-          setIsAdminModalOpen(false);
-          setSelectedIssue(issue);
+      />
+
+      {/* Municipal Officer Verification Dialog */}
+      <AdminAuthDialog
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        onAuthenticate={(authStatus) => {
+          setAdminOverride(authStatus);
+          showToast('Ward Officer Mode Active · Tap any report card to control it', 'success');
         }}
       />
 

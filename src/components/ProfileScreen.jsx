@@ -25,6 +25,8 @@ export default function ProfileScreen({
   issues = [],
   myIssuesCount = 0,
   upvotesReceived = 0,
+  isAdmin = false,
+  onToggleAdmin,
   onNavigateTab,
   onLogout,
   onCheckUpdate,
@@ -72,6 +74,16 @@ export default function ProfileScreen({
           icon: MessageSquare,
           subtitle: `${smsLogs.length} messages delivered`,
           onClick: () => setShowSmsHistory(true),
+        },
+        {
+          id: 'admin-mode',
+          label: 'Municipal Officer Controls',
+          icon: Shield,
+          subtitle: isAdmin
+            ? 'Active · Report card management & SMS enabled'
+            : 'Passcode required · Unlock officer controls',
+          badge: isAdmin ? 'OFFICER' : 'CITIZEN',
+          onClick: onToggleAdmin,
         },
         {
           id: 'saved-issues',

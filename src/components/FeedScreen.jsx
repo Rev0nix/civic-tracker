@@ -8,6 +8,9 @@ import {
   List,
   Sparkles,
   ArrowUpRight,
+  ShieldCheck,
+  Download,
+  Phone,
 } from 'lucide-react';
 import {
   CATEGORIES,
@@ -29,6 +32,9 @@ export default function FeedScreen({
   onUpvote,
   upvotedIssueIds = [],
   onShareIssue,
+  isAdmin = false,
+  onExportCSV,
+  onExitAdmin,
 }) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeStatus, setActiveStatus] = useState('All');
@@ -36,7 +42,7 @@ export default function FeedScreen({
   const [showSearch, setShowSearch] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
 
-  // Summary Metrics for the Website
+  // Summary Metrics
   const totalCount = issues.length;
   const openCount = issues.filter((i) => i.status === 'Submitted' || i.status === 'Open').length;
   const inProgressCount = issues.filter((i) => i.status === 'In Progress').length;
@@ -65,7 +71,9 @@ export default function FeedScreen({
         const descMatch = issue.description?.toLowerCase().includes(q);
         const addressMatch = addresses[issue.id]?.toLowerCase().includes(q);
         const idMatch = formatIssueId(issue.id).toLowerCase().includes(q);
-        if (!titleMatch && !descMatch && !addressMatch && !idMatch) {
+        const phoneMatch = issue.user_phone?.toLowerCase().includes(q);
+        const emailMatch = issue.user_email?.toLowerCase().includes(q);
+        if (!titleMatch && !descMatch && !addressMatch && !idMatch && !phoneMatch && !emailMatch) {
           return false;
         }
       }
@@ -129,6 +137,49 @@ export default function FeedScreen({
             </button>
           </div>
         </div>
+
+        {/* Exclusive Official Ward Officer Admin Mode Banner */}
+        {isAdmin && (
+          <div className="bg-[#132B2F] border border-[#28616A] rounded-2xl p-2.5 px-3 flex items-center justify-between gap-2 shadow-lg animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-[#28616A]/50 text-[#A3DCE3] flex items-center justify-center shrink-0">
+                <ShieldCheck size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono font-bold text-[#A3DCE3] uppercase tracking-wider block">
+                    WARD OFFICER ADMIN ACTIVE
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#43C88A] animate-ping" />
+                </div>
+                <p className="text-[11px] text-[#F0F4F4] truncate font-medium">
+                  Tap any report card below to control status & SMS
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {onExportCSV && (
+                <button
+                  onClick={onExportCSV}
+                  className="flex items-center gap-1 bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#A3DCE3] text-[#A3DCE3] text-[10px] font-mono font-semibold px-2 py-1 rounded-lg transition active:scale-95"
+                  title="Export municipal data as CSV"
+                >
+                  <Download size={11} />
+                  <span>CSV</span>
+                </button>
+              )}
+              {onExitAdmin && (
+                <button
+                  onClick={onExitAdmin}
+                  className="text-[10px] font-mono text-[#EF6666] hover:underline px-1.5 py-1"
+                >
+                  Exit
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Compact Mobile Metrics Pills */}
         <div className="grid grid-cols-4 gap-1.5 bg-[#101819] border border-[#253538] p-1.5 rounded-2xl text-center">
@@ -233,154 +284,198 @@ export default function FeedScreen({
             />
           </div>
         ) : (
-        <div>
-          {filteredIssues.length === 0 ? (
-            <div className="bg-[#192223] border border-[#354144] rounded-3xl p-12 text-center max-w-xl mx-auto my-8">
-              <div className="w-14 h-14 rounded-2xl bg-[#202B2D] border border-[#354144] text-[#A3DCE3] flex items-center justify-center mx-auto mb-4">
-                <Sparkles size={24} />
+          <div>
+            {filteredIssues.length === 0 ? (
+              <div className="bg-[#192223] border border-[#354144] rounded-3xl p-12 text-center max-w-xl mx-auto my-8">
+                <div className="w-14 h-14 rounded-2xl bg-[#202B2D] border border-[#354144] text-[#A3DCE3] flex items-center justify-center mx-auto mb-4">
+                  <Sparkles size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-[#F0F4F4] mb-1">No reports matching filters</h3>
+                <p className="text-xs text-[#758588] max-w-xs mx-auto mb-6 leading-relaxed">
+                  There are no municipal reports matching the current category or status filter in this locality.
+                </p>
+                <button
+                  onClick={() => {
+                    setActiveCategory('all');
+                    setActiveStatus('All');
+                    setSearchQuery('');
+                  }}
+                  className="bg-[#202B2D] hover:bg-[#28616A] text-[#A3DCE3] border border-[#354144] text-xs font-mono font-semibold px-4 py-2 rounded-xl transition"
+                >
+                  Reset Filters
+                </button>
               </div>
-              <h3 className="text-lg font-bold text-[#F0F4F4] mb-1">No reports matching filters</h3>
-              <p className="text-xs text-[#758588] max-w-xs mx-auto mb-6 leading-relaxed">
-                There are no municipal reports matching the current category or status filter in this locality.
-              </p>
-              <button
-                onClick={() => {
-                  setActiveCategory('all');
-                  setActiveStatus('All');
-                  setSearchQuery('');
-                }}
-                className="bg-[#202B2D] hover:bg-[#28616A] text-[#A3DCE3] border border-[#354144] text-xs font-mono font-semibold px-4 py-2 rounded-xl transition"
-              >
-                Reset Filters
-              </button>
-            </div>
-          ) : (
-            /* Single Column Pure Mobile Feed */
-            <div className="flex flex-col gap-3">
-              {filteredIssues.map((issue) => {
-                const statusCfg = STATUS_CONFIG[issue.status] || STATUS_CONFIG.Open;
-                const formattedId = formatIssueId(issue.id);
-                const categoryLabel = getCategoryName(issue.category_id);
-                const relativeTime = getRelativeTime(issue.created_at);
-                const imageSrc = issue.photo_url || getCategoryIllustration(issue.category_id);
-                const isUpvoted = upvotedIssueIds.includes(issue.id);
-                const localityName = addresses[issue.id]
-                  ? extractLocality(addresses[issue.id])
-                  : extractLocality(null, issue.latitude, issue.longitude);
+            ) : (
+              /* Single Column Pure Mobile Feed of Report Cards */
+              <div className="flex flex-col gap-3">
+                {filteredIssues.map((issue) => {
+                  const statusCfg = STATUS_CONFIG[issue.status] || STATUS_CONFIG.Open;
+                  const formattedId = formatIssueId(issue.id);
+                  const categoryLabel = getCategoryName(issue.category_id);
+                  const relativeTime = getRelativeTime(issue.created_at);
+                  const imageSrc = issue.photo_url || getCategoryIllustration(issue.category_id);
+                  const isUpvoted = upvotedIssueIds.includes(issue.id);
+                  const localityName = addresses[issue.id]
+                    ? extractLocality(addresses[issue.id])
+                    : extractLocality(null, issue.latitude, issue.longitude);
 
-                return (
-                  <article
-                    key={issue.id}
-                    onClick={() => onSelectIssue(issue)}
-                    className="bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#28616A] rounded-3xl overflow-hidden transition-all duration-200 cursor-pointer shadow-lg hover:shadow-2xl group flex flex-col justify-between"
-                  >
-                    <div>
-                      {/* Card Media Preview */}
-                      <div className="relative w-full h-52 bg-[#101819] overflow-hidden">
-                        <img
-                          src={imageSrc}
-                          alt={issue.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#192223] via-transparent to-black/30" />
-
-                        {/* Status Badge Over Image */}
-                        <div className="absolute top-4 left-4">
-                          <span
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold backdrop-blur-md border shadow-md"
-                            style={{
-                              color: statusCfg.color,
-                              backgroundColor: `${statusCfg.bg}EE`,
-                              borderColor: statusCfg.border,
-                            }}
-                          >
-                            <span
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: statusCfg.dot }}
-                            />
-                            {statusCfg.label}
-                          </span>
-                        </div>
-
-                        {/* Locality Chip */}
-                        <div className="absolute top-4 right-4">
-                          <span className="inline-flex items-center gap-1 bg-[#080F0F]/80 backdrop-blur-md text-[#F0F4F4] text-[11px] font-mono px-2.5 py-1 rounded-full border border-[#354144]">
-                            <MapPin size={11} className="text-[#A3DCE3]" />
-                            <span className="truncate max-w-[130px]">{localityName}</span>
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Card Body */}
-                      <div className="p-5">
-                        {/* Technical Meta Line */}
-                        <div className="flex items-center gap-2 text-xs font-mono text-[#758588] mb-2">
-                          <span className="text-[#A3DCE3] font-bold">{formattedId}</span>
-                          <span>·</span>
-                          <span className="text-[#A5B1B3]">{categoryLabel}</span>
-                          <span>·</span>
-                          <span>{relativeTime}</span>
-                        </div>
-
-                        {/* Title */}
-                        <h3 className="text-lg font-bold text-[#F0F4F4] group-hover:text-[#A3DCE3] transition-colors leading-snug mb-2">
-                          {issue.title}
-                        </h3>
-
-                        {/* Brief description preview */}
-                        {issue.description && (
-                          <p className="text-xs text-[#A5B1B3] line-clamp-2 leading-relaxed mb-4">
-                            {issue.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Bottom Action Bar of Card */}
-                    <div
-                      className="p-5 pt-3 border-t border-[#354144]/60 flex items-center justify-between"
-                      onClick={(e) => e.stopPropagation()}
+                  return (
+                    <article
+                      key={issue.id}
+                      onClick={() => onSelectIssue(issue)}
+                      className="bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#28616A] rounded-3xl overflow-hidden transition-all duration-200 cursor-pointer shadow-lg hover:shadow-2xl group flex flex-col justify-between"
                     >
-                      {/* Upvote Button */}
-                      <button
-                        onClick={() => onUpvote(issue.id, issue.upvotes)}
-                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold transition active:scale-95 border ${
-                          isUpvoted
-                            ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3]'
-                            : 'bg-[#202B2D] border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4] hover:border-[#758588]'
-                        }`}
-                      >
-                        <ThumbsUp size={13} className={isUpvoted ? 'fill-current' : ''} />
-                        <span>{issue.upvotes || 0}</span>
-                      </button>
+                      <div>
+                        {/* Card Media Preview */}
+                        <div className="relative w-full h-52 bg-[#101819] overflow-hidden">
+                          <img
+                            src={imageSrc}
+                            alt={issue.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#192223] via-transparent to-black/30" />
 
-                      {/* Share Button & Details indicator */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => onShareIssue(issue)}
-                          className="p-2 rounded-full bg-[#202B2D] border border-[#354144] text-[#A5B1B3] hover:text-[#A3DCE3] transition active:scale-95"
-                          title="Share Issue"
-                        >
-                          <Share2 size={14} />
-                        </button>
+                          {/* Status Badge Over Image */}
+                          <div className="absolute top-4 left-4 flex items-center gap-1.5">
+                            <span
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold backdrop-blur-md border shadow-md"
+                              style={{
+                                color: statusCfg.color,
+                                backgroundColor: `${statusCfg.bg}EE`,
+                                borderColor: statusCfg.border,
+                              }}
+                            >
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: statusCfg.dot }}
+                              />
+                              {statusCfg.label}
+                            </span>
 
-                        <button
-                          onClick={() => onSelectIssue(issue)}
-                          className="flex items-center gap-1 text-xs font-mono font-medium text-[#A3DCE3] hover:underline px-2 py-1"
-                        >
-                          <span>Timeline</span>
-                          <ArrowUpRight size={13} />
-                        </button>
+                            {issue.priority && (
+                              <span
+                                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border backdrop-blur-md ${
+                                  issue.priority === 'High'
+                                    ? 'bg-[#321616]/90 border-[#5C2424] text-[#EF6666]'
+                                    : issue.priority === 'Medium'
+                                    ? 'bg-[#2A2315]/90 border-[#5C4824] text-[#E9B85C]'
+                                    : 'bg-[#112C20]/90 border-[#1D5C3F] text-[#43C88A]'
+                                }`}
+                              >
+                                {issue.priority}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Locality Chip */}
+                          <div className="absolute top-4 right-4">
+                            <span className="inline-flex items-center gap-1 bg-[#080F0F]/80 backdrop-blur-md text-[#F0F4F4] text-[11px] font-mono px-2.5 py-1 rounded-full border border-[#354144]">
+                              <MapPin size={11} className="text-[#A3DCE3]" />
+                              <span className="truncate max-w-[130px]">{localityName}</span>
+                            </span>
+                          </div>
+
+                          {/* Officer Management Banner Tag (if Admin) */}
+                          {isAdmin && (
+                            <div className="absolute bottom-3 left-4 right-4">
+                              <div className="bg-[#132B2F]/90 backdrop-blur-md border border-[#28616A] text-[#A3DCE3] text-[11px] font-mono px-3 py-1.5 rounded-xl flex items-center justify-between shadow-lg">
+                                <span className="flex items-center gap-1.5 font-bold">
+                                  <ShieldCheck size={13} />
+                                  <span>Tap to control report</span>
+                                </span>
+                                <span className="text-[10px] text-[#A5B1B3]">
+                                  {issue.user_phone ? issue.user_phone : 'SMS Ready'}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Body */}
+                        <div className="p-5">
+                          {/* Technical Meta Line */}
+                          <div className="flex items-center gap-2 text-xs font-mono text-[#758588] mb-2">
+                            <span className="text-[#A3DCE3] font-bold">{formattedId}</span>
+                            <span>·</span>
+                            <span className="text-[#A5B1B3]">{categoryLabel}</span>
+                            <span>·</span>
+                            <span>{relativeTime}</span>
+                          </div>
+
+                          {/* Title */}
+                          <h3 className="text-lg font-bold text-[#F0F4F4] group-hover:text-[#A3DCE3] transition-colors leading-snug mb-2">
+                            {issue.title}
+                          </h3>
+
+                          {/* Brief description preview */}
+                          {issue.description && (
+                            <p className="text-xs text-[#A5B1B3] line-clamp-2 leading-relaxed mb-3">
+                              {issue.description}
+                            </p>
+                          )}
+
+                          {/* Citizen info snippet for officer */}
+                          {isAdmin && (issue.user_phone || issue.user_email) && (
+                            <div className="flex items-center gap-3 text-[11px] font-mono text-[#758588] pt-2 border-t border-[#354144]/40">
+                              {issue.user_email && (
+                                <span className="truncate max-w-[180px]">By: {issue.user_email}</span>
+                              )}
+                              {issue.user_phone && (
+                                <span className="flex items-center gap-1 text-[#A3DCE3]">
+                                  <Phone size={10} />
+                                  <span>{issue.user_phone}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+
+                      {/* Bottom Action Bar of Card */}
+                      <div
+                        className="p-5 pt-3 border-t border-[#354144]/60 flex items-center justify-between"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* Upvote Button */}
+                        <button
+                          onClick={() => onUpvote(issue.id, issue.upvotes)}
+                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold transition active:scale-95 border ${
+                            isUpvoted
+                              ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3]'
+                              : 'bg-[#202B2D] border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4] hover:border-[#758588]'
+                          }`}
+                        >
+                          <ThumbsUp size={13} className={isUpvoted ? 'fill-current' : ''} />
+                          <span>{issue.upvotes || 0}</span>
+                        </button>
+
+                        {/* Share Button & Details indicator */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => onShareIssue(issue)}
+                            className="p-2 rounded-full bg-[#202B2D] border border-[#354144] text-[#A5B1B3] hover:text-[#A3DCE3] transition active:scale-95"
+                            title="Share Issue"
+                          >
+                            <Share2 size={14} />
+                          </button>
+
+                          <button
+                            onClick={() => onSelectIssue(issue)}
+                            className="flex items-center gap-1 text-xs font-mono font-medium text-[#A3DCE3] hover:underline px-2 py-1"
+                          >
+                            <span>{isAdmin ? 'Manage' : 'Timeline'}</span>
+                            <ArrowUpRight size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

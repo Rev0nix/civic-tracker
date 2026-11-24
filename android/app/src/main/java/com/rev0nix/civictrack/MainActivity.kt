@@ -10,7 +10,8 @@ class MainActivity : BridgeActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        registerPlugin(LokifyNativeUpdaterPlugin::class.java)
         super.onCreate(savedInstanceState)
-        Log.i(TAG, "Lokify CivicTrack Native Android Kotlin Engine initialized.")
+        Log.i(TAG, "Lokify CivicTrack Native Android Kotlin Engine initialized with In-App Updater.")
     }
 }
