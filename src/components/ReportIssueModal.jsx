@@ -16,7 +16,6 @@ import {
   Phone,
   Mail,
   LocateFixed,
-  Layers,
 } from 'lucide-react';
 import L from 'leaflet';
 import {
@@ -42,7 +41,6 @@ export default function ReportIssueModal({
   onClose,
   onSubmit,
   currentLocation,
-  locationStatus,
   onRefreshLocation,
   initialEmail = '',
   initialPhone = '',
@@ -56,112 +54,115 @@ export default function ReportIssueModal({
   const [imagePreview, setImagePreview] = useState(null);
   const [validationError, setValidationError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
-  // Map & Pin Picker State
-  const [userCustomCoords, setUserCustomCoords] = useState(null);
-  const selectedCoords = userCustomCoords || currentLocation || { lat: 12.9716, lng: 77.5946 };
+  // Map & Pin Location State
+  const [customCoords, setCustomCoords] = useState(null);
+  const activeCoords = customCoords || currentLocation || { lat: 12.9716, lng: 77.5946 };
   const [geocodedAddress, setGeocodedAddress] = useState('');
-  const [isSatellite, setIsSatellite] = useState(false);
 
   const fileInputCamera = useRef(null);
   const fileInputGallery = useRef(null);
   const mapContainerRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const markerRef = useRef(null);
 
   const leafletMapRef = useRef(null);
   const leafletMarkerRef = useRef(null);
-  const leafletTileRef = useRef(null);
 
-  // Synchronize GPS location when updated if user hasn't explicitly moved the pin
+  // Synchronize GPS location when updated from parent
   useEffect(() => {
-    if (currentLocation && !userCustomCoords) {
-      if (markerRef.current) {
-        markerRef.current.setPosition(currentLocation);
-      }
+    if (currentLocation && !customCoords) {
       if (leafletMarkerRef.current) {
         leafletMarkerRef.current.setLatLng([currentLocation.lat, currentLocation.lng]);
       }
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.panTo(currentLocation);
-      }
       if (leafletMapRef.current) {
-        leafletMapRef.current.setView([currentLocation.lat, currentLocation.lng]);
+        leafletMapRef.current.setView([currentLocation.lat, currentLocation.lng], 16);
       }
       reverseGeocodeUnified(currentLocation.lat, currentLocation.lng).then((addr) => {
         setGeocodedAddress(addr);
       });
     }
-  }, [currentLocation, userCustomCoords]);
+  }, [currentLocation, customCoords]);
 
-  // Initialize Interactive Map (Dual-Engine: Google Maps + Leaflet Fallback)
+  // Functional GPS Refresh Button
+  const handleGpsRefresh = () => {
+    setIsLocating(true);
+    if (onRefreshLocation) {
+      onRefreshLocation();
+    }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const fresh = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setCustomCoords(fresh);
+          if (leafletMarkerRef.current) {
+            leafletMarkerRef.current.setLatLng([fresh.lat, fresh.lng]);
+          }
+          if (leafletMapRef.current) {
+            leafletMapRef.current.setView([fresh.lat, fresh.lng], 17, { animate: true });
+          }
+          try {
+            const addr = await reverseGeocodeUnified(fresh.lat, fresh.lng);
+            setGeocodedAddress(addr);
+          } catch {
+            setGeocodedAddress('Current GPS Location');
+          }
+          setIsLocating(false);
+        },
+        (err) => {
+          console.warn('GPS refresh error:', err);
+          setIsLocating(false);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      setIsLocating(false);
+    }
+  };
+
+  // Initialize Interactive Map (Leaflet)
   useEffect(() => {
     if (!isOpen) return;
     let active = true;
 
-    // Small delay to allow modal open transition
     const timer = setTimeout(() => {
       if (!mapContainerRef.current) return;
       mapContainerRef.current.innerHTML = '';
 
-      const initial = selectedCoords || currentLocation || { lat: 12.9716, lng: 77.5946 };
+      const initial = activeCoords;
 
-      const initLeaflet = () => {
-        if (!active || !mapContainerRef.current) return;
-        try {
-          const lmap = L.map(mapContainerRef.current, {
-            center: [initial.lat, initial.lng],
-            zoom: 16,
-            zoomControl: false,
-          });
+      try {
+        const lmap = L.map(mapContainerRef.current, {
+          center: [initial.lat, initial.lng],
+          zoom: 16,
+          zoomControl: false,
+        });
 
-          const tileUrl = isSatellite
-            ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-            : LOKIFY_DARK_TILE_URL;
-          const attr = isSatellite ? 'Tiles &copy; Esri' : LOKIFY_TILE_ATTRIBUTION;
+        L.tileLayer(LOKIFY_DARK_TILE_URL, {
+          attribution: LOKIFY_TILE_ATTRIBUTION,
+          maxZoom: 19,
+          subdomains: ['a', 'b', 'c'],
+        }).addTo(lmap);
+        leafletMapRef.current = lmap;
 
-          leafletTileRef.current = L.tileLayer(tileUrl, { attribution: attr, maxZoom: 19 }).addTo(lmap);
-          leafletMapRef.current = lmap;
+        const icon = L.divIcon({
+          html: createLeafletSvgIconHtml('#EF6666', 36),
+          className: 'custom-leaflet-pin',
+          iconSize: [36, 36],
+          iconAnchor: [18, 36],
+        });
 
-          const icon = L.divIcon({
-            html: createLeafletSvgIconHtml('#EF6666', 36),
-            className: 'custom-leaflet-pin',
-            iconSize: [36, 36],
-            iconAnchor: [18, 36],
-          });
+        const marker = L.marker([initial.lat, initial.lng], {
+          icon,
+          draggable: false, // Pin is locked to GPS location
+        }).addTo(lmap);
+        leafletMarkerRef.current = marker;
 
-          const marker = L.marker([initial.lat, initial.lng], {
-            icon,
-            draggable: true,
-          }).addTo(lmap);
-          leafletMarkerRef.current = marker;
-
-          const handleNewCoords = (lat, lng) => {
-            setUserCustomCoords({ lat, lng });
-            reverseGeocodeUnified(lat, lng).then((addr) => {
-              if (active) setGeocodedAddress(addr);
-            });
-          };
-
-          lmap.on('click', (e) => {
-            marker.setLatLng(e.latlng);
-            handleNewCoords(e.latlng.lat, e.latlng.lng);
-          });
-
-          marker.on('dragend', () => {
-            const pos = marker.getLatLng();
-            handleNewCoords(pos.lat, pos.lng);
-          });
-
-          reverseGeocodeUnified(initial.lat, initial.lng).then((addr) => {
-            if (active) setGeocodedAddress(addr);
-          });
-        } catch (e) {
-          console.error('Leaflet modal init error:', e);
-        }
-      };
-
-      initLeaflet();
+        reverseGeocodeUnified(initial.lat, initial.lng).then((addr) => {
+          if (active) setGeocodedAddress(addr);
+        });
+      } catch (e) {
+        console.error('Leaflet modal init error:', e);
+      }
     }, 150);
 
     return () => {
@@ -173,7 +174,7 @@ export default function ReportIssueModal({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, isSatellite]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -203,11 +204,7 @@ export default function ReportIssueModal({
       setValidationError('Please select an issue category.');
       return;
     }
-    const finalLocation = selectedCoords || currentLocation;
-    if (!finalLocation) {
-      setValidationError('Valid GPS location is required. Tap "Refresh GPS" to acquire location.');
-      return;
-    }
+    const finalLocation = activeCoords;
     if (!file) {
       setValidationError('Photo proof is required. Reports with photos are verified 3x faster.');
       return;
@@ -374,116 +371,48 @@ export default function ReportIssueModal({
             </div>
           </div>
 
-          {/* 4. Interactive Google Map Location Pinning */}
+          {/* 4. GPS Location Map */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] flex items-center gap-1.5">
                 <MapPin size={13} className="text-[#A3DCE3]" />
                 <span>Issue Location & Map Pin <span className="text-[#EF6666]">*</span></span>
               </label>
-              <span className="text-[10px] font-mono text-[#A3DCE3] bg-[#132B2F] border border-[#28616A] px-2 py-0.5 rounded-full">
-                Tap or drag pin to position
+              <span className="text-[10px] font-mono text-[#758588]">
+                GPS Locked
               </span>
             </div>
 
             {/* Interactive Map Canvas */}
-            <div className="relative w-full h-52 sm:h-60 rounded-2xl overflow-hidden border border-[#354144] bg-[#080F0F] mb-2 shadow-lg">
+            <div className="relative w-full h-52 sm:h-60 rounded-2xl overflow-hidden border border-[#354144] bg-[#080F0F] mb-1 shadow-lg">
               <div ref={mapContainerRef} className="w-full h-full" />
 
-              {/* Floating Map Controls */}
-              <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-1.5">
-                {/* Snap to Device GPS */}
+              {/* Single Floating Button on Map: Live GPS Locate & Recenter */}
+              <div className="absolute top-2.5 right-2.5 z-10">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (currentLocation) {
-                      setUserCustomCoords(null);
-                      if (markerRef.current) markerRef.current.setPosition(currentLocation);
-                      if (leafletMarkerRef.current) leafletMarkerRef.current.setLatLng([currentLocation.lat, currentLocation.lng]);
-                      if (mapInstanceRef.current) {
-                        mapInstanceRef.current.panTo(currentLocation);
-                        mapInstanceRef.current.setZoom(17);
-                      }
-                      if (leafletMapRef.current) {
-                        leafletMapRef.current.setView([currentLocation.lat, currentLocation.lng], 17);
-                      }
-                      reverseGeocodeUnified(currentLocation.lat, currentLocation.lng).then((addr) => setGeocodedAddress(addr));
-                    } else {
-                      onRefreshLocation?.();
-                    }
-                  }}
-                  className="w-8 h-8 rounded-xl bg-[#101819]/90 hover:bg-[#192223] backdrop-blur-md border border-[#354144] hover:border-[#A3DCE3] text-[#A3DCE3] flex items-center justify-center shadow-md active:scale-95 transition"
-                  title="Snap Pin to Live Device GPS"
+                  onClick={handleGpsRefresh}
+                  disabled={isLocating}
+                  className="w-9 h-9 rounded-xl bg-[#101819]/95 hover:bg-[#192223] backdrop-blur-md border border-[#354144] hover:border-[#A3DCE3] text-[#A3DCE3] flex items-center justify-center shadow-lg active:scale-95 transition disabled:opacity-60"
+                  title="Refresh GPS & Recenter Map"
+                  aria-label="Refresh GPS"
                 >
-                  <LocateFixed size={16} />
-                </button>
-
-                {/* Satellite Toggle */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !isSatellite;
-                    setIsSatellite(next);
-                    if (leafletTileRef.current) {
-                      leafletTileRef.current.remove();
-                    }
-                    const tileUrl = next
-                      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                      : LOKIFY_DARK_TILE_URL;
-                    const attr = next ? 'Tiles &copy; Esri' : LOKIFY_TILE_ATTRIBUTION;
-                    if (leafletMapRef.current) {
-                      leafletTileRef.current = L.tileLayer(tileUrl, {
-                        attribution: attr,
-                        maxZoom: 19,
-                        subdomains: ['a', 'b', 'c'],
-                      }).addTo(leafletMapRef.current);
-                    }
-                  }}
-                  className={`w-8 h-8 rounded-xl backdrop-blur-md border flex items-center justify-center shadow-md active:scale-95 transition ${
-                    isSatellite
-                      ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3]'
-                      : 'bg-[#101819]/90 border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4]'
-                  }`}
-                  title="Toggle Satellite Imagery"
-                >
-                  <Layers size={15} />
+                  <LocateFixed size={18} className={isLocating ? 'animate-spin text-[#43C88A]' : ''} />
                 </button>
               </div>
 
-              {/* Live Pin Info Strip */}
-              <div className="absolute bottom-2 left-2 right-2 z-10 bg-[#101819]/95 backdrop-blur-md border border-[#354144] px-3 py-1.5 rounded-xl flex items-center justify-between text-[11px] font-mono">
-                <span className="text-[#A3DCE3] flex items-center gap-1.5 truncate">
-                  <span className="w-2 h-2 rounded-full bg-[#EF6666] animate-pulse" />
-                  <span>Pin: {selectedCoords.lat.toFixed(5)}, {selectedCoords.lng.toFixed(5)}</span>
-                </span>
-                <span className="text-[#758588] text-[10px] shrink-0">Tap map to move</span>
-              </div>
-            </div>
-
-            {/* Resolved Address & Locality Card */}
-            <div className="bg-[#192223] border border-[#354144] p-3 rounded-xl flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] flex items-center justify-center shrink-0">
-                  <MapPin size={15} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-xs font-bold text-[#F0F4F4] block truncate">
-                    {geocodedAddress || 'Resolving reverse geocoded locality...'}
+              {/* Live Pin & Locality Address Bar */}
+              <div className="absolute bottom-2 left-2 right-2 z-10 bg-[#101819]/95 backdrop-blur-md border border-[#354144] px-3 py-2 rounded-xl flex items-center gap-2 text-xs shadow-md">
+                <div className={`w-2.5 h-2.5 rounded-full ${isLocating ? 'bg-[#A3DCE3] animate-ping' : 'bg-[#43C88A] animate-pulse'} shrink-0`} />
+                <div className="min-w-0 flex-1">
+                  <span className="text-[#F0F4F4] font-medium block truncate text-[11px]">
+                    {isLocating ? 'Acquiring high-accuracy GPS...' : (geocodedAddress || 'Locating address...')}
                   </span>
-                  <span className="text-[11px] text-[#758588] font-mono truncate block">
-                    {userCustomCoords ? 'Custom map location selected' : (locationStatus || 'GPS location locked')}
+                  <span className="text-[#758588] text-[10px] font-mono block">
+                    {activeCoords.lat.toFixed(5)}, {activeCoords.lng.toFixed(5)} · GPS locked
                   </span>
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={onRefreshLocation}
-                className="flex items-center gap-1 text-[11px] font-mono text-[#A3DCE3] hover:underline bg-[#132B2F] hover:bg-[#1c3e44] px-3 py-1.5 rounded-xl border border-[#28616A] shrink-0 transition"
-              >
-                <RefreshCw size={11} />
-                <span>GPS Refresh</span>
-              </button>
             </div>
           </div>
 
@@ -546,7 +475,7 @@ export default function ReportIssueModal({
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isSubmitting || !currentLocation}
+              disabled={isSubmitting}
               className="w-full bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] font-bold text-sm py-4 px-6 rounded-2xl shadow-xl shadow-[#A3DCE3]/20 transition-all duration-200 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-[#A3DCE3]"
             >
               {isSubmitting ? (

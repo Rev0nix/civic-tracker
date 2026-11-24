@@ -57,18 +57,6 @@ function parseCoords(loc, lat, lng) {
   return null;
 }
 
-const FILTER_OPTIONS = [
-  { key: 'All', label: 'All' },
-  { key: 'Active', label: 'Active' },
-  { key: 'Resolved', label: 'Resolved' },
-  { key: 'Potholes', label: 'Potholes' },
-  { key: 'Streetlights', label: 'Streetlights' },
-  { key: 'Garbage', label: 'Garbage' },
-  { key: 'Water & Sewage', label: 'Water & Sewage' },
-  { key: 'Drainage', label: 'Drainage' },
-  { key: 'Road Damage', label: 'Road Damage' },
-];
-
 export default function CivicMap({
   latitude,
   longitude,
@@ -94,7 +82,6 @@ export default function CivicMap({
   const fallbackUsedRef = useRef(false);
 
   const [isLoaded, setIsLoaded] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedPinIssue, setSelectedPinIssue] = useState(null);
 
   const userCenter = useMemo(() => {
@@ -106,52 +93,8 @@ export default function CivicMap({
 
   const activeCenter = userCenter || DEFAULT_COORDS;
 
-  // Filter issue counts
-  const filterCounts = useMemo(() => {
-    const counts = {
-      All: issues.length,
-      Active: 0,
-      Resolved: 0,
-      Potholes: 0,
-      Streetlights: 0,
-      Garbage: 0,
-      'Water & Sewage': 0,
-      Drainage: 0,
-      'Road Damage': 0,
-    };
-    issues.forEach((i) => {
-      if (i.status === 'Resolved') {
-        counts.Resolved++;
-      } else {
-        counts.Active++;
-      }
-
-      const cat = String(i.category_id || '');
-      if (cat === '1') counts.Potholes++;
-      else if (cat === '2') counts.Streetlights++;
-      else if (cat === '3') counts.Garbage++;
-      else if (cat === '4') counts['Water & Sewage']++;
-      else if (cat === '5') counts.Drainage++;
-      else if (cat === '6') counts['Road Damage']++;
-    });
-    return counts;
-  }, [issues]);
-
-  // Filter issues
-  const visibleIssues = useMemo(() => {
-    return issues.filter((issue) => {
-      const isResolved = issue.status === 'Resolved';
-      if (selectedFilter === 'Active') return !isResolved;
-      if (selectedFilter === 'Resolved') return isResolved;
-      if (selectedFilter === 'Potholes') return String(issue.category_id) === '1';
-      if (selectedFilter === 'Streetlights') return String(issue.category_id) === '2';
-      if (selectedFilter === 'Garbage') return String(issue.category_id) === '3';
-      if (selectedFilter === 'Water & Sewage') return String(issue.category_id) === '4';
-      if (selectedFilter === 'Drainage') return String(issue.category_id) === '5';
-      if (selectedFilter === 'Road Damage') return String(issue.category_id) === '6';
-      return true;
-    });
-  }, [issues, selectedFilter]);
+  // Show all issues directly on the GIS map
+  const visibleIssues = issues;
 
   // Cleanup helper
   const destroyCurrentMap = useCallback(() => {
@@ -412,38 +355,8 @@ export default function CivicMap({
       {/* Map DOM Element */}
       <div ref={mapElement} className="w-full h-full absolute inset-0 z-0" aria-label="Lokify GIS Map" />
 
-      {/* Top Horizontal Filter Bar - High z-index [1000] ensures it is ALWAYS in front of map */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] flex items-center justify-between gap-2 pointer-events-auto">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 w-full">
-          {FILTER_OPTIONS.map((f) => {
-            const isSelected = selectedFilter === f.key;
-            const count = filterCounts[f.key] ?? 0;
-            return (
-              <button
-                key={f.key}
-                onClick={() => setSelectedFilter(f.key)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-mono font-semibold backdrop-blur-md transition-all whitespace-nowrap border shadow-lg active:scale-95 flex items-center gap-1.5 ${
-                  isSelected
-                    ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
-                    : 'bg-[#192223]/95 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
-                }`}
-              >
-                <span>{f.label}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    isSelected ? 'bg-[#080F0F]/20 text-[#080F0F]' : 'bg-[#202B2D] text-[#A5B1B3]'
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Floating Right-Side GIS Control Column - High z-index [1000] */}
-      <div className="absolute right-3 top-14 z-[1000] flex flex-col items-center gap-2 pointer-events-auto">
+      <div className="absolute right-3.5 top-3.5 z-[1000] flex flex-col items-center gap-2 pointer-events-auto">
         {/* Compass / Reset View */}
         <button
           onClick={handleResetView}
@@ -583,9 +496,15 @@ export default function CivicMap({
         </div>
       )}
 
-      {/* Map Layer Switcher Bottom Sheet - Highest z-index [1002] */}
+      {/* Map Layer Switcher Backdrop & Bottom Sheet - Highest z-index [1002] */}
       {isLayerSheetOpen && (
-        <div className="absolute inset-x-0 bottom-0 z-[1002] bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] rounded-t-3xl p-5 shadow-2xl animate-in slide-in-from-bottom duration-250">
+        <>
+          <div
+            className="absolute inset-0 z-[1001] bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsLayerSheetOpen(false)}
+            aria-label="Close Layer Selector"
+          />
+          <div className="absolute inset-x-0 bottom-0 z-[1002] bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] rounded-t-3xl p-5 shadow-2xl animate-in slide-in-from-bottom duration-250">
           <div className="flex items-center justify-between pb-3 border-b border-[#202B2D] mb-4">
             <div className="flex items-center gap-2">
               <LayersIcon size={18} className="text-[#A3DCE3]" />
@@ -647,7 +566,8 @@ export default function CivicMap({
             })}
           </div>
         </div>
-      )}
+      </>
+    )}
     </div>
   );
 }

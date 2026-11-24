@@ -694,82 +694,84 @@ export default function App() {
 
       {/* Active Tab Screen */}
       <main className="flex-1 w-full overflow-hidden relative min-h-0">
-        {activeTab === 'feed' && (
-          <FeedScreen
-            issues={issues}
-            addresses={addresses}
-            currentLocality={currentLocality}
-            userLocation={userLocation}
-            onRefreshLocation={acquireGPSLocation}
-            onSelectIssue={(issue) => setSelectedIssue(issue)}
-            onOpenReport={() => setIsReportModalOpen(true)}
-            onUpvote={handleUpvote}
-            upvotedIssueIds={upvotedIssueIds}
-            onShareIssue={handleShare}
-          />
-        )}
-
-        {activeTab === 'map' && (
-          <div className="h-full w-full relative">
-            <CivicMap
-              latitude={userLocation?.lat}
-              longitude={userLocation?.lng}
+        <div key={activeTab} className="screen-transition w-full h-full">
+          {activeTab === 'feed' && (
+            <FeedScreen
               issues={issues}
               addresses={addresses}
-              onSelectIssue={(issue) => setSelectedIssue(issue)}
+              currentLocality={currentLocality}
+              userLocation={userLocation}
               onRefreshLocation={acquireGPSLocation}
-              height="h-full"
+              onSelectIssue={(issue) => setSelectedIssue(issue)}
+              onOpenReport={() => setIsReportModalOpen(true)}
+              onUpvote={handleUpvote}
+              upvotedIssueIds={upvotedIssueIds}
+              onShareIssue={handleShare}
             />
-          </div>
-        )}
+          )}
 
-        {activeTab === 'my-issues' && (
-          <MyIssuesScreen
-            issues={issues}
-            addresses={addresses}
-            currentDeviceId={deviceId}
-            currentUserEmail={currentUser?.email}
-            onSelectIssue={(issue) => setSelectedIssue(issue)}
-            onOpenReport={() => setIsReportModalOpen(true)}
-          />
-        )}
+          {activeTab === 'map' && (
+            <div className="h-full w-full relative">
+              <CivicMap
+                latitude={userLocation?.lat}
+                longitude={userLocation?.lng}
+                issues={issues}
+                addresses={addresses}
+                onSelectIssue={(issue) => setSelectedIssue(issue)}
+                onRefreshLocation={acquireGPSLocation}
+                height="h-full"
+              />
+            </div>
+          )}
 
-        {activeTab === 'alerts' && (
-          <AlertsScreen
-            alerts={alerts}
-            onMarkAllRead={handleMarkAllAlertsRead}
-            onMarkRead={handleMarkAlertRead}
-            onSelectAlert={handleSelectAlert}
-            onBack={() => setActiveTab(previousTab || 'feed')}
-          />
-        )}
+          {activeTab === 'my-issues' && (
+            <MyIssuesScreen
+              issues={issues}
+              addresses={addresses}
+              currentDeviceId={deviceId}
+              currentUserEmail={currentUser?.email}
+              onSelectIssue={(issue) => setSelectedIssue(issue)}
+              onOpenReport={() => setIsReportModalOpen(true)}
+            />
+          )}
 
-        {activeTab === 'lok-ai' && (
-          <LokAiScreen
-            onOpenReport={() => setIsReportModalOpen(true)}
-            onNavigateTab={(tab) => setActiveTab(tab)}
-          />
-        )}
+          {activeTab === 'alerts' && (
+            <AlertsScreen
+              alerts={alerts}
+              onMarkAllRead={handleMarkAllAlertsRead}
+              onMarkRead={handleMarkAlertRead}
+              onSelectAlert={handleSelectAlert}
+              onBack={() => setActiveTab(previousTab || 'feed')}
+            />
+          )}
 
-        {activeTab === 'profile' && (
-          <ProfileScreen
-            userName={currentUser?.name}
-            userEmail={currentUser?.email}
-            userPhone={currentUser?.phone}
-            userLocality={currentLocality}
-            issues={issues}
-            myIssuesCount={myIssues.length}
-            upvotesReceived={upvotesReceived}
-            onNavigateTab={(tab) => setActiveTab(tab)}
-            onLogout={handleLogout}
-            onOpenAiAssistant={() => setActiveTab('lok-ai')}
-            onCheckUpdate={handleManualUpdateCheck}
-            onUpdateProfile={(updated) => {
-              setCurrentUser((prev) => ({ ...prev, ...updated }));
-              showToast('Profile & SMS routing updated!', 'success');
-            }}
-          />
-        )}
+          {activeTab === 'lok-ai' && (
+            <LokAiScreen
+              onOpenReport={() => setIsReportModalOpen(true)}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+            />
+          )}
+
+          {activeTab === 'profile' && (
+            <ProfileScreen
+              userName={currentUser?.name}
+              userEmail={currentUser?.email}
+              userPhone={currentUser?.phone}
+              userLocality={currentLocality}
+              issues={issues}
+              myIssuesCount={myIssues.length}
+              upvotesReceived={upvotesReceived}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onLogout={handleLogout}
+              onOpenAiAssistant={() => setActiveTab('lok-ai')}
+              onCheckUpdate={handleManualUpdateCheck}
+              onUpdateProfile={(updated) => {
+                setCurrentUser((prev) => ({ ...prev, ...updated }));
+                showToast('Profile & SMS routing updated!', 'success');
+              }}
+            />
+          )}
+        </div>
       </main>
 
       {/* Mobile App Bottom Navigation Bar */}

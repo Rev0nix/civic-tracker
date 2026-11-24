@@ -1,7 +1,7 @@
 // Lokify In-App Updater Engine
 // Checks GitHub Releases API for new versions and triggers direct in-app installation.
 
-export const CURRENT_APP_VERSION = '1.3.4';
+export const CURRENT_APP_VERSION = '1.3.5';
 export const GITHUB_REPO = 'Rev0nix/civic-tracker';
 
 /**
