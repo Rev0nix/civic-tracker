@@ -8,12 +8,7 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  Sparkles,
-  Building2,
-  CheckCircle2,
   AlertTriangle,
-  MapPin,
-  Check,
   Compass,
 } from 'lucide-react';
 import { sendSmsNotification } from '../utils/smsService';
@@ -38,15 +33,13 @@ export default function AuthScreen({ onLogin }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // STRICT CREDENTIAL VALIDATIONS:
-  // 1. Phone: exactly 10 digits (digits only)
+  // 1. Phone validation: exactly 10 digits
   const phoneDigits = useMemo(() => phone.replace(/\D/g, ''), [phone]);
   const isPhoneValid = useMemo(() => {
-    // Valid if exactly 10 digits and starts with 6, 7, 8, or 9 (Indian mobile) or 10 digits
     return phoneDigits.length === 10 && /^[6-9]\d{9}$/.test(phoneDigits);
   }, [phoneDigits]);
 
-  // 2. Email: RFC standard format
+  // 2. Email validation
   const isEmailValid = useMemo(() => {
     return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim());
   }, [email]);
@@ -74,7 +67,6 @@ export default function AuthScreen({ onLogin }) {
     e.preventDefault();
     setErrorMessage('');
 
-    // Enforce 8+ character password rule
     if (!passwordChecks.hasLength) {
       setErrorMessage('Security Rule: Password must be at least 8 characters long.');
       return;
@@ -85,20 +77,15 @@ export default function AuthScreen({ onLogin }) {
         setErrorMessage('Full name is required to create a citizen profile.');
         return;
       }
-
-      // Enforce 10-digit mobile check
       if (!isPhoneValid) {
         setErrorMessage('Credential Error: Mandatory 10-digit valid mobile number required (e.g. 9845123456).');
         return;
       }
-
-      // Enforce valid email
       if (!isEmailValid) {
         setErrorMessage('Credential Error: Valid email address required (e.g. yourname@gmail.com).');
         return;
       }
     } else {
-      // Citizen Sign In
       if (!phone.trim() && !email.trim()) {
         setErrorMessage('Please enter your registered 10-digit phone number or email.');
         return;
@@ -122,7 +109,6 @@ export default function AuthScreen({ onLogin }) {
         loginTime: new Date().toISOString(),
       };
 
-      // Dispatch SMS confirmation
       sendSmsNotification({
         toPhone: citizenUser.phone,
         message: `Lokify Security: Welcome ${citizenUser.name}! SMS alerts for neighborhood reports are now active.`,
@@ -131,7 +117,7 @@ export default function AuthScreen({ onLogin }) {
 
       setIsLoading(false);
       onLogin(citizenUser);
-    }, 500);
+    }, 400);
   };
 
   const handleAdminSubmit = (e) => {
@@ -164,7 +150,7 @@ export default function AuthScreen({ onLogin }) {
 
       setIsLoading(false);
       onLogin(adminUser);
-    }, 500);
+    }, 400);
   };
 
   const fillCitizenDemo = () => {
@@ -181,455 +167,372 @@ export default function AuthScreen({ onLogin }) {
     setErrorMessage('');
   };
 
+  const guestExplore = () => {
+    onLogin({
+      id: 'guest_citizen',
+      name: 'Guest Citizen',
+      phone: '+91 9845100000',
+      email: 'guest@lokify.app',
+      role: 'citizen',
+      token: 'guest_tok',
+      loginTime: new Date().toISOString(),
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] flex flex-col justify-center items-center px-4 py-8 relative selection:bg-[#315C60] selection:text-[#A3DCE3]">
+    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] flex flex-col justify-between items-center px-4 py-6 relative select-none w-full max-w-md mx-auto">
       {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#132B2F] rounded-full blur-[150px] pointer-events-none opacity-30" />
-      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-[#28616A] rounded-full blur-[160px] pointer-events-none opacity-20" />
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#132B2F] rounded-full blur-[100px] pointer-events-none opacity-40" />
 
-      {/* Responsive Website Layout Container */}
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-        {/* Left Column (Desktop Hero Presentation) */}
-        <div className="lg:col-span-6 space-y-6 text-center lg:text-left pr-0 lg:pr-4">
-          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#132B2F] border border-[#28616A] text-xs font-mono text-[#A3DCE3]">
+      {/* Top Mobile Header & Branding */}
+      <div className="w-full text-center pt-2 relative z-10 space-y-3">
+        <div className="flex justify-center">
+          <AppLogo size="lg" />
+        </div>
+        <div>
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-3xl font-black tracking-tight text-[#F0F4F4] font-mono">
+              LOKIFY
+            </h1>
             <span className="w-2 h-2 rounded-full bg-[#43C88A] animate-pulse" />
-            <span>Lokify Smart Municipal Platform</span>
           </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-[#F0F4F4] leading-tight font-mono">
-            Civic action, <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#A3DCE3] via-[#8DBBEB] to-[#43C88A]">
-              simplified.
-            </span>
-          </h1>
-
-          <p className="text-sm sm:text-base text-[#A5B1B3] max-w-lg mx-auto lg:mx-0 leading-relaxed font-sans">
-            Report neighborhood infrastructure defects—potholes, streetlights, drainage, and garbage—with GPS locking and instant carrier SMS progress notifications.
+          <p className="text-xs font-mono text-[#A3DCE3] mt-0.5">
+            Smart Municipal Grievance Redressal
           </p>
-
-          {/* App Image & GIS Map Preview */}
-          <div className="relative rounded-2xl overflow-hidden border border-[#28616A]/40 bg-[#101819] max-w-md mx-auto lg:mx-0 shadow-2xl group">
-            <img
-              src="/civic-tracker/assets/hero.png"
-              alt="Lokify Smart Civic Platform"
-              className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#080F0F] via-transparent to-transparent opacity-60" />
-            <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-[11px] font-mono text-[#A3DCE3] bg-[#080F0F]/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#28616A]/50">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#43C88A] animate-ping" />
-                Dual GIS Map Active
-              </span>
-              <span className="text-[#758588]">API Key: 016089-E20F62-171E41</span>
-            </div>
-          </div>
-
-          {/* Platform Highlights */}
-          <div className="grid grid-cols-2 gap-3 pt-2 max-w-md mx-auto lg:mx-0">
-            <div className="bg-[#101819] border border-[#354144] p-3.5 rounded-2xl flex items-center gap-3 text-left">
-              <div className="w-8 h-8 rounded-xl bg-[#132B2F] text-[#A3DCE3] flex items-center justify-center shrink-0">
-                <MapPin size={16} />
-              </div>
-              <div>
-                <span className="text-xs font-mono font-bold text-[#F0F4F4] block">GPS Precision</span>
-                <span className="text-[11px] text-[#758588] font-mono">100m duplicate filter</span>
-              </div>
-            </div>
-
-            <div className="bg-[#101819] border border-[#354144] p-3.5 rounded-2xl flex items-center gap-3 text-left">
-              <div className="w-8 h-8 rounded-xl bg-[#112C20] text-[#43C88A] flex items-center justify-center shrink-0">
-                <Phone size={16} />
-              </div>
-              <div>
-                <span className="text-xs font-mono font-bold text-[#F0F4F4] block">SMS Tracking</span>
-                <span className="text-[11px] text-[#758588] font-mono">Live carrier alerts</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="hidden lg:flex items-center gap-4 pt-2 text-xs font-mono text-[#758588]">
-            <span className="flex items-center gap-1.5 text-[#43C88A]">
-              <CheckCircle2 size={14} /> 10-Digit Mobile Check
-            </span>
-            <span className="flex items-center gap-1.5 text-[#43C88A]">
-              <CheckCircle2 size={14} /> Gmail Verification
-            </span>
-            <span className="flex items-center gap-1.5 text-[#43C88A]">
-              <CheckCircle2 size={14} /> 8+ Char Password
-            </span>
-          </div>
         </div>
 
-        {/* Right Column (Dual Login Portals Box) */}
-        <div className="lg:col-span-6 w-full max-w-md mx-auto bg-[#101819] border border-[#354144] rounded-3xl p-6 sm:p-8 shadow-2xl relative">
-          {/* Header Branding */}
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#354144]">
-            <div className="flex items-center gap-3">
-              <AppLogo size="md" />
+        {/* Role Segmented Mobile Switcher */}
+        <div className="grid grid-cols-2 p-1 bg-[#101819] border border-[#253538] rounded-2xl max-w-xs mx-auto">
+          <button
+            type="button"
+            onClick={() => {
+              setRole('citizen');
+              setErrorMessage('');
+            }}
+            className={`py-2 text-xs font-mono font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              role === 'citizen'
+                ? 'bg-[#315C60] text-[#A3DCE3] shadow-md border border-[#A3DCE3]'
+                : 'text-[#758588] hover:text-[#F0F4F4]'
+            }`}
+          >
+            <User size={14} />
+            <span>Citizen</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRole('admin');
+              setErrorMessage('');
+            }}
+            className={`py-2 text-xs font-mono font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              role === 'admin'
+                ? 'bg-[#315C60] text-[#A3DCE3] shadow-md border border-[#A3DCE3]'
+                : 'text-[#758588] hover:text-[#F0F4F4]'
+            }`}
+          >
+            <ShieldCheck size={14} />
+            <span>Ward Officer</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Mobile Form Card */}
+      <div className="w-full bg-[#101819] border border-[#253538] rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 my-4 space-y-4">
+        {/* Error Notification Alert */}
+        {errorMessage && (
+          <div className="bg-[#321616] border border-[#5C2424] text-[#EF6666] p-3 rounded-2xl flex items-center gap-2.5 text-xs font-mono animate-in fade-in duration-200">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span className="leading-snug">{errorMessage}</span>
+          </div>
+        )}
+
+        {/* Role: Citizen Form */}
+        {role === 'citizen' ? (
+          <form onSubmit={handleCitizenSubmit} className="space-y-3.5">
+            {/* Citizen Mode Switcher: Sign In vs Register */}
+            <div className="flex border-b border-[#253538] pb-2 justify-around text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(false);
+                  setErrorMessage('');
+                }}
+                className={`pb-1 font-semibold transition ${
+                  !isRegistering
+                    ? 'text-[#A3DCE3] border-b-2 border-[#A3DCE3]'
+                    : 'text-[#758588] hover:text-[#F0F4F4]'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(true);
+                  setErrorMessage('');
+                }}
+                className={`pb-1 font-semibold transition ${
+                  isRegistering
+                    ? 'text-[#A3DCE3] border-b-2 border-[#A3DCE3]'
+                    : 'text-[#758588] hover:text-[#F0F4F4]'
+                }`}
+              >
+                New Citizen Register
+              </button>
+            </div>
+
+            {/* Name input (when registering) */}
+            {isRegistering && (
               <div>
-                <h2 className="text-lg font-black text-[#F0F4F4] font-mono tracking-tight">
-                  Lokify Authentication
-                </h2>
-                <span className="text-[11px] font-mono text-[#758588]">
-                  Select your portal to continue
-                </span>
+                <label className="text-[11px] font-mono text-[#A5B1B3] uppercase block mb-1">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Revanth Gowda"
+                    className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-10 pr-3 py-3 rounded-2xl outline-none font-medium transition"
+                  />
+                </div>
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Portal Selector (User / Common People vs Admin) */}
-          <div className="grid grid-cols-2 gap-2 bg-[#192223] p-1.5 rounded-2xl border border-[#354144] mb-6">
-            <button
-              type="button"
-              onClick={() => {
-                setRole('citizen');
-                setErrorMessage('');
-              }}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all ${
-                role === 'citizen'
-                  ? 'bg-[#315C60] text-[#A3DCE3] shadow-md border border-[#A3DCE3]'
-                  : 'text-[#758588] hover:text-[#A5B1B3]'
-              }`}
-            >
-              <User size={15} />
-              <span>Citizen Portal</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setRole('admin');
-                setErrorMessage('');
-              }}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all ${
-                role === 'admin'
-                  ? 'bg-[#315C60] text-[#A3DCE3] shadow-md border border-[#A3DCE3]'
-                  : 'text-[#758588] hover:text-[#A5B1B3]'
-              }`}
-            >
-              <ShieldCheck size={15} />
-              <span>Municipal Admin</span>
-            </button>
-          </div>
-
-          {/* Validation Alert Message */}
-          {errorMessage && (
-            <div className="mb-5 p-3.5 bg-[#321616] border border-[#5C2424] rounded-2xl text-xs text-[#EF6666] font-mono flex items-center gap-2 animate-in fade-in duration-200">
-              <AlertTriangle size={16} className="shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* 1. CITIZEN PORTAL (Common People) */}
-          {role === 'citizen' && (
+            {/* Phone Number Input */}
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3]">
-                  {isRegistering ? 'Citizen Registration' : 'Citizen Sign In'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsRegistering(!isRegistering);
-                    setErrorMessage('');
-                  }}
-                  className="text-xs font-mono text-[#A3DCE3] hover:underline"
-                >
-                  {isRegistering ? 'Have an account? Sign In' : 'New user? Register'}
-                </button>
-              </div>
-
-              <form onSubmit={handleCitizenSubmit} className="space-y-4">
-                {isRegistering && (
-                  <div>
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] block mb-1">
-                      Full Name <span className="text-[#EF6666]">*</span>
-                    </label>
-                    <div className="relative">
-                      <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
-                      <input
-                        type="text"
-                        placeholder="e.g. Revanth Gowda"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-sm text-[#F0F4F4] placeholder-[#758588] pl-10 pr-4 py-2.5 rounded-xl focus:outline-none transition"
-                        required={isRegistering}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 10-Digit Mobile Phone Input with Validation */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3]">
-                      Phone Number (SMS Alerts) <span className="text-[#EF6666]">*</span>
-                    </label>
-                    {phone.length > 0 && (
-                      <span
-                        className={`text-[10px] font-mono font-bold ${
-                          isPhoneValid ? 'text-[#43C88A]' : 'text-[#EF6666]'
-                        }`}
-                      >
-                        {isPhoneValid ? '✓ 10 Digits Valid' : `${phoneDigits.length}/10 digits`}
-                      </span>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#A3DCE3] font-bold">
-                      +91
-                    </div>
-                    <input
-                      type="tel"
-                      maxLength={10}
-                      placeholder="9845123456 (10 digits)"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      className={`w-full bg-[#192223] border text-sm text-[#F0F4F4] placeholder-[#758588] pl-12 pr-4 py-2.5 rounded-xl focus:outline-none transition font-mono ${
-                        phone.length > 0
-                          ? isPhoneValid
-                            ? 'border-[#43C88A] focus:border-[#43C88A]'
-                            : 'border-[#EF6666] focus:border-[#EF6666]'
-                          : 'border-[#354144] focus:border-[#A3DCE3]'
-                      }`}
-                      required={isRegistering}
-                    />
-                  </div>
-                  <span className="text-[10px] font-mono text-[#758588] mt-1 block">
-                    Mandatory 10-digit mobile number for real-time status updates via SMS
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-mono text-[#A5B1B3] uppercase">
+                  Mobile Number
+                </label>
+                {phone && (
+                  <span
+                    className={`text-[10px] font-mono ${
+                      isPhoneValid ? 'text-[#43C88A]' : 'text-[#EF6666]'
+                    }`}
+                  >
+                    {isPhoneValid ? '✓ 10-Digit Valid' : `${phoneDigits.length}/10 digits`}
                   </span>
+                )}
+              </div>
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[#758588] font-mono text-xs border-r border-[#354144] pr-2">
+                  <Phone size={14} />
+                  <span>+91</span>
                 </div>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  placeholder="9845123456"
+                  className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-20 pr-3 py-3 rounded-2xl outline-none font-mono transition"
+                />
+              </div>
+            </div>
 
-                {/* Gmail / Email Input with Validation */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3]">
-                      Gmail / Email Address <span className="text-[#EF6666]">*</span>
-                    </label>
-                    {email.length > 0 && (
-                      <span
-                        className={`text-[10px] font-mono font-bold ${
-                          isEmailValid ? 'text-[#43C88A]' : 'text-[#EF6666]'
-                        }`}
-                      >
-                        {isEmailValid ? '✓ Valid format' : 'Invalid email'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
-                    <input
-                      type="email"
-                      placeholder="yourname@gmail.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={`w-full bg-[#192223] border text-sm text-[#F0F4F4] placeholder-[#758588] pl-10 pr-4 py-2.5 rounded-xl focus:outline-none transition ${
-                        email.length > 0
-                          ? isEmailValid
-                            ? 'border-[#43C88A] focus:border-[#43C88A]'
-                            : 'border-[#EF6666] focus:border-[#EF6666]'
-                          : 'border-[#354144] focus:border-[#A3DCE3]'
-                      }`}
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Password Input with 8+ Character Validation */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3]">
-                      Password <span className="text-[#EF6666]">*</span>
-                    </label>
-                    <span
-                      className={`text-[10px] font-mono font-bold ${
-                        passwordChecks.hasLength ? 'text-[#43C88A]' : 'text-[#EF6666]'
-                      }`}
-                    >
-                      {password.length}/8+ min
+            {/* Email input (when registering) */}
+            {isRegistering && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-mono text-[#A5B1B3] uppercase">
+                    Email Address
+                  </label>
+                  {email && (
+                    <span className={`text-[10px] font-mono ${isEmailValid ? 'text-[#43C88A]' : 'text-[#EF6666]'}`}>
+                      {isEmailValid ? '✓ Valid Format' : 'Invalid Email'}
                     </span>
-                  </div>
-                  <div className="relative">
-                    <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Enter 8 or more characters"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={`w-full bg-[#192223] border text-sm text-[#F0F4F4] placeholder-[#758588] pl-10 pr-10 py-2.5 rounded-xl focus:outline-none transition font-mono ${
-                        password.length > 0
-                          ? passwordChecks.hasLength
-                            ? 'border-[#43C88A] focus:border-[#43C88A]'
-                            : 'border-[#EF6666] focus:border-[#EF6666]'
-                          : 'border-[#354144] focus:border-[#A3DCE3]'
-                      }`}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#758588] hover:text-[#F0F4F4]"
-                    >
-                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  </div>
-
-                  {/* 8+ Char Strength Checklist */}
-                  <div className="mt-2.5 p-2.5 bg-[#080F0F] rounded-xl border border-[#354144]/60 space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-mono">
-                      <span className="text-[#758588]">Strength Rating:</span>
-                      <span
-                        className={`font-bold ${
-                          passwordScore >= 3 ? 'text-[#43C88A]' : passwordScore >= 2 ? 'text-[#E9B85C]' : 'text-[#EF6666]'
-                        }`}
-                      >
-                        {passwordScore >= 3 ? 'Strong' : passwordScore >= 2 ? 'Moderate' : 'Weak (Min 8 chars)'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-1">
-                      <div className={`h-1.5 rounded-full ${password.length >= 8 ? 'bg-[#43C88A]' : 'bg-[#354144]'}`} />
-                      <div className={`h-1.5 rounded-full ${passwordChecks.hasNumber ? 'bg-[#43C88A]' : 'bg-[#354144]'}`} />
-                      <div className={`h-1.5 rounded-full ${passwordChecks.hasLetter ? 'bg-[#43C88A]' : 'bg-[#354144]'}`} />
-                      <div className={`h-1.5 rounded-full ${passwordChecks.hasSpecial ? 'bg-[#43C88A]' : 'bg-[#354144]'}`} />
-                    </div>
-
-                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#758588] pt-1">
-                      <span className={`flex items-center gap-1 ${passwordChecks.hasLength ? 'text-[#43C88A]' : ''}`}>
-                        {passwordChecks.hasLength ? <Check size={11} /> : '•'} 8+ Characters
-                      </span>
-                      <span className={`flex items-center gap-1 ${passwordChecks.hasNumber ? 'text-[#43C88A]' : ''}`}>
-                        {passwordChecks.hasNumber ? <Check size={11} /> : '•'} Number
-                      </span>
-                      <span className={`flex items-center gap-1 ${passwordChecks.hasLetter ? 'text-[#43C88A]' : ''}`}>
-                        {passwordChecks.hasLetter ? <Check size={11} /> : '•'} Letters
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
-
-                {/* Submit Action */}
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={isLoading || (isRegistering && (!isPhoneValid || !isEmailValid || !passwordChecks.hasLength))}
-                    className="w-full bg-[#A3DCE3] hover:bg-[#85CBD3] disabled:opacity-40 disabled:cursor-not-allowed text-[#080F0F] font-bold text-xs py-3.5 px-4 rounded-2xl shadow-xl shadow-[#A3DCE3]/20 transition active:scale-98 flex items-center justify-center gap-2 border border-[#A3DCE3]"
-                  >
-                    <span>{isRegistering ? 'Register Verified Citizen Account' : 'Sign In to Citizen Portal'}</span>
-                    <ArrowRight size={15} />
-                  </button>
+                <div className="relative">
+                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="citizen@gmail.com"
+                    className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-10 pr-3 py-3 rounded-2xl outline-none font-medium transition"
+                  />
                 </div>
-              </form>
-
-              {/* Demo Pre-fill & Instant Guest Access */}
-              <div className="mt-4 pt-3 border-t border-[#354144]/60 space-y-2 text-center">
-                <button
-                  type="button"
-                  onClick={fillCitizenDemo}
-                  className="w-full text-[11px] font-mono text-[#A3DCE3] hover:underline bg-[#192223] border border-[#354144] py-2 px-3 rounded-xl inline-flex items-center justify-center gap-1.5 transition hover:bg-[#202b2d]"
-                >
-                  <Sparkles size={13} />
-                  <span>Auto-fill Citizen Demo (10-digit phone + 8+ char pass)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onLogin({
-                      email: 'citizen.explorer@lokify.gov',
-                      phone: '9876543210',
-                      name: 'Citizen Explorer',
-                      locality: 'Bengaluru Central',
-                      role: 'citizen',
-                    });
-                  }}
-                  className="w-full text-xs font-mono font-semibold text-[#F0F4F4] hover:text-[#A3DCE3] bg-[#132B2F]/60 border border-[#28616A] py-2.5 px-3 rounded-xl inline-flex items-center justify-center gap-2 transition hover:bg-[#132B2F] active:scale-95 shadow-sm"
-                >
-                  <Compass size={14} className="text-[#A3DCE3]" />
-                  <span>Instant Guest Access (Explore App & Map)</span>
-                </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* 2. MUNICIPAL ADMIN PORTAL */}
-          {role === 'admin' && (
+            {/* Password Input */}
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3]">
-                  Municipal Authority Sign In
-                </span>
-                <span className="text-[10px] font-mono text-[#E9B85C] bg-[#2d2516] border border-[#5c4a24] px-2 py-0.5 rounded-full">
-                  Government Jurisdiction Only
-                </span>
-              </div>
-
-              <form onSubmit={handleAdminSubmit} className="space-y-4">
-                <div>
-                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] block mb-1">
-                    Official Identifier / Email
-                  </label>
-                  <div className="relative">
-                    <Building2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
-                    <input
-                      type="text"
-                      placeholder="ward.engineer@lokify.gov"
-                      value={adminIdentifier}
-                      onChange={(e) => setAdminIdentifier(e.target.value)}
-                      className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-sm text-[#F0F4F4] placeholder-[#758588] pl-10 pr-4 py-2.5 rounded-xl focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] block mb-1">
-                    Admin Passcode / Security Key <span className="text-[#EF6666]">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Enter Passcode (admin123)"
-                      value={adminPasscode}
-                      onChange={(e) => setAdminPasscode(e.target.value)}
-                      className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-sm text-[#F0F4F4] placeholder-[#758588] pl-10 pr-10 py-2.5 rounded-xl focus:outline-none transition font-mono"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#758588] hover:text-[#F0F4F4]"
-                    >
-                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] font-bold text-xs py-3.5 px-4 rounded-2xl shadow-xl shadow-[#A3DCE3]/20 transition active:scale-98 flex items-center justify-center gap-2 border border-[#A3DCE3]"
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-mono text-[#A5B1B3] uppercase">
+                  Password (8+ chars)
+                </label>
+                {password && (
+                  <span
+                    className={`text-[10px] font-mono ${
+                      passwordChecks.hasLength ? 'text-[#43C88A]' : 'text-[#EF6666]'
+                    }`}
                   >
-                    <ShieldCheck size={16} />
-                    <span>Access Municipal Admin Center</span>
-                  </button>
-                </div>
-              </form>
-
-              <div className="mt-4 pt-3 border-t border-[#354144]/60 text-center">
+                    {password.length}/8 min
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter secure password"
+                  className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-10 pr-10 py-3 rounded-2xl outline-none font-mono transition"
+                />
                 <button
                   type="button"
-                  onClick={fillAdminDemo}
-                  className="text-[11px] font-mono text-[#A3DCE3] hover:underline bg-[#192223] border border-[#354144] px-3 py-1.5 rounded-full inline-flex items-center gap-1.5"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#758588] hover:text-[#F0F4F4]"
                 >
-                  <Sparkles size={11} />
-                  <span>Auto-fill Admin Demo (admin123)</span>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+
+              {/* Password strength visual meter */}
+              {password && (
+                <div className="grid grid-cols-4 gap-1 mt-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className={`h-1 rounded-full transition-all ${
+                        i <= passwordScore
+                          ? passwordScore >= 3
+                            ? 'bg-[#43C88A]'
+                            : 'bg-[#F2A65A]'
+                          : 'bg-[#253538]'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Primary Action Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-[#A3DCE3] to-[#43C88A] hover:opacity-95 text-[#080F0F] font-bold py-3.5 px-4 rounded-2xl font-mono text-sm flex items-center justify-center gap-2 transition active:scale-98 shadow-lg shadow-[#A3DCE3]/15 mt-2 disabled:opacity-50"
+            >
+              {isLoading ? (
+                <span className="animate-pulse">Authenticating with SMS...</span>
+              ) : (
+                <>
+                  <span>{isRegistering ? 'Register Mobile Profile' : 'Sign In with Mobile'}</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
+        ) : (
+          /* Role: Municipal Admin Form */
+          <form onSubmit={handleAdminSubmit} className="space-y-3.5">
+            <div className="p-3 rounded-2xl bg-[#132B2F]/60 border border-[#28616A] text-xs font-mono text-[#A3DCE3]">
+              🏛️ Municipal Officer Portal: Manage ward work orders, verify defects, and dispatch carrier SMS status updates.
+            </div>
+
+            <div>
+              <label className="text-[11px] font-mono text-[#A5B1B3] uppercase block mb-1">
+                Official Identifier / Email
+              </label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
+                <input
+                  type="text"
+                  value={adminIdentifier}
+                  onChange={(e) => setAdminIdentifier(e.target.value)}
+                  placeholder="ward.engineer@lokify.gov"
+                  className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-10 pr-3 py-3 rounded-2xl outline-none font-medium transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-mono text-[#A5B1B3] uppercase block mb-1">
+                Municipal Security Passcode
+              </label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
+                <input
+                  type="password"
+                  value={adminPasscode}
+                  onChange={(e) => setAdminPasscode(e.target.value)}
+                  placeholder="Enter passcode (admin123)"
+                  className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-10 pr-3 py-3 rounded-2xl outline-none font-mono transition"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-[#28616A] to-[#A3DCE3] hover:opacity-95 text-[#080F0F] font-bold py-3.5 px-4 rounded-2xl font-mono text-sm flex items-center justify-center gap-2 transition active:scale-98 shadow-lg shadow-[#A3DCE3]/15 mt-2 disabled:opacity-50"
+            >
+              {isLoading ? (
+                <span className="animate-pulse">Authorizing Ward Officer...</span>
+              ) : (
+                <>
+                  <span>Enter Municipal Admin Console</span>
+                  <ShieldCheck size={16} />
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
+        {/* Divider */}
+        <div className="relative py-1">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-[#253538]" />
+          </div>
+          <div className="relative flex justify-center text-[10px] font-mono uppercase text-[#758588]">
+            <span className="bg-[#101819] px-2">or quick access</span>
+          </div>
         </div>
+
+        {/* Instant Guest Exploration Button */}
+        <button
+          type="button"
+          onClick={guestExplore}
+          className="w-full py-3 px-4 rounded-2xl bg-[#192223] hover:bg-[#202B2D] border border-[#28616A] text-[#A3DCE3] font-mono text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-98 shadow-sm"
+        >
+          <Compass size={16} className="text-[#43C88A]" />
+          <span>Instant Guest Access (Explore App & Map)</span>
+        </button>
+
+        {/* 1-Tap Fill Demo Credentials */}
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              setRole('citizen');
+              fillCitizenDemo();
+            }}
+            className="flex-1 py-1.5 px-2 rounded-xl bg-[#132B2F]/60 border border-[#28616A]/50 text-[10px] font-mono text-[#A3DCE3] text-center hover:bg-[#132B2F] transition"
+          >
+            Fill Demo Citizen
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRole('admin');
+              fillAdminDemo();
+            }}
+            className="flex-1 py-1.5 px-2 rounded-xl bg-[#192223] border border-[#354144] text-[10px] font-mono text-[#A5B1B3] text-center hover:bg-[#202B2D] transition"
+          >
+            Fill Demo Admin
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Footer */}
+      <div className="text-center pb-2 relative z-10">
+        <p className="text-[10px] font-mono text-[#758588]">
+          Lokify Pure Mobile Platform • GPS & Dual-Engine GIS Active
+        </p>
       </div>
     </div>
   );

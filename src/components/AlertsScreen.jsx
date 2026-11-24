@@ -131,21 +131,16 @@ export default function AlertsScreen({
   };
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-28 pt-4 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
-      {/* Header */}
-      <header className="mb-6 flex items-center justify-between">
+    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 w-full">
+      {/* Mobile Header */}
+      <header className="mb-4 flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-[#758588]">
-              ACTIVITY
-            </span>
-            {unreadCount > 0 && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#EF6666]" />
-            )}
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#F0F4F4]">
-            Alerts
+          <h1 className="text-xl font-black tracking-tight text-[#F0F4F4] font-mono">
+            Carrier Alerts
           </h1>
+          <p className="text-xs text-[#758588]">
+            Real-time SMS & municipal updates
+          </p>
         </div>
 
         {unreadCount > 0 && (

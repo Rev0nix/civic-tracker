@@ -130,20 +130,20 @@ export default function ProfileScreen({
   ];
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-28 pt-4 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full">
+    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 w-full">
       {/* Header Title */}
-      <div className="mb-6">
-        <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-[#758588] block mb-1">
-          CITIZEN ACCOUNT & SETTINGS
-        </span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#F0F4F4]">
-          Profile & Preferences
+      <div className="mb-4">
+        <h1 className="text-xl font-black tracking-tight text-[#F0F4F4] font-mono">
+          Profile & Settings
         </h1>
+        <p className="text-xs text-[#758588]">
+          Citizen account, ward location & SMS settings
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (Profile, Stats, Municipal Admin, Sign Out) */}
-        <div className="lg:col-span-5 space-y-6">
+      <div className="flex flex-col gap-4">
+        {/* Profile, Stats, Municipal Admin, Sign Out */}
+        <div className="space-y-4">
           {/* Header Profile Card */}
           <section className="bg-[#192223] border border-[#354144] rounded-3xl p-6 sm:p-7 relative overflow-hidden shadow-xl">
             <div className="flex items-start justify-between gap-4 relative z-10">
@@ -334,8 +334,8 @@ export default function ProfileScreen({
           </div>
         </div>
 
-        {/* Right Column (Menu Sections) */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* Mobile Settings Sections */}
+        <div className="space-y-4">
           {menuSections.map((section) => (
             <div key={section.title}>
               <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#758588] mb-3 px-2">

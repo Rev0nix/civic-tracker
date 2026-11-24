@@ -9,7 +9,6 @@ import {
   List,
   Sparkles,
   ArrowUpRight,
-  RefreshCw,
 } from 'lucide-react';
 import {
   CATEGORIES,
@@ -25,9 +24,7 @@ import { extractLocality } from '../googleMaps';
 export default function FeedScreen({
   issues = [],
   addresses = {},
-  currentLocality = 'Near Ward Office',
   userLocation,
-  onRefreshLocation,
   onSelectIssue,
   onOpenReport,
   onUpvote,
@@ -79,62 +76,42 @@ export default function FeedScreen({
   }, [issues, activeCategory, activeStatus, searchQuery, addresses]);
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-28 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-7xl mx-auto">
-      {/* Top Website Header & Hero Banner */}
-      <header className="mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 w-full">
+      {/* Mobile App Screen Header */}
+      <header className="mb-4 space-y-3">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-[#758588]">
-                YOUR AREA
-              </span>
-              <span className="w-2 h-2 rounded-full bg-[#A3DCE3] animate-pulse" />
-              <span className="text-xs font-mono text-[#A3DCE3] bg-[#132B2F] border border-[#28616A] px-2.5 py-0.5 rounded-full">
-                Active Ward jurisdiction
-              </span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#F0F4F4] font-mono">
-              Issues near you
+            <h1 className="text-xl font-black tracking-tight text-[#F0F4F4] font-mono">
+              Civic Feed
             </h1>
-            <p className="text-xs sm:text-sm text-[#A5B1B3] mt-1 font-sans">
-              Live spatial civic feed covering reported potholes, streetlights, drainage, and sanitation.
+            <p className="text-[11px] font-mono text-[#758588]">
+              Ward defects & infrastructure updates
             </p>
           </div>
 
-          {/* Quick Locality & Controls Bar */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={onRefreshLocation}
-              className="flex items-center gap-2 bg-[#192223] border border-[#354144] hover:border-[#A3DCE3] px-4 py-2 rounded-2xl text-xs font-mono text-[#A3DCE3] transition active:scale-95 shadow-sm"
-              title="Refresh GPS Location"
-            >
-              <MapPin size={14} className="text-[#A3DCE3]" />
-              <span className="max-w-[160px] truncate">{currentLocality}</span>
-              <RefreshCw size={12} className="text-[#758588] hover:text-[#A3DCE3]" />
-            </button>
-
-            {/* List / Map Switcher */}
-            <div className="flex items-center bg-[#192223] border border-[#354144] p-1 rounded-2xl">
+          <div className="flex items-center gap-2">
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-[#192223] border border-[#253538] p-0.5 rounded-xl">
               <button
                 onClick={() => setViewMode('list')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition ${
                   viewMode === 'list'
-                    ? 'bg-[#315C60] text-[#A3DCE3] border border-[#A3DCE3]'
-                    : 'text-[#758588] hover:text-[#F0F4F4]'
+                    ? 'bg-[#315C60] text-[#A3DCE3]'
+                    : 'text-[#758588]'
                 }`}
               >
-                <List size={14} />
+                <List size={13} />
                 <span>List</span>
               </button>
               <button
                 onClick={() => setViewMode('map')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition ${
                   viewMode === 'map'
-                    ? 'bg-[#315C60] text-[#A3DCE3] border border-[#A3DCE3]'
-                    : 'text-[#758588] hover:text-[#F0F4F4]'
+                    ? 'bg-[#315C60] text-[#A3DCE3]'
+                    : 'text-[#758588]'
                 }`}
               >
-                <MapIcon size={14} />
+                <MapIcon size={13} />
                 <span>Map</span>
               </button>
             </div>
@@ -142,73 +119,54 @@ export default function FeedScreen({
             {/* Search Trigger */}
             <button
               onClick={() => setShowSearch(!showSearch)}
-              className={`p-2.5 rounded-2xl border transition active:scale-95 ${
+              className={`p-1.5 rounded-xl border transition ${
                 showSearch || searchQuery
                   ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3]'
-                  : 'bg-[#192223] border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4]'
+                  : 'bg-[#192223] border-[#253538] text-[#758588]'
               }`}
               aria-label="Toggle search"
             >
-              <Search size={16} />
+              <Search size={15} />
             </button>
           </div>
         </div>
 
-        {/* Website Overview Metrics Cards (Visible on desktop & tablets) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#758588] block">
-              TOTAL REPORTS
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-[#F0F4F4] font-mono mt-1 block">
-              {totalCount}
-            </span>
+        {/* Compact Mobile Metrics Pills */}
+        <div className="grid grid-cols-4 gap-1.5 bg-[#101819] border border-[#253538] p-2 rounded-2xl text-center">
+          <div>
+            <span className="text-[9px] font-mono uppercase text-[#758588] block">TOTAL</span>
+            <span className="text-base font-bold font-mono text-[#F0F4F4]">{totalCount}</span>
           </div>
-
-          <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#A5B1B3] block">
-              OPEN / SUBMITTED
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-[#A5B1B3] font-mono mt-1 block">
-              {openCount}
-            </span>
+          <div>
+            <span className="text-[9px] font-mono uppercase text-[#A5B1B3] block">OPEN</span>
+            <span className="text-base font-bold font-mono text-[#A5B1B3]">{openCount}</span>
           </div>
-
-          <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#38BDF8] block">
-              IN PROGRESS
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-[#38BDF8] font-mono mt-1 block">
-              {inProgressCount}
-            </span>
+          <div>
+            <span className="text-[9px] font-mono uppercase text-[#38BDF8] block">ACTIVE</span>
+            <span className="text-base font-bold font-mono text-[#38BDF8]">{inProgressCount}</span>
           </div>
-
-          <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#43C88A] block">
-              RESOLVED ISSUES
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-[#43C88A] font-mono mt-1 block">
-              {resolvedCount}
-            </span>
+          <div>
+            <span className="text-[9px] font-mono uppercase text-[#43C88A] block">FIXED</span>
+            <span className="text-base font-bold font-mono text-[#43C88A]">{resolvedCount}</span>
           </div>
         </div>
 
-        {/* Collapsible Search Input */}
+        {/* Search Input */}
         {showSearch && (
-          <div className="mb-6 relative animate-in fade-in slide-in-from-top-2 duration-200">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#758588]" />
+          <div className="relative animate-in fade-in duration-150">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#758588]" />
             <input
               type="text"
-              placeholder="Search reports across titles, street locations, descriptions, or LK-ID..."
+              placeholder="Search reports or LK-ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#192223] border border-[#354144] text-[#F0F4F4] placeholder-[#758588] text-sm pl-10 pr-10 py-3 rounded-2xl focus:outline-none focus:border-[#A3DCE3] transition font-medium"
+              className="w-full bg-[#192223] border border-[#253538] text-[#F0F4F4] placeholder-[#758588] text-xs pl-8 pr-8 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3] font-mono"
               autoFocus
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#758588] hover:text-[#F0F4F4]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#758588]"
               >
                 Clear
               </button>
@@ -216,18 +174,18 @@ export default function FeedScreen({
           </div>
         )}
 
-        {/* Category Filter Pills */}
-        <div className="overflow-x-auto no-scrollbar flex items-center gap-2 pb-2">
+        {/* Category Filter Horizontal Scroll */}
+        <div className="overflow-x-auto no-scrollbar flex items-center gap-1.5 py-1">
           {CATEGORIES.map((cat) => {
             const isSelected = activeCategory === cat.id;
             return (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-4 py-2 rounded-full text-xs font-mono font-medium transition-all whitespace-nowrap border select-none ${
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-mono transition-all whitespace-nowrap border select-none ${
                   isSelected
-                    ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3] shadow-md shadow-[#315C60]/30 font-semibold'
-                    : 'bg-[#192223] border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4] hover:border-[#758588]'
+                    ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3] font-bold'
+                    : 'bg-[#192223] border-[#253538] text-[#758588]'
                 }`}
               >
                 {cat.label}
@@ -295,8 +253,8 @@ export default function FeedScreen({
               </button>
             </div>
           ) : (
-            /* Multi-Column Responsive Grid on Desktop Website */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            /* Single Column Pure Mobile Feed */
+            <div className="flex flex-col gap-3">
               {filteredIssues.map((issue) => {
                 const statusCfg = STATUS_CONFIG[issue.status] || STATUS_CONFIG.Open;
                 const formattedId = formatIssueId(issue.id);

@@ -5,7 +5,7 @@ import { reverseGeocode, extractLocality } from './googleMaps';
 import { analyzePriority, calculateDistance, compressImage, parseLocation } from './utils/issueHelpers';
 import { sendSmsNotification } from './utils/smsService';
 import AuthScreen from './components/AuthScreen';
-import DesktopHeader from './components/DesktopHeader';
+import MobileAppHeader from './components/MobileAppHeader';
 import BottomNav from './components/BottomNav';
 import SmsBanner from './components/SmsBanner';
 import FeedScreen from './components/FeedScreen';
@@ -18,7 +18,7 @@ import AdminModal from './components/AdminModal';
 import AiAssistantModal from './components/AiAssistantModal';
 import CivicMap from './components/CivicMap';
 import AppLogo from './components/AppLogo';
-import { Bell, CheckCircle2, AlertTriangle, MapPin, Plus } from 'lucide-react';
+import { Bell, CheckCircle2, AlertTriangle, MapPin } from 'lucide-react';
 import './App.css';
 
 // Initial reference alerts
@@ -599,18 +599,15 @@ export default function App() {
   }
 
   return (
-    <div className="bg-[#080F0F] text-[#F0F4F4] min-h-screen relative font-sans flex flex-col">
+    <div className="bg-[#080F0F] text-[#F0F4F4] min-h-screen relative font-sans flex flex-col max-w-md mx-auto shadow-2xl overflow-x-hidden border-x border-[#1a2528]/40 pb-20 select-none">
       {/* Live Carrier SMS Heads-Up Notification Banner */}
       <SmsBanner />
 
-      {/* Desktop Website Top Header */}
-      <DesktopHeader
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
-        unreadAlertsCount={unreadAlertsCount}
-        currentUser={currentUser}
+      {/* Pure Mobile Application Header */}
+      <MobileAppHeader
         currentLocality={currentLocality}
-        onOpenReport={() => setIsReportModalOpen(true)}
+        onRefreshLocation={acquireGPSLocation}
+        currentUser={currentUser}
         onLogout={handleLogout}
         onOpenAdminPortal={() => setIsAdminModalOpen(true)}
       />
@@ -618,7 +615,7 @@ export default function App() {
       {/* Floating Toast Notification */}
       {toast && (
         <div
-          className={`fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-3 duration-300 ${
+          className={`fixed top-14 left-4 right-4 max-w-sm mx-auto z-50 p-3.5 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-3 duration-300 ${
             toast.type === 'success'
               ? 'bg-[#112C20] border-[#1D5C3F] text-[#43C88A]'
               : toast.type === 'error'
@@ -638,7 +635,7 @@ export default function App() {
       )}
 
       {/* Active Tab Screen */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-0 sm:px-4">
+      <main className="flex-1 w-full px-0">
         {activeTab === 'feed' && (
           <FeedScreen
             issues={issues}
@@ -655,47 +652,31 @@ export default function App() {
         )}
 
         {activeTab === 'map' && (
-          <div className="py-6 px-4 max-w-7xl mx-auto space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#354144]">
+          <div className="p-2 space-y-2">
+            <div className="flex items-center justify-between px-2 pt-1">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-black font-mono tracking-tight text-[#F0F4F4]">
-                    Civic GIS Map
-                  </h2>
-                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#132B2F] text-[#A3DCE3] border border-[#28616A]">
-                    Live Spatial Radar
-                  </span>
-                </div>
-                <p className="text-xs font-mono text-[#A5B1B3] mt-0.5">
-                  Real-time geospatial map of municipal issues. Dual engine: Google Maps (Key: 016089-E20F62-171E41) & Leaflet Dark GIS.
-                </p>
+                <h2 className="text-lg font-black font-mono tracking-tight text-[#F0F4F4]">
+                  Civic GIS Radar
+                </h2>
+                <span className="text-[10px] font-mono text-[#A3DCE3]">
+                  Dual Engine • Key: 016089-E20F62-171E41
+                </span>
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={acquireGPSLocation}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#192223] hover:bg-[#202B2D] border border-[#354144] text-[#A3DCE3] text-xs font-mono font-semibold transition"
-                >
-                  <MapPin size={14} />
-                  <span>Locate Me</span>
-                </button>
-                <button
-                  onClick={() => setIsReportModalOpen(true)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] text-xs font-mono font-bold transition shadow-md"
-                >
-                  <Plus size={14} strokeWidth={2.5} />
-                  <span>Report Issue</span>
-                </button>
-              </div>
+              <button
+                onClick={acquireGPSLocation}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] text-xs font-mono font-semibold"
+              >
+                <MapPin size={13} className="text-[#43C88A]" />
+                <span>Locate</span>
+              </button>
             </div>
-
             <CivicMap
               latitude={userLocation?.lat}
               longitude={userLocation?.lng}
               issues={issues}
               addresses={addresses}
               onSelectIssue={(issue) => setSelectedIssue(issue)}
-              height="h-[640px]"
+              height="h-[calc(100vh-170px)]"
             />
           </div>
         )}
@@ -742,14 +723,13 @@ export default function App() {
         )}
       </main>
 
-      {/* Mobile Fixed Bottom Navigation (visible on mobile screens) */}
-      <div className="md:hidden">
-        <BottomNav
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab)}
-          unreadAlertsCount={unreadAlertsCount}
-        />
-      </div>
+      {/* Mobile App Bottom Navigation Bar */}
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
+        onOpenReport={() => setIsReportModalOpen(true)}
+        unreadAlertsCount={unreadAlertsCount}
+      />
 
       {/* Screen 4: Report Issue Modal Sheet */}
       <ReportIssueModal

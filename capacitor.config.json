@@ -1,5 +1,14 @@
 {
   "appId": "com.rev0nix.civictrack",
   "appName": "Lokify",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
 }

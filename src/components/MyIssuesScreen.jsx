@@ -60,28 +60,20 @@ export default function MyIssuesScreen({
   };
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-28 pt-6 px-4 sm:px-6 lg:px-8 w-full max-w-7xl mx-auto">
-      {/* Header */}
-      <header className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-[#758588]">
-            YOUR REPORTS
-          </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#A3DCE3]" />
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#F0F4F4] font-mono">
-              My issues
-            </h1>
-            <p className="text-xs sm:text-sm text-[#A5B1B3] mt-1 font-sans">
-              Track issues you reported and receive real-time updates from municipal authorities.
-            </p>
-          </div>
-          <span className="text-xs font-mono bg-[#192223] border border-[#354144] px-3.5 py-1.5 rounded-full text-[#A3DCE3]">
-            {myIssues.length} total reports
+    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 w-full">
+      {/* Mobile Header */}
+      <header className="mb-4">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-xl font-black tracking-tight text-[#F0F4F4] font-mono">
+            My Issues
+          </h1>
+          <span className="text-[11px] font-mono bg-[#192223] border border-[#253538] px-2.5 py-1 rounded-full text-[#A3DCE3]">
+            {myIssues.length} reports
           </span>
         </div>
+        <p className="text-xs text-[#758588]">
+          Track status and municipal resolutions for your submissions
+        </p>
       </header>
 
       {/* Filter Tabs */}
@@ -127,7 +119,7 @@ export default function MyIssuesScreen({
         </div>
       ) : (
         /* Multi-column grid on desktop website */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col gap-3">
           {filteredList.map((issue) => {
             const statusCfg = STATUS_CONFIG[issue.status] || STATUS_CONFIG.Open;
             const formattedId = formatIssueId(issue.id);

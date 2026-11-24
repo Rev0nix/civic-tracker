@@ -116,27 +116,28 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.5' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.5' }} – Production Web & Mobile Release"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.6' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.6' }} – Pure Mobile Phone Release"
           make_latest: true
           body: |
-            ## 🏛️ Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.5' }} – Multi-Stack Production Release
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.6' }} – Pure Mobile Phone Application Release
 
-            Welcome to the official production release of **Lokify**, the modern civic issue reporting and municipal tracking platform.
+            Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 What's New in v1.2.5:
-            * **Dedicated Civic GIS Map Tab:** First-class Map navigation on desktop header and mobile bottom bar with real-time issue markers and locate-me GPS radar.
-            * **Google Maps API Key Update:** Configured `"016089-E20F62-171E41"` with dual-engine fallback to ensure zero downtime.
-            * **Branded App Image & Modern Vector Logo:** Generated high-resolution vector and raster assets (`favicon.svg`, `favicon.png`, `hero.png`, and Android adaptive icons).
-            * **Multi-Language Architecture:** Kotlin (Android Bridge), TypeScript (GIS & Types), Rust (Spatial Engine CLI), POSIX Shell, PowerShell, and CSS Tokens.
+            ### 🚀 Fixes & Mobile Redesign in v1.2.6:
+            * **Fixed Android App Not Opening on Phones:** Resolved Vite asset base path bug (`base: './'`). Capacitor WebView assets now load with 100% reliability on native Android devices.
+            * **Pure Mobile Phone Architecture:** Redesigned app shell, authentication screen, and headers exclusively for native mobile phone interaction (removed desktop website elements).
+            * **Elevated Center Action Button:** Mobile bottom navigation with quick 1-tap `+ Report` floating action button.
+            * **Compact Mobile Header:** Lightweight `MobileAppHeader` with GPS locality status and instant touch refresh.
+            * **Hardware Sensor & Network Permissions:** Added `ACCESS_NETWORK_STATE`, `hardwareAccelerated`, and `usesCleartextTraffic` in AndroidManifest for smooth mobile WebView operation.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.5' }}/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.6' }}/app-debug.apk)**
 
-            🌐 **Live Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
+            🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |
             android/app/build/outputs/apk/debug/app-debug.apk
         env:
