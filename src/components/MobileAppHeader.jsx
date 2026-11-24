@@ -1,8 +1,9 @@
-import { MapPin, RefreshCw, LogOut, ShieldCheck } from 'lucide-react';
+import { MapPin, RefreshCw, LogOut, ShieldCheck, AlertTriangle, MapPinOff, Loader2 } from 'lucide-react';
 import AppLogo from './AppLogo';
 
 export default function MobileAppHeader({
   currentLocality,
+  locationState = 'found',
   onRefreshLocation,
   currentUser,
   onLogout,
@@ -22,14 +23,40 @@ export default function MobileAppHeader({
           </div>
         </div>
 
-        {/* Center: GPS Locality Pill */}
+        {/* Center: GPS Locality Pill with Multi-State Indicators */}
         <button
           onClick={onRefreshLocation}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] text-[11px] font-mono font-medium max-w-[150px] truncate active:scale-95 transition"
-          title="Tap to refresh GPS location"
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-medium max-w-[170px] truncate active:scale-95 transition shadow-sm ${
+            locationState === 'locating'
+              ? 'bg-[#192223] border-[#354144] text-[#A5B1B3]'
+              : locationState === 'permission_denied'
+              ? 'bg-[#321616] border-[#5C2424] text-[#EF6666]'
+              : locationState === 'unavailable'
+              ? 'bg-[#2A2315] border-[#5C4824] text-[#E9B85C]'
+              : 'bg-[#132B2F] border-[#28616A] text-[#A3DCE3]'
+          }`}
+          title="Tap to refresh or retry GPS location"
         >
-          <MapPin size={11} className="shrink-0 text-[#43C88A]" />
-          <span className="truncate">{currentLocality || 'Bengaluru'}</span>
+          {locationState === 'locating' ? (
+            <Loader2 size={11} className="shrink-0 text-[#A3DCE3] animate-spin" />
+          ) : locationState === 'permission_denied' ? (
+            <AlertTriangle size={11} className="shrink-0 text-[#EF6666]" />
+          ) : locationState === 'unavailable' ? (
+            <MapPinOff size={11} className="shrink-0 text-[#E9B85C]" />
+          ) : (
+            <MapPin size={11} className="shrink-0 text-[#43C88A]" />
+          )}
+
+          <span className="truncate">
+            {locationState === 'locating'
+              ? 'Locating...'
+              : locationState === 'permission_denied'
+              ? 'Permission needed'
+              : locationState === 'unavailable'
+              ? 'Retry Location'
+              : currentLocality || 'Bengaluru'}
+          </span>
+
           <RefreshCw size={10} className="shrink-0 text-[#758588]" />
         </button>
 

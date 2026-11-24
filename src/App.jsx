@@ -82,6 +82,7 @@ export default function App() {
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('Acquiring live GPS...');
   const [currentLocality, setCurrentLocality] = useState('Locating...');
+  const [locationState, setLocationState] = useState('locating'); // 'locating' | 'found' | 'permission_denied' | 'unavailable'
 
   // User Profile & Device
   const [deviceId] = useState(() => {
@@ -149,16 +150,28 @@ export default function App() {
   const acquireGPSLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setLocationStatus('Geolocation is not supported by your browser/device.');
+      setLocationState('unavailable');
       return;
     }
 
     setLocationStatus('Acquiring high accuracy GPS lock...');
+    setLocationState('locating');
+
+    // 6-second timeout fallback so it never stays stuck on 'Locating...'
+    const fallbackTimer = setTimeout(() => {
+      setLocationState((prev) => (prev === 'locating' ? 'found' : prev));
+      if (!userLocation) {
+        setCurrentLocality((prev) => (prev === 'Locating...' ? 'Bengaluru' : prev));
+      }
+    }, 6000);
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        clearTimeout(fallbackTimer);
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(coords);
         setLocationStatus(`Locked: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
+        setLocationState('found');
 
         try {
           const address = await reverseGeocode(coords.lat, coords.lng);
@@ -170,13 +183,15 @@ export default function App() {
           setCurrentLocality('City Center');
         }
       },
-      () => {
+      (err) => {
         // Fallback network position
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
+            clearTimeout(fallbackTimer);
             const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             setUserLocation(coords);
             setLocationStatus(`Network Location: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
+            setLocationState('found');
             try {
               const address = await reverseGeocode(coords.lat, coords.lng);
               if (address) {
@@ -186,16 +201,23 @@ export default function App() {
               setCurrentLocality('City Center');
             }
           },
-          () => {
-            setLocationStatus('Please enable device location permissions.');
-            setCurrentLocality('Anna Nagar');
+          (fallbackErr) => {
+            clearTimeout(fallbackTimer);
+            if (err?.code === 1 || fallbackErr?.code === 1) {
+              setLocationStatus('Location permission denied by user.');
+              setLocationState('permission_denied');
+            } else {
+              setLocationStatus('Location signal unavailable. Using default center.');
+              setLocationState('unavailable');
+            }
+            setCurrentLocality((prev) => (prev === 'Locating...' ? 'Anna Nagar' : prev));
           },
-          { enableHighAccuracy: false, timeout: 10000 }
+          { enableHighAccuracy: false, timeout: 6000 }
         );
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 6000 }
     );
-  }, []);
+  }, [userLocation]);
 
   // Reverse geocode missing addresses asynchronously
   const resolveMissingAddresses = useCallback(async (list) => {
@@ -610,6 +632,7 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         onOpenAdminPortal={() => setIsAdminModalOpen(true)}
+        locationState={locationState}
       />
 
       {/* Floating Toast Notification */}
@@ -659,6 +682,7 @@ export default function App() {
               issues={issues}
               addresses={addresses}
               onSelectIssue={(issue) => setSelectedIssue(issue)}
+              onRefreshLocation={acquireGPSLocation}
               height="h-full"
             />
           </div>

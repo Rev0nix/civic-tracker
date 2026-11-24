@@ -118,25 +118,27 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.8' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.8' }} – Pinned Header Tabs, Restored Map Controls & Clean Auth"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.9' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.9' }} – Upgraded Android GIS Map, Dynamic Layer Switcher & Real Tile Rendering"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.8' }} – Pinned Header Tabs & Map Controls Release
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.9' }} – Android GIS Map Upgrade Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Highlights & Fixes in v1.2.8:
-            * **Fixed Pinned Top Tabs:** Fixed the layout bug where top tabs and headers scrolled up on mobile. The mobile header, category filter chips, and status sub-bars are permanently pinned with native safe-area top insets (`shrink-0`), allowing issues to scroll smoothly underneath.
-            * **Restored Visible Map Buttons:** All interactive controls are permanently visible across the top of the map: Filter chips (`All`, `Active`, `Resolved`), Satellite layer toggle, Recenter GPS button, and Google / Leaflet GIS engine switcher.
-            * **Activated Google Maps API Key:** Fixed Google Maps API key configuration with genuine user key `AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc` and Map ID `016089-E20F62-171E41`, eliminating "API key is required" warnings.
-            * **Clean Login Experience:** Removed all demo autofill buttons ("Fill Demo Citizen" / "Fill Demo Admin") and removed fake placeholder data across citizen phone/email and ward officer logins.
+            ### 🚀 Highlights & Fixes in v1.2.9:
+            * **Fixed "API KEY REQUIRED" Map Bug:** Eliminated the dark grey background and repeated watermark by configuring OpenStreetMap standard raster tiles as the default street provider, with Esri World Imagery (Satellite), Esri Hybrid (Satellite with boundary/road labels), and Esri World Topo Map (Terrain).
+            * **Interactive Map Layer Switcher:** Added a professional bottom sheet modal accessible from the GIS toolbar with 4 selectable layers (Standard Map, Satellite Imagery, Hybrid, Terrain), preview badges, and smooth switching.
+            * **Floating GIS Control Panel:** Right-side controls including Compass / Reset Orientation, Map Layers selector, My Location GPS with radar pulse, and Zoom In / Out buttons.
+            * **Comprehensive Issue Category Filters:** Horizontal filter bar featuring all categories (All, Active, Resolved, Potholes, Streetlights, Garbage, Water & Sewage, Drainage, Road Damage) with dynamic live count badges that filter markers in real time.
+            * **Teardrop Issue Markers & Preview Cards:** Status-colored pins with category glyph emblems. Tapping any marker opens an interactive preview card displaying issue ID, category, status, relative reported date, address, and "View Full Issue Details" action.
+            * **Reliable Location State Machine:** Enhanced location header with automatic timeout to prevent the indicator from being stuck on "Locating...", supporting `locating`, `found`, `permission_denied`, and `unavailable` states.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.8' }}/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.9' }}/app-debug.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

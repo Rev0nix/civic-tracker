@@ -1,15 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Layers, LocateFixed, ArrowUpRight, X, Globe, Map as MapIcon } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import {
+  Compass,
+  Layers,
+  LocateFixed,
+  Plus,
+  Minus,
+  ArrowUpRight,
+  X,
+  Clock,
+  MapPin,
+  Check,
+  AlertTriangle,
+  RefreshCw,
+  Globe,
+  Map as MapIcon,
+  Layers as LayersIcon,
+} from 'lucide-react';
 import L from 'leaflet';
 import { loadGoogleMaps, LOKIFY_DARK_MAP_STYLES, extractLocality } from '../googleMaps';
-import { formatIssueId, STATUS_CONFIG, getCategoryName } from '../constants/theme';
+import { formatIssueId, STATUS_CONFIG, getCategoryName, getRelativeTime } from '../constants/theme';
 import {
   DEFAULT_COORDS,
-  LOKIFY_DARK_TILE_URL,
-  LOKIFY_TILE_ATTRIBUTION,
+  MAP_LAYERS,
+  getMarkerStatusColor,
+  createLeafletSvgIconHtml,
   getPreferredMapEngine,
   setPreferredMapEngine,
-  createLeafletSvgIconHtml,
 } from '../services/mapEngine';
 
 function parseCoords(loc, lat, lng) {
@@ -45,18 +61,36 @@ function parseCoords(loc, lat, lng) {
   return null;
 }
 
+const FILTER_OPTIONS = [
+  { key: 'All', label: 'All' },
+  { key: 'Active', label: 'Active' },
+  { key: 'Resolved', label: 'Resolved' },
+  { key: 'Potholes', label: 'Potholes' },
+  { key: 'Streetlights', label: 'Streetlights' },
+  { key: 'Garbage', label: 'Garbage' },
+  { key: 'Water & Sewage', label: 'Water & Sewage' },
+  { key: 'Drainage', label: 'Drainage' },
+  { key: 'Road Damage', label: 'Road Damage' },
+];
+
 export default function CivicMap({
   latitude,
   longitude,
   issues = [],
   addresses = {},
   onSelectIssue,
-  height = 'h-[500px]',
+  onRefreshLocation,
+  height = 'h-full',
 }) {
   const mapElement = useRef(null);
 
-  // Engine state: 'google' | 'leaflet'
+  // Engine state: 'leaflet' | 'google'
   const [engine, setEngine] = useState(getPreferredMapEngine);
+
+  // Layer State
+  const [activeLayerId, setActiveLayerId] = useState('standard');
+  const [isLayerSheetOpen, setIsLayerSheetOpen] = useState(false);
+  const [tileError, setTileError] = useState(false);
 
   // Google Maps refs
   const googleMapRef = useRef(null);
@@ -67,12 +101,12 @@ export default function CivicMap({
   // Leaflet refs
   const leafletMapRef = useRef(null);
   const leafletTileLayerRef = useRef(null);
+  const leafletOverlayLayerRef = useRef(null);
   const leafletMarkersRef = useRef([]);
   const leafletUserMarkerRef = useRef(null);
 
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isSatellite, setIsSatellite] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('All'); // 'All' | 'Active' | 'Resolved'
+  const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedPinIssue, setSelectedPinIssue] = useState(null);
 
   const userCenter = useMemo(() => {
@@ -84,29 +118,55 @@ export default function CivicMap({
 
   const activeCenter = userCenter || DEFAULT_COORDS;
 
+  // Filter issue counts
+  const filterCounts = useMemo(() => {
+    const counts = {
+      All: issues.length,
+      Active: 0,
+      Resolved: 0,
+      Potholes: 0,
+      Streetlights: 0,
+      Garbage: 0,
+      'Water & Sewage': 0,
+      Drainage: 0,
+      'Road Damage': 0,
+    };
+    issues.forEach((i) => {
+      if (i.status === 'Resolved') {
+        counts.Resolved++;
+      } else {
+        counts.Active++;
+      }
+
+      const cat = String(i.category_id || '');
+      if (cat === '1') counts.Potholes++;
+      else if (cat === '2') counts.Streetlights++;
+      else if (cat === '3') counts.Garbage++;
+      else if (cat === '4') counts['Water & Sewage']++;
+      else if (cat === '5') counts.Drainage++;
+      else if (cat === '6') counts['Road Damage']++;
+    });
+    return counts;
+  }, [issues]);
+
   // Filter issues
   const visibleIssues = useMemo(() => {
     return issues.filter((issue) => {
       const isResolved = issue.status === 'Resolved';
       if (selectedFilter === 'Active') return !isResolved;
       if (selectedFilter === 'Resolved') return isResolved;
+      if (selectedFilter === 'Potholes') return String(issue.category_id) === '1';
+      if (selectedFilter === 'Streetlights') return String(issue.category_id) === '2';
+      if (selectedFilter === 'Garbage') return String(issue.category_id) === '3';
+      if (selectedFilter === 'Water & Sewage') return String(issue.category_id) === '4';
+      if (selectedFilter === 'Drainage') return String(issue.category_id) === '5';
+      if (selectedFilter === 'Road Damage') return String(issue.category_id) === '6';
       return true;
     });
   }, [issues, selectedFilter]);
 
-  // Listen for Google Maps authentication failures and auto-fallback to Leaflet
-  useEffect(() => {
-    const handleAuthError = (e) => {
-      console.warn('Google Maps auth error caught. Auto-switching to Leaflet Dark GIS engine:', e.detail);
-      setEngine('leaflet');
-      setPreferredMapEngine('leaflet');
-    };
-    window.addEventListener('lokify:map_auth_error', handleAuthError);
-    return () => window.removeEventListener('lokify:map_auth_error', handleAuthError);
-  }, []);
-
   // Cleanup helper
-  const destroyCurrentMap = () => {
+  const destroyCurrentMap = useCallback(() => {
     if (googleMapRef.current) {
       googleMarkersRef.current.forEach((m) => m.setMap(null));
       googleMarkersRef.current = [];
@@ -119,6 +179,10 @@ export default function CivicMap({
       leafletMarkersRef.current = [];
       if (leafletUserMarkerRef.current) leafletUserMarkerRef.current.remove();
       leafletUserMarkerRef.current = null;
+      if (leafletTileLayerRef.current) leafletTileLayerRef.current.remove();
+      leafletTileLayerRef.current = null;
+      if (leafletOverlayLayerRef.current) leafletOverlayLayerRef.current.remove();
+      leafletOverlayLayerRef.current = null;
       leafletMapRef.current.remove();
       leafletMapRef.current = null;
     }
@@ -126,7 +190,18 @@ export default function CivicMap({
       mapElement.current.innerHTML = '';
     }
     setIsLoaded(false);
-  };
+  }, []);
+
+  // Listen for Google Maps authentication failures and auto-fallback to Leaflet
+  useEffect(() => {
+    const handleAuthError = (e) => {
+      console.warn('Google Maps auth error caught. Auto-switching to Leaflet GIS engine:', e.detail);
+      setEngine('leaflet');
+      setPreferredMapEngine('leaflet');
+    };
+    window.addEventListener('lokify:map_auth_error', handleAuthError);
+    return () => window.removeEventListener('lokify:map_auth_error', handleAuthError);
+  }, []);
 
   // Switch engine manually
   const toggleEngine = () => {
@@ -135,6 +210,63 @@ export default function CivicMap({
     setEngine(nextEngine);
     setPreferredMapEngine(nextEngine);
   };
+
+  // Switch Layer helper
+  const switchLayer = useCallback((layerId) => {
+    setActiveLayerId(layerId);
+    const config = MAP_LAYERS[layerId];
+    if (!config) return;
+
+    if (leafletMapRef.current) {
+      if (leafletTileLayerRef.current) {
+        leafletTileLayerRef.current.remove();
+      }
+      if (leafletOverlayLayerRef.current) {
+        leafletOverlayLayerRef.current.remove();
+        leafletOverlayLayerRef.current = null;
+      }
+
+      const baseLayer = L.tileLayer(config.url, {
+        attribution: config.attribution,
+        maxZoom: config.maxZoom,
+      });
+
+      baseLayer.on('tileerror', () => {
+        setTileError(true);
+      });
+      baseLayer.on('load', () => {
+        setTileError(false);
+      });
+
+      baseLayer.addTo(leafletMapRef.current);
+      leafletTileLayerRef.current = baseLayer;
+
+      if (config.overlayUrl) {
+        const overlay = L.tileLayer(config.overlayUrl, {
+          attribution: '',
+          maxZoom: config.maxZoom,
+        }).addTo(leafletMapRef.current);
+        leafletOverlayLayerRef.current = overlay;
+      }
+    }
+
+    if (googleMapRef.current && mapsSdkRef.current) {
+      const maps = mapsSdkRef.current;
+      if (layerId === 'satellite') {
+        googleMapRef.current.setMapTypeId(maps.MapTypeId.SATELLITE);
+        googleMapRef.current.setOptions({ styles: [] });
+      } else if (layerId === 'hybrid') {
+        googleMapRef.current.setMapTypeId(maps.MapTypeId.HYBRID);
+        googleMapRef.current.setOptions({ styles: [] });
+      } else if (layerId === 'terrain') {
+        googleMapRef.current.setMapTypeId(maps.MapTypeId.TERRAIN);
+        googleMapRef.current.setOptions({ styles: [] });
+      } else {
+        googleMapRef.current.setMapTypeId(maps.MapTypeId.ROADMAP);
+        googleMapRef.current.setOptions({ styles: LOKIFY_DARK_MAP_STYLES });
+      }
+    }
+  }, []);
 
   // Initialize Map Engine (Google or Leaflet)
   useEffect(() => {
@@ -152,15 +284,19 @@ export default function CivicMap({
           const map = new maps.Map(mapElement.current, {
             center: activeCenter,
             zoom: 14,
-            mapTypeId: isSatellite ? maps.MapTypeId.HYBRID : maps.MapTypeId.ROADMAP,
-            styles: isSatellite ? [] : LOKIFY_DARK_MAP_STYLES,
+            mapTypeId:
+              activeLayerId === 'satellite'
+                ? maps.MapTypeId.SATELLITE
+                : activeLayerId === 'hybrid'
+                ? maps.MapTypeId.HYBRID
+                : activeLayerId === 'terrain'
+                ? maps.MapTypeId.TERRAIN
+                : maps.MapTypeId.ROADMAP,
+            styles: activeLayerId === 'standard' ? LOKIFY_DARK_MAP_STYLES : [],
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
-            zoomControl: true,
-            zoomControlOptions: {
-              position: maps.ControlPosition.RIGHT_BOTTOM,
-            },
+            zoomControl: false, // Handled by our floating controls
             clickableIcons: false,
           });
 
@@ -173,7 +309,7 @@ export default function CivicMap({
         })
         .catch((err) => {
           if (!active) return;
-          console.warn('Google Maps failed to load, falling back to Leaflet:', err);
+          console.warn('Google Maps failed to load, falling back to Leaflet GIS:', err);
           setEngine('leaflet');
           setPreferredMapEngine('leaflet');
         });
@@ -183,22 +319,36 @@ export default function CivicMap({
         const map = L.map(mapElement.current, {
           center: [activeCenter.lat, activeCenter.lng],
           zoom: 14,
-          zoomControl: false,
+          zoomControl: false, // Handled by our floating controls
+          attributionControl: false,
         });
 
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        // Add subtle attribution in corner
+        L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
 
-        const tileUrl = isSatellite
-          ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-          : LOKIFY_DARK_TILE_URL;
-        const attr = isSatellite ? 'Tiles &copy; Esri' : LOKIFY_TILE_ATTRIBUTION;
+        const config = MAP_LAYERS[activeLayerId] || MAP_LAYERS.standard;
+        const tileLayer = L.tileLayer(config.url, {
+          attribution: config.attribution,
+          maxZoom: config.maxZoom,
+        });
 
-        const tileLayer = L.tileLayer(tileUrl, {
-          attribution: attr,
-          maxZoom: 19,
-        }).addTo(map);
+        tileLayer.on('tileerror', () => {
+          setTileError(true);
+        });
+        tileLayer.on('load', () => {
+          setTileError(false);
+        });
 
+        tileLayer.addTo(map);
         leafletTileLayerRef.current = tileLayer;
+
+        if (config.overlayUrl) {
+          leafletOverlayLayerRef.current = L.tileLayer(config.overlayUrl, {
+            attribution: '',
+            maxZoom: config.maxZoom,
+          }).addTo(map);
+        }
+
         leafletMapRef.current = map;
 
         map.whenReady(() => {
@@ -212,7 +362,7 @@ export default function CivicMap({
           if (active && leafletMapRef.current) {
             leafletMapRef.current.invalidateSize();
           }
-        }, 150);
+        }, 200);
 
         map.on('click', () => {
           setSelectedPinIssue(null);
@@ -276,16 +426,6 @@ export default function CivicMap({
   useEffect(() => {
     if (!isLoaded) return;
 
-    // Helper for category pin colors
-    const getPinColor = (issue) => {
-      if (issue.status === 'Resolved') return '#43C88A';
-      if (String(issue.category_id) === '1') return '#EF6666'; // Pothole
-      if (String(issue.category_id) === '2') return '#E9B85C'; // Streetlight
-      if (String(issue.category_id) === '3') return '#8DBBEB'; // Water
-      if (String(issue.category_id) === '4') return '#D8B4FE'; // Garbage
-      return '#A3DCE3';
-    };
-
     if (engine === 'google' && googleMapRef.current && mapsSdkRef.current) {
       const maps = mapsSdkRef.current;
       const map = googleMapRef.current;
@@ -297,7 +437,7 @@ export default function CivicMap({
         const coords = parseCoords(issue.location, issue.latitude, issue.longitude);
         if (!coords) return;
 
-        const pinColor = getPinColor(issue);
+        const pinColor = getMarkerStatusColor(issue.status);
         const marker = new maps.Marker({
           position: coords,
           map,
@@ -330,18 +470,20 @@ export default function CivicMap({
         const coords = parseCoords(issue.location, issue.latitude, issue.longitude);
         if (!coords) return;
 
-        const pinColor = getPinColor(issue);
+        const statusColor = getMarkerStatusColor(issue.status);
+        const iconHtml = createLeafletSvgIconHtml(statusColor, issue.category_id, 32);
+
         const icon = L.divIcon({
-          html: createLeafletSvgIconHtml(pinColor, 30),
-          className: 'custom-leaflet-marker',
-          iconSize: [30, 30],
-          iconAnchor: [15, 30],
+          html: iconHtml,
+          className: 'lokify-gis-marker',
+          iconSize: [32, 40],
+          iconAnchor: [16, 40],
         });
 
         const marker = L.marker([coords.lat, coords.lng], { icon, title: issue.title }).addTo(map);
         marker.on('click', () => {
           setSelectedPinIssue(issue);
-          map.panTo([coords.lat, coords.lng]);
+          map.panTo([coords.lat, coords.lng], { animate: true, duration: 0.5 });
         });
 
         leafletMarkersRef.current.push(marker);
@@ -349,129 +491,191 @@ export default function CivicMap({
     }
   }, [visibleIssues, isLoaded, engine]);
 
-  // Toggle Satellite
-  const handleToggleSatellite = () => {
-    const next = !isSatellite;
-    setIsSatellite(next);
-
-    if (engine === 'google' && googleMapRef.current && mapsSdkRef.current) {
-      if (next) {
-        googleMapRef.current.setMapTypeId(mapsSdkRef.current.MapTypeId.HYBRID);
-      } else {
-        googleMapRef.current.setMapTypeId(mapsSdkRef.current.MapTypeId.ROADMAP);
-        googleMapRef.current.setOptions({ styles: LOKIFY_DARK_MAP_STYLES });
-      }
-    } else if (engine === 'leaflet' && leafletMapRef.current) {
-      if (leafletTileLayerRef.current) {
-        leafletTileLayerRef.current.remove();
-      }
-      const tileUrl = next
-        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        : LOKIFY_DARK_TILE_URL;
-      const attr = next ? 'Tiles &copy; Esri' : LOKIFY_TILE_ATTRIBUTION;
-      leafletTileLayerRef.current = L.tileLayer(tileUrl, { attribution: attr, maxZoom: 19 }).addTo(leafletMapRef.current);
+  // GIS Controls Handlers
+  const handleZoomIn = () => {
+    if (leafletMapRef.current) {
+      leafletMapRef.current.zoomIn();
+    } else if (googleMapRef.current) {
+      googleMapRef.current.setZoom(googleMapRef.current.getZoom() + 1);
     }
   };
 
-  // Recenter Map
+  const handleZoomOut = () => {
+    if (leafletMapRef.current) {
+      leafletMapRef.current.zoomOut();
+    } else if (googleMapRef.current) {
+      googleMapRef.current.setZoom(googleMapRef.current.getZoom() - 1);
+    }
+  };
+
   const handleRecenter = () => {
     const target = userCenter || DEFAULT_COORDS;
-
-    if (engine === 'google' && googleMapRef.current) {
+    if (onRefreshLocation) {
+      onRefreshLocation();
+    }
+    if (leafletMapRef.current) {
+      leafletMapRef.current.setView([target.lat, target.lng], 15, { animate: true });
+    } else if (googleMapRef.current) {
       googleMapRef.current.panTo(target);
       googleMapRef.current.setZoom(15);
-    } else if (engine === 'leaflet' && leafletMapRef.current) {
-      leafletMapRef.current.setView([target.lat, target.lng], 15);
     }
   };
 
-  const totalCount = issues.length;
-  const activeCount = issues.filter((i) => i.status !== 'Resolved').length;
-  const resolvedCount = issues.filter((i) => i.status === 'Resolved').length;
+  const handleResetView = () => {
+    const target = activeCenter;
+    if (leafletMapRef.current) {
+      leafletMapRef.current.setView([target.lat, target.lng], 14, { animate: true });
+    } else if (googleMapRef.current) {
+      googleMapRef.current.panTo(target);
+      googleMapRef.current.setZoom(14);
+    }
+  };
 
   return (
-    <div
-      className={`relative w-full ${height} overflow-hidden bg-[#101819] flex flex-col`}
-    >
-      {/* Map Container */}
-      <div ref={mapElement} className="w-full h-full" aria-label="Lokify Map" />
+    <div className={`relative w-full ${height} overflow-hidden bg-[#080F0F] flex flex-col`}>
+      {/* Map DOM Element */}
+      <div ref={mapElement} className="w-full h-full z-0" aria-label="Lokify GIS Map" />
 
-      {/* Top Map Floating Bar: Filters on Left, Controls on Right */}
+      {/* Top Horizontal Filter Bar */}
       <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2 pointer-events-auto">
-        {/* Left: Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          {[
-            { key: 'All', label: `All (${totalCount})` },
-            { key: 'Active', label: `Active (${activeCount})` },
-            { key: 'Resolved', label: `Resolved (${resolvedCount})` },
-          ].map((f) => {
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-[calc(100%-80px)]">
+          {FILTER_OPTIONS.map((f) => {
             const isSelected = selectedFilter === f.key;
+            const count = filterCounts[f.key] ?? 0;
             return (
               <button
                 key={f.key}
                 onClick={() => setSelectedFilter(f.key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-mono font-semibold backdrop-blur-md transition-all whitespace-nowrap border shadow-md active:scale-95 ${
+                className={`px-3 py-1.5 rounded-full text-[11px] font-mono font-semibold backdrop-blur-md transition-all whitespace-nowrap border shadow-md active:scale-95 flex items-center gap-1.5 ${
                   isSelected
                     ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
-                    : 'bg-[#101819]/90 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
+                    : 'bg-[#192223]/95 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
                 }`}
               >
-                {f.label}
+                <span>{f.label}</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                    isSelected ? 'bg-[#080F0F]/20 text-[#080F0F]' : 'bg-[#202B2D] text-[#A5B1B3]'
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
         </div>
 
-        {/* Right: Satellite, Recenter, Engine Toggle */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Satellite Toggle */}
-          <button
-            onClick={handleToggleSatellite}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition border shadow-md backdrop-blur-md active:scale-95 ${
-              isSatellite
-                ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
-                : 'bg-[#101819]/90 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
-            }`}
-            title="Toggle Satellite View"
-            aria-label="Toggle Satellite"
-          >
-            <Layers size={14} />
-          </button>
+        {/* Engine Switcher in top right */}
+        <button
+          onClick={toggleEngine}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#192223]/95 border border-[#354144] hover:border-[#A3DCE3] text-[11px] font-mono text-[#A3DCE3] shadow-md backdrop-blur-md active:scale-95 transition shrink-0"
+          title={`Switch between Leaflet GIS and Google Maps`}
+        >
+          {engine === 'google' ? <MapIcon size={12} /> : <Globe size={12} />}
+          <span className="font-semibold">{engine === 'google' ? 'Google' : 'GIS'}</span>
+        </button>
+      </div>
 
-          {/* Recenter */}
-          <button
-            onClick={handleRecenter}
-            className="w-8 h-8 rounded-full bg-[#101819]/90 text-[#A5B1B3] border border-[#354144] hover:text-[#A3DCE3] flex items-center justify-center transition shadow-md backdrop-blur-md active:scale-95"
-            title="Recenter Location"
-            aria-label="Recenter"
-          >
-            <LocateFixed size={14} />
-          </button>
+      {/* Floating Right-Side GIS Control Column */}
+      <div className="absolute right-3 top-14 z-20 flex flex-col items-center gap-2 pointer-events-auto">
+        {/* Compass / Reset View */}
+        <button
+          onClick={handleResetView}
+          className="w-10 h-10 rounded-2xl bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95"
+          title="Reset Orientation / Center"
+          aria-label="Reset View"
+        >
+          <Compass size={18} className="transform hover:rotate-45 transition-transform" />
+        </button>
 
-          {/* Engine Switcher */}
+        {/* Map Layers */}
+        <button
+          onClick={() => setIsLayerSheetOpen(true)}
+          className={`w-10 h-10 rounded-2xl border shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95 ${
+            isLayerSheetOpen || activeLayerId !== 'standard'
+              ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
+              : 'bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border-[#354144]'
+          }`}
+          title="Map Layers"
+          aria-label="Map Layers"
+        >
+          <Layers size={18} />
+        </button>
+
+        {/* My Location */}
+        <button
+          onClick={handleRecenter}
+          className="w-10 h-10 rounded-2xl bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95"
+          title="My Location"
+          aria-label="My Location"
+        >
+          <LocateFixed size={18} />
+        </button>
+
+        <div className="h-px w-6 bg-[#354144] my-0.5" />
+
+        {/* Zoom In */}
+        <button
+          onClick={handleZoomIn}
+          className="w-10 h-10 rounded-2xl bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95"
+          title="Zoom In"
+          aria-label="Zoom In"
+        >
+          <Plus size={18} />
+        </button>
+
+        {/* Zoom Out */}
+        <button
+          onClick={handleZoomOut}
+          className="w-10 h-10 rounded-2xl bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95"
+          title="Zoom Out"
+          aria-label="Zoom Out"
+        >
+          <Minus size={18} />
+        </button>
+      </div>
+
+      {/* Tile Loading Error Banner */}
+      {tileError && (
+        <div className="absolute top-14 left-3 right-16 z-30 bg-[#321616]/95 border border-[#5C2424] rounded-xl p-2.5 text-xs text-[#EF6666] flex items-center justify-between shadow-xl backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={15} className="shrink-0" />
+            <span>Map tile loading error. Check connection.</span>
+          </div>
           <button
-            onClick={toggleEngine}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#101819]/90 border border-[#354144] hover:border-[#A3DCE3] text-[11px] font-mono text-[#A3DCE3] shadow-md backdrop-blur-md active:scale-95 transition"
-            title={`Switch to ${engine === 'google' ? 'Leaflet Dark GIS' : 'Google Maps'}`}
+            onClick={() => switchLayer(activeLayerId)}
+            className="px-2 py-1 rounded bg-[#5C2424] hover:bg-[#782D2D] text-[#F0F4F4] font-semibold text-[11px] flex items-center gap-1"
           >
-            {engine === 'google' ? <MapIcon size={12} /> : <Globe size={12} />}
-            <span className="font-semibold">{engine === 'google' ? 'Google' : 'GIS'}</span>
+            <RefreshCw size={11} />
+            <span>Retry</span>
           </button>
         </div>
-      </div>
+      )}
+
+      {/* Empty State Banner if no issues match */}
+      {visibleIssues.length === 0 && (
+        <div className="absolute bottom-6 left-6 right-6 z-20 bg-[#192223]/90 backdrop-blur-md border border-[#354144] rounded-2xl p-3 text-center shadow-lg">
+          <p className="text-xs text-[#A5B1B3] font-medium">
+            No issues found for <span className="text-[#A3DCE3] font-bold">"{selectedFilter}"</span>.
+          </p>
+        </div>
+      )}
 
       {/* Selected Issue Preview Card at bottom */}
       {selectedPinIssue && (
-        <div className="absolute bottom-4 left-4 right-4 z-20 bg-[#192223]/95 backdrop-blur-md border border-[#354144] rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-mono font-bold text-[#A3DCE3]">
+        <div className="absolute bottom-4 left-3 right-3 z-30 bg-[#192223]/95 backdrop-blur-md border border-[#354144] rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-[#A3DCE3]">
                 {formatIssueId(selectedPinIssue.id)}
               </span>
               <span className="text-xs text-[#758588]">·</span>
-              <span className="text-[11px] font-medium text-[#A5B1B3]">
+              <span className="text-xs font-medium text-[#A5B1B3]">
                 {getCategoryName(selectedPinIssue.category_id)}
               </span>
+            </div>
+
+            <div className="flex items-center gap-2">
               <span
                 className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border"
                 style={{
@@ -482,30 +686,108 @@ export default function CivicMap({
               >
                 {selectedPinIssue.status}
               </span>
+              <button
+                onClick={() => setSelectedPinIssue(null)}
+                className="p-1 text-[#758588] hover:text-[#F0F4F4] rounded-lg hover:bg-[#202B2D] transition"
+              >
+                <X size={15} />
+              </button>
             </div>
-            <h4 className="text-sm font-semibold text-[#F0F4F4] truncate">
-              {selectedPinIssue.title}
-            </h4>
-            <p className="text-xs text-[#758588] truncate mt-0.5">
-              {addresses[selectedPinIssue.id] ||
-                extractLocality(null, selectedPinIssue.latitude, selectedPinIssue.longitude)}
-            </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div>
+            <h4 className="text-sm font-semibold text-[#F0F4F4] leading-snug">
+              {selectedPinIssue.title}
+            </h4>
+            <div className="flex items-center gap-3 mt-1 text-[11px] text-[#A5B1B3]">
+              <span className="flex items-center gap-1 truncate">
+                <MapPin size={12} className="text-[#A3DCE3] shrink-0" />
+                <span className="truncate">
+                  {addresses[selectedPinIssue.id] ||
+                    extractLocality(null, selectedPinIssue.latitude, selectedPinIssue.longitude)}
+                </span>
+              </span>
+              {selectedPinIssue.created_at && (
+                <span className="flex items-center gap-1 shrink-0 text-[#758588]">
+                  <Clock size={11} />
+                  <span>{getRelativeTime(selectedPinIssue.created_at)}</span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={() => onSelectIssue && onSelectIssue(selectedPinIssue)}
+            className="w-full mt-1 bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] text-xs font-bold py-2.5 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm"
+          >
+            <span>View Full Issue Details</span>
+            <ArrowUpRight size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* Map Layer Switcher Bottom Sheet */}
+      {isLayerSheetOpen && (
+        <div className="absolute inset-x-0 bottom-0 z-40 bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] rounded-t-3xl p-5 shadow-2xl animate-in slide-in-from-bottom duration-250">
+          <div className="flex items-center justify-between pb-3 border-b border-[#202B2D] mb-4">
+            <div className="flex items-center gap-2">
+              <LayersIcon size={18} className="text-[#A3DCE3]" />
+              <h3 className="text-sm font-bold text-[#F0F4F4]">Select Map Layer</h3>
+            </div>
             <button
-              onClick={() => onSelectIssue && onSelectIssue(selectedPinIssue)}
-              className="bg-[#A3DCE3] text-[#080F0F] text-xs font-semibold px-3 py-2 rounded-xl hover:bg-[#85CBD3] transition active:scale-95 flex items-center gap-1 shadow-sm"
-            >
-              <span>Details</span>
-              <ArrowUpRight size={14} />
-            </button>
-            <button
-              onClick={() => setSelectedPinIssue(null)}
-              className="p-1.5 text-[#758588] hover:text-[#F0F4F4] rounded-xl hover:bg-[#202B2D] transition"
+              onClick={() => setIsLayerSheetOpen(false)}
+              className="w-8 h-8 rounded-full bg-[#192223] text-[#A5B1B3] hover:text-[#F0F4F4] flex items-center justify-center"
             >
               <X size={16} />
             </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-2">
+            {Object.values(MAP_LAYERS).map((layer) => {
+              const isSelected = activeLayerId === layer.id;
+              return (
+                <button
+                  key={layer.id}
+                  onClick={() => {
+                    switchLayer(layer.id);
+                    setIsLayerSheetOpen(false);
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all active:scale-[0.98] flex flex-col justify-between h-28 relative overflow-hidden ${
+                    isSelected
+                      ? 'bg-[#192223] border-[#A3DCE3] shadow-[0_0_15px_rgba(163,220,227,0.15)] ring-1 ring-[#A3DCE3]'
+                      : 'bg-[#192223]/60 border-[#354144] hover:border-[#758588]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-1 w-full">
+                    <span
+                      className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                        isSelected ? 'bg-[#A3DCE3] text-[#080F0F]' : 'bg-[#202B2D] text-[#A5B1B3]'
+                      }`}
+                    >
+                      {layer.badge}
+                    </span>
+                    {isSelected && (
+                      <div className="w-5 h-5 rounded-full bg-[#A3DCE3] text-[#080F0F] flex items-center justify-center">
+                        <Check size={12} strokeWidth={3} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-2">
+                    <h4
+                      className={`text-xs font-bold leading-tight ${
+                        isSelected ? 'text-[#A3DCE3]' : 'text-[#F0F4F4]'
+                      }`}
+                    >
+                      {layer.name}
+                    </h4>
+                    <p className="text-[10px] text-[#758588] line-clamp-2 mt-0.5">
+                      {layer.subtitle}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

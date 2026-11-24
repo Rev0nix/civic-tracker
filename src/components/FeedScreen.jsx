@@ -24,6 +24,7 @@ export default function FeedScreen({
   issues = [],
   addresses = {},
   userLocation,
+  onRefreshLocation,
   onSelectIssue,
   onUpvote,
   upvotedIssueIds = [],
@@ -227,6 +228,7 @@ export default function FeedScreen({
               issues={filteredIssues}
               addresses={addresses}
               onSelectIssue={onSelectIssue}
+              onRefreshLocation={onRefreshLocation}
               height="h-full"
             />
           </div>
