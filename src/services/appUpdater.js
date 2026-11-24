@@ -2,7 +2,7 @@
 // Multi-source resilient update checker for Android and Web
 // Queries raw GitHub, jsDelivr CDN, and GitHub API to guarantee update detection without rate-limit issues.
 
-export const CURRENT_APP_VERSION = '1.3.6';
+export const CURRENT_APP_VERSION = '1.3.7';
 export const GITHUB_REPO = 'Rev0nix/civic-tracker';
 
 /**

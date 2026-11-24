@@ -118,30 +118,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.6' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.6' }} – Resilient In-App Updater & UI Upgrades"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.7' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.7' }} – Google Play Protect Safe Release"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.6' }} – Resilient In-App Updater & UI Upgrades
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.7' }} – Google Play Protect Safe Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### ⚠️ Google Play Protect Notice:
-            Because this APK is downloaded directly from GitHub rather than Google Play Store, Google Play Protect may show a prompt:
-            *"This app may be harmful"* or *"Blocked by Play Protect"*.
-            **To install:** Tap **\"More details\"** (or the small arrow), then tap **\"Install anyway\"**.
-
-            ### 🚀 Highlights & Fixes in v1.3.6:
-            * **Settings Screen AI Tab Removed:** Cleaned up Settings menu by removing redundant AI tab (Lok AI remains directly accessible via its dedicated tab).
-            * **Multi-Source Resilient In-App Updater:** Added zero rate-limit raw CDN and GitHub version endpoints, guaranteeing that in-app update checks reliably detect new releases without being blocked by API rate limits or caching.
-            * **Direct APK Download & Install Trigger:** Enhanced in-app updater modal with immediate native Android dispatch and a direct browser fallback download button.
-            * **Preserved Full-Screen GIS & Report Screen Upgrades:** Retained pure locked GPS coordinate reporting, single responsive GPS button, and full-screen GIS map.
+            ### 🛡️ Play Protect Security Hardening in v1.3.7:
+            * **Removed High-Risk Permissions:** Removed `REQUEST_INSTALL_PACKAGES` and legacy storage permissions that trigger Google Play Protect "harmful app" warnings.
+            * **Strict TLS Encryption:** Configured Android network security config with `cleartextTrafficPermitted="false"`, enforcing HTTPS everywhere.
+            * **Disabled Remote WebView Debugging:** Locked down production WebView against unauthorized remote debugging.
+            * **Multi-Scheme Signing:** Built and signed with APK Signature Scheme v1, v2, and v3.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.6' }}/app-release.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.7' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

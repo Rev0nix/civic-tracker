@@ -174,7 +174,7 @@ export default function App() {
     } else if (info && info.error) {
       showToast(`Update check failed: ${info.error}. Retrying...`, 'error');
     } else {
-      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.6'})!`, 'success');
+      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.7'})!`, 'success');
     }
   }, [showToast]);
 

@@ -1,9 +1,9 @@
 {
-  "version": "1.3.6",
-  "versionCode": 10306,
-  "releaseName": "Lokify v1.3.6 – System Update",
-  "releaseNotes": "• Settings Cleanup: Removed AI tab from settings screen for streamlined navigation.\n• Resilient Multi-Source In-App Updater: Zero rate-limit updates with instant detection.\n• High-performance Android APK direct download trigger.\n• Pure mobile GIS map & locked GPS reporting.",
-  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.3.6/app-release.apk",
-  "fileSize": "4.5 MB",
-  "publishedAt": "2026-11-24T11:45:00Z"
+  "version": "1.3.7",
+  "versionCode": 10307,
+  "releaseName": "Lokify v1.3.7 – Google Play Protect Safe Release",
+  "releaseNotes": "• Google Play Protect Security Fix: Removed high-risk REQUEST_INSTALL_PACKAGES and legacy storage permissions that trigger 'Harmful App' warnings.\n• Enforced TLS/HTTPS: Configured strict networkSecurityConfig with cleartextTraffic disabled.\n• Disabled remote webContentsDebugging in release builds.\n• Enabled APK Signature Scheme v1, v2, and v3.",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.3.7/app-release.apk",
+  "fileSize": "3.6 MB",
+  "publishedAt": "2026-11-24T12:00:00Z"
 }
