@@ -10,7 +10,6 @@ import {
   Info,
   LogOut,
   ChevronRight,
-  ShieldAlert,
   Edit3,
   Bot,
   Phone,
@@ -27,8 +26,6 @@ export default function ProfileScreen({
   myIssuesCount = 0,
   upvotesReceived = 0,
   onNavigateTab,
-  onOpenAdminPortal,
-  isAdminActive = false,
   onLogout,
   onOpenAiAssistant,
   onUpdateProfile,
@@ -300,30 +297,6 @@ export default function ProfileScreen({
               </span>
             </div>
           </section>
-
-          {/* Municipal Authority Admin Portal Button */}
-          <div className="bg-[#192223] border border-[#354144] rounded-3xl p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] flex items-center justify-center">
-                <ShieldAlert size={18} />
-              </div>
-              <div>
-                <span className="text-sm font-bold text-[#F0F4F4] block">
-                  Municipal Admin Portal
-                </span>
-                <span className="text-xs text-[#758588] font-mono">
-                  {isAdminActive ? 'Authenticated as Official' : 'Passcode protected (admin123)'}
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={onOpenAdminPortal}
-              className="bg-[#202B2D] hover:bg-[#315C60] text-[#A3DCE3] border border-[#354144] hover:border-[#A3DCE3] px-4 py-2 rounded-xl text-xs font-mono font-semibold transition active:scale-95"
-            >
-              {isAdminActive ? 'Open Center' : 'Sign In'}
-            </button>
-          </div>
 
           {/* Sign Out Button */}
           <div className="pt-2">

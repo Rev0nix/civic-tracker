@@ -118,26 +118,24 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.0' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.0' }} – Zero-Auth GIS Map, Guaranteed Control Layering & Multi-CDN Fallback"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.1' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.1' }} – Clean Map View & Streamlined Citizen Profile"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.0' }} – Permanent Map Fix & Guaranteed Controls Release
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.1' }} – Clean Map & Citizen Experience Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Highlights & Fixes in v1.3.0:
-            * **Complete Removal of Google Maps & Carto Dependency:** Permanently eliminated any invocation of Google Maps SDK or Carto raster tiles across the main map, Report Issue modal, and Issue Detail modal. The app now runs 100% on high-performance Leaflet GIS with OpenStreetMap (multi-subdomain `a/b/c`) and automated fallback to Esri World Street Map, Esri World Imagery (Satellite), Esri Hybrid, and Esri Topographic maps.
-            * **Fixed Disappearing Controls (Z-Index Overhaul):** Elevated all GIS floating controls, layer switchers, preview cards, and category filter bars to `z-[1000]` - `z-[1002]`, ensuring they are never obscured by Leaflet tile panes or map overlays.
-            * **Instant Map Rendering:** Added multiple staggered `invalidateSize()` invocations and mobile flex container safeguards (`min-h-0`) so the map fills the screen instantly when opened with zero layout lag.
-            * **Interactive GIS Controls:** Fully functional Compass / Reset View, Layer Switcher bottom sheet, GPS live location tracking, Zoom In (+), Zoom Out (-), and live category counts across all 9 filters.
-            * **Interactive Pin Selection:** Custom category-emblem pins with status colors that open issue previews with "View Full Issue Details" action.
+            ### 🚀 Highlights & Fixes in v1.3.1:
+            * **Removed Empty Filter Banner on Map:** Removed the *"No issues found for 'All'"* banner overlay from the bottom of the map, providing a completely unobstructed, clean GIS view.
+            * **Streamlined Profile & Settings:** Removed the Municipal Admin Portal card/tab from the citizen Profile and Settings screen for a pure, citizen-focused experience.
+            * **Preserved High-Performance GIS Engine:** All multi-layer switching (Standard, Satellite, Hybrid, Terrain), high-z-index floating controls (Compass, Layers, GPS, +/-), and category filter chips continue to run smoothly on Leaflet with multi-subdomain and automated fallback support.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.0' }}/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.1' }}/app-debug.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

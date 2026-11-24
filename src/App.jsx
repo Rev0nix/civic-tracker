@@ -718,8 +718,6 @@ export default function App() {
             myIssuesCount={myIssues.length}
             upvotesReceived={upvotesReceived}
             onNavigateTab={(tab) => setActiveTab(tab)}
-            onOpenAdminPortal={() => setIsAdminModalOpen(true)}
-            isAdminActive={isAdmin}
             onLogout={handleLogout}
             onOpenAiAssistant={() => setIsAiModalOpen(true)}
             onUpdateProfile={(updated) => {

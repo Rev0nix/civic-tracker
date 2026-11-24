@@ -518,15 +518,6 @@ export default function CivicMap({
         </div>
       )}
 
-      {/* Empty State Banner if no issues match */}
-      {visibleIssues.length === 0 && (
-        <div className="absolute bottom-6 left-6 right-6 z-[1000] bg-[#192223]/90 backdrop-blur-md border border-[#354144] rounded-2xl p-3 text-center shadow-lg pointer-events-none">
-          <p className="text-xs text-[#A5B1B3] font-medium">
-            No issues found for <span className="text-[#A3DCE3] font-bold">"{selectedFilter}"</span>.
-          </p>
-        </div>
-      )}
-
       {/* Selected Issue Preview Card at bottom - High z-index [1001] */}
       {selectedPinIssue && (
         <div className="absolute bottom-4 left-3 right-3 z-[1001] bg-[#192223]/95 backdrop-blur-md border border-[#354144] rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
