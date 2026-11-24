@@ -104,15 +104,14 @@ jobs:
       - name: Sync Capacitor Android Project
         run: npx cap sync android
 
-      - name: Build Android APKs (Debug & Release)
+      - name: Build Android Release APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Verify APKs Generated
+      - name: Verify APK Generated
         run: |
-          ls -la android/app/build/outputs/apk/debug/app-debug.apk
           ls -la android/app/build/outputs/apk/release/app-release.apk
 
       - name: Publish GitHub Release
@@ -120,15 +119,15 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }} – Signed Release & Installation Fix"
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }} – Official Signed Mobile Release"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }} – Signed Release & Installation Fix
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }} – Official Signed Mobile Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
             ### ⚠️ Important Installation Note:
-            If your Android device displays *"App not installed"*, this occurs because the previously installed test build was signed with a temporary key. 
+            If your Android device displays *"App not installed"*, this occurs because any previously installed test build was signed with a temporary key. 
             **Simply uninstall the old Lokify app from your phone once**, then install this **v1.3.3 APK**. 
             This release includes a permanent, unified repository signing key and updated `versionCode` so all subsequent in-app updates will install seamlessly without needing to uninstall!
 
@@ -142,14 +141,12 @@ jobs:
 
             ---
 
-            ### 📲 Mobile App Downloads:
-            Download the Android APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }}/app-debug.apk)** (Signed Debug APK)
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }}/app-release.apk)** (Optimized Signed Release APK)
+            ### 📲 Mobile App Download:
+            Download the official signed Android release APK below:
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |
-            android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/release/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

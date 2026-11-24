@@ -40,7 +40,7 @@ export async function checkForAppUpdate() {
 
     const downloadUrl = apkAsset
       ? apkAsset.browser_download_url
-      : `https://github.com/${GITHUB_REPO}/releases/download/${latestTag}/app-debug.apk`;
+      : `https://github.com/${GITHUB_REPO}/releases/download/${latestTag}/app-release.apk`;
 
     const sizeFormatted = apkAsset
       ? `${(apkAsset.size / (1024 * 1024)).toFixed(1)} MB`
@@ -88,7 +88,7 @@ function isNewerVersion(latest, current) {
  */
 export function triggerApkInstall(downloadUrl) {
   if (!downloadUrl) {
-    downloadUrl = `https://github.com/${GITHUB_REPO}/releases/latest/download/app-debug.apk`;
+    downloadUrl = `https://github.com/${GITHUB_REPO}/releases/latest/download/app-release.apk`;
   }
 
   // Create temporary anchor to initiate native Android browser download
