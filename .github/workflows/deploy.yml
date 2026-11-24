@@ -118,24 +118,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.1' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.1' }} – Clean Map View & Streamlined Citizen Profile"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.2' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.2' }} – In-App Updater & Dedicated Lok AI Page"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.1' }} – Clean Map & Citizen Experience Release
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.2' }} – In-App Updater & Dedicated Lok AI Assistant
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Highlights & Fixes in v1.3.1:
-            * **Removed Empty Filter Banner on Map:** Removed the *"No issues found for 'All'"* banner overlay from the bottom of the map, providing a completely unobstructed, clean GIS view.
-            * **Streamlined Profile & Settings:** Removed the Municipal Admin Portal card/tab from the citizen Profile and Settings screen for a pure, citizen-focused experience.
-            * **Preserved High-Performance GIS Engine:** All multi-layer switching (Standard, Satellite, Hybrid, Terrain), high-z-index floating controls (Compass, Layers, GPS, +/-), and category filter chips continue to run smoothly on Leaflet with multi-subdomain and automated fallback support.
+            ### 🚀 Highlights & Features in v1.3.2:
+            * **In-App Direct Update & APK Installer:** Seamlessly check for updates directly from the Profile screen and automatically on launch. Download and prompt APK package installation directly within the app without manual browser searches.
+            * **Dedicated Lok AI Page ("Hey, I am Lok"):** A dedicated, interactive civic intelligence page accessible directly from the bottom navigation bar with greeting *"Hey, I am Lok"*, municipal resolution SLAs, automated routing advice, bilingual support, and one-tap report launcher.
+            * **Alerts Bell Quick Access:** Dedicated notification bell in the top mobile header for instant access to civic alerts from any tab.
+            * **GIS Map & Clean UI Improvements:** Clean map view with no obstructing empty state banners, multi-layer GIS mapping (Standard, Satellite, Hybrid, Terrain), and streamlined citizen settings.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.1' }}/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.2' }}/app-debug.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

@@ -14,6 +14,7 @@ import {
   Bot,
   Phone,
   MessageSquare,
+  DownloadCloud,
 } from 'lucide-react';
 import { getSmsHistory } from '../utils/smsService';
 
@@ -28,6 +29,7 @@ export default function ProfileScreen({
   onNavigateTab,
   onLogout,
   onOpenAiAssistant,
+  onCheckUpdate,
   onUpdateProfile,
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -92,6 +94,14 @@ export default function ProfileScreen({
       title: 'PREFERENCES & SYSTEM',
       items: [
         {
+          id: 'software-update',
+          label: 'Software Update',
+          icon: DownloadCloud,
+          subtitle: 'Version 1.3.2 · Tap to check in-app updates',
+          badge: 'v1.3.2',
+          onClick: onCheckUpdate,
+        },
+        {
           id: 'location-settings',
           label: 'Location Settings',
           icon: Compass,
@@ -107,19 +117,23 @@ export default function ProfileScreen({
         },
         {
           id: 'ai-help',
-          label: 'Lokify AI Assistant',
+          label: 'Lok AI Assistant',
           icon: Bot,
-          subtitle: 'English & Kannada guidance',
-          onClick: onOpenAiAssistant,
+          subtitle: 'Hey, I am Lok · Civic assistant',
+          badge: 'AI',
+          onClick: () => {
+            if (onOpenAiAssistant) onOpenAiAssistant();
+            else if (onNavigateTab) onNavigateTab('lok-ai');
+          },
         },
         {
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.0.0 · Production Web & Mobile',
+          subtitle: 'v1.3.2 · Production Mobile',
           onClick: () =>
             alert(
-              'Lokify v1.0.0\nModern Municipal Infrastructure Tracking Platform\nConnected to Supabase Realtime, SMS Gateway & Google Maps'
+              'Lokify v1.3.2\nSmart Municipal Grievance & Issue Tracking Platform\nConnected to Supabase Realtime, SMS Gateway & Leaflet GIS'
             ),
         },
       ],

@@ -1,4 +1,4 @@
-import { MapPin, RefreshCw, LogOut, ShieldCheck, AlertTriangle, MapPinOff, Loader2 } from 'lucide-react';
+import { MapPin, RefreshCw, LogOut, ShieldCheck, AlertTriangle, MapPinOff, Loader2, Bell } from 'lucide-react';
 import AppLogo from './AppLogo';
 
 export default function MobileAppHeader({
@@ -8,6 +8,8 @@ export default function MobileAppHeader({
   currentUser,
   onLogout,
   onOpenAdminPortal,
+  onOpenAlerts,
+  unreadAlertsCount = 0,
 }) {
   return (
     <header className="shrink-0 w-full z-40 bg-[#101819]/95 backdrop-blur-xl border-b border-[#253538] px-4 pt-3.5 pb-2.5 safe-area-pt select-none">
@@ -60,8 +62,23 @@ export default function MobileAppHeader({
           <RefreshCw size={10} className="shrink-0 text-[#758588]" />
         </button>
 
-        {/* Right: User / Admin / Logout Actions */}
+        {/* Right: User / Alerts / Logout Actions */}
         <div className="flex items-center gap-1.5">
+          {onOpenAlerts && (
+            <button
+              onClick={onOpenAlerts}
+              className="relative p-1.5 rounded-xl bg-[#192223] hover:bg-[#202B2D] border border-[#354144] text-[#A5B1B3] hover:text-[#A3DCE3] active:scale-95 transition"
+              title="Alerts & Notices"
+            >
+              <Bell size={15} />
+              {unreadAlertsCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-0.5 bg-[#EF6666] text-white text-[8px] font-mono font-bold rounded-full flex items-center justify-center ring-1 ring-[#101819]">
+                  {unreadAlertsCount > 9 ? '9+' : unreadAlertsCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {currentUser?.role === 'admin' && (
             <button
               onClick={onOpenAdminPortal}

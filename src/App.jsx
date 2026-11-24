@@ -16,8 +16,11 @@ import ReportIssueModal from './components/ReportIssueModal';
 import IssueDetailModal from './components/IssueDetailModal';
 import AdminModal from './components/AdminModal';
 import AiAssistantModal from './components/AiAssistantModal';
+import LokAiScreen from './components/LokAiScreen';
+import InAppUpdateModal from './components/InAppUpdateModal';
 import CivicMap from './components/CivicMap';
 import AppLogo from './components/AppLogo';
+import { checkForAppUpdate } from './services/appUpdater';
 import { Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
 import './App.css';
 
@@ -111,12 +114,26 @@ export default function App() {
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState(null);
   const [adminOverride, setAdminOverride] = useState(false);
   const isAdmin = currentUser?.role === 'admin' || adminOverride;
 
   // Splash Screen & Toast
   const [showSplash, setShowSplash] = useState(true);
   const [toast, setToast] = useState(null);
+
+  // Auto-check for in-app software updates after splash
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      const info = await checkForAppUpdate();
+      if (info && info.hasUpdate) {
+        setUpdateInfo(info);
+        setUpdateModalOpen(true);
+      }
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Auto-dismiss splash screen after 1.8s
   useEffect(() => {
@@ -145,6 +162,18 @@ export default function App() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   }, []);
+
+  // Manual In-App Update Trigger
+  const handleManualUpdateCheck = useCallback(async () => {
+    showToast('Checking for Lokify software updates...', 'info');
+    const info = await checkForAppUpdate();
+    if (info && info.hasUpdate) {
+      setUpdateInfo(info);
+      setUpdateModalOpen(true);
+    } else {
+      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.2'})!`, 'success');
+    }
+  }, [showToast]);
 
   // GPS Acquisition
   const acquireGPSLocation = useCallback(() => {
@@ -632,6 +661,8 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         onOpenAdminPortal={() => setIsAdminModalOpen(true)}
+        onOpenAlerts={() => setActiveTab('alerts')}
+        unreadAlertsCount={unreadAlertsCount}
         locationState={locationState}
       />
 
@@ -708,6 +739,13 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'lok-ai' && (
+          <LokAiScreen
+            onOpenReport={() => setIsReportModalOpen(true)}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+          />
+        )}
+
         {activeTab === 'profile' && (
           <ProfileScreen
             userName={currentUser?.name}
@@ -719,7 +757,8 @@ export default function App() {
             upvotesReceived={upvotesReceived}
             onNavigateTab={(tab) => setActiveTab(tab)}
             onLogout={handleLogout}
-            onOpenAiAssistant={() => setIsAiModalOpen(true)}
+            onOpenAiAssistant={() => setActiveTab('lok-ai')}
+            onCheckUpdate={handleManualUpdateCheck}
             onUpdateProfile={(updated) => {
               setCurrentUser((prev) => ({ ...prev, ...updated }));
               showToast('Profile & SMS routing updated!', 'success');
@@ -786,6 +825,13 @@ export default function App() {
       <AiAssistantModal
         isOpen={isAiModalOpen}
         onClose={() => setIsAiModalOpen(false)}
+      />
+
+      {/* In-App Software Update Modal */}
+      <InAppUpdateModal
+        isOpen={updateModalOpen}
+        onClose={() => setUpdateModalOpen(false)}
+        updateInfo={updateInfo}
       />
     </div>
   );

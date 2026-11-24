@@ -1,6 +1,6 @@
-import { Home, MapPin, Plus, Bell, User } from 'lucide-react';
+import { Home, MapPin, Plus, Bot, User } from 'lucide-react';
 
-export default function BottomNav({ activeTab, onTabChange, onOpenReport, unreadAlertsCount = 0 }) {
+export default function BottomNav({ activeTab, onTabChange, onOpenReport }) {
   return (
     <nav
       className="shrink-0 w-full z-40 bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] px-3 py-1.5 select-none relative"
@@ -47,25 +47,21 @@ export default function BottomNav({ activeTab, onTabChange, onOpenReport, unread
           <Plus size={26} strokeWidth={3} />
         </button>
 
-        {/* Tab 3: Alerts */}
+        {/* Tab 3: Dedicated Lok AI Page */}
         <button
-          onClick={() => onTabChange('alerts')}
+          onClick={() => onTabChange('lok-ai')}
           className={`relative flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
-            activeTab === 'alerts'
+            activeTab === 'lok-ai'
               ? 'text-[#A3DCE3]'
               : 'text-[#758588] hover:text-[#A5B1B3] active:scale-95'
           }`}
         >
           <div className="relative">
-            <Bell size={22} strokeWidth={activeTab === 'alerts' ? 2.5 : 1.8} />
-            {unreadAlertsCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 min-w-4 h-4 px-1 bg-[#EF6666] text-white text-[9px] font-mono font-bold rounded-full flex items-center justify-center ring-2 ring-[#101819]">
-                {unreadAlertsCount > 9 ? '9+' : unreadAlertsCount}
-              </span>
-            )}
+            <Bot size={22} strokeWidth={activeTab === 'lok-ai' ? 2.5 : 1.8} />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#43C88A] absolute -top-0.5 -right-1" />
           </div>
-          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'alerts' ? 'font-bold text-[#A3DCE3]' : ''}`}>
-            Alerts
+          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'lok-ai' ? 'font-bold text-[#A3DCE3]' : ''}`}>
+            Lok AI
           </span>
         </button>
 
