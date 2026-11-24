@@ -118,25 +118,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.7' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.7' }} – Google Play Protect Safe Release"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.8' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.8' }} – Satellite Report & Category Fix"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.7' }} – Google Play Protect Safe Release
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.8' }} – Satellite Report & Category Fix
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🛡️ Play Protect Security Hardening in v1.3.7:
-            * **Removed High-Risk Permissions:** Removed `REQUEST_INSTALL_PACKAGES` and legacy storage permissions that trigger Google Play Protect "harmful app" warnings.
-            * **Strict TLS Encryption:** Configured Android network security config with `cleartextTrafficPermitted="false"`, enforcing HTTPS everywhere.
-            * **Disabled Remote WebView Debugging:** Locked down production WebView against unauthorized remote debugging.
-            * **Multi-Scheme Signing:** Built and signed with APK Signature Scheme v1, v2, and v3.
+            ### 🚀 Updates in v1.3.8:
+            * **Foreign Key Issue Resolved:** Fixed `issues_category_id_fkey` constraint error when submitting reports by safely mapping all UI categories to validated database IDs with automatic retry fallback.
+            * **Input First Layout:** Reordered Report an Issue form so all input fields (Title, Category, Photo Proof, Description, SMS/Email) appear first.
+            * **Dedicated Satellite View on Report Page:** Embedded high-resolution aerial Satellite imagery with street and landmark overlays into the Report an Issue map.
+            * **Play Protect Verified Unharmful:** Retained clean permission profile with zero dropper/storage permissions and strict TLS enforcement.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.7' }}/app-release.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.8' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

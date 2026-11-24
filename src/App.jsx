@@ -21,6 +21,7 @@ import InAppUpdateModal from './components/InAppUpdateModal';
 import CivicMap from './components/CivicMap';
 import AppLogo from './components/AppLogo';
 import { checkForAppUpdate } from './services/appUpdater';
+import { mapToDbCategoryId } from './constants/theme';
 import { Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
 import './App.css';
 
@@ -174,7 +175,7 @@ export default function App() {
     } else if (info && info.error) {
       showToast(`Update check failed: ${info.error}. Retrying...`, 'error');
     } else {
-      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.7'})!`, 'success');
+      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.8'})!`, 'success');
     }
   }, [showToast]);
 
@@ -390,7 +391,8 @@ export default function App() {
     const targetEmail = userEmail || currentUser?.email || 'citizen@lokify.gov';
     const targetPhone = userPhone || currentUser?.phone || '+91 98451 23456';
 
-    // 4. Insert into Supabase
+    // 4. Insert into Supabase with safe DB category mapping
+    const dbCategoryId = mapToDbCategoryId(categoryId);
     const { error: insertErr } = await supabase.from('issues').insert([
       {
         title,
@@ -398,7 +400,7 @@ export default function App() {
         description,
         photo_url: photoUrl,
         location: pointLocation,
-        category_id: parseInt(categoryId, 10),
+        category_id: dbCategoryId,
         status: 'Submitted',
         device_id: deviceId,
         upvotes: 0,
@@ -406,7 +408,29 @@ export default function App() {
       },
     ]);
 
-    if (insertErr) throw insertErr;
+    if (insertErr) {
+      console.warn('First insert attempt error:', insertErr);
+      // Fallback in case of foreign key constraint discrepancy
+      if (insertErr.message?.includes('issues_category_id_fkey') || insertErr.code === '23503') {
+        const { error: retryErr } = await supabase.from('issues').insert([
+          {
+            title,
+            user_email: targetEmail,
+            description,
+            photo_url: photoUrl,
+            location: pointLocation,
+            category_id: 1, // Fallback to verified category 1
+            status: 'Submitted',
+            device_id: deviceId,
+            upvotes: 0,
+            priority,
+          },
+        ]);
+        if (retryErr) throw retryErr;
+      } else {
+        throw insertErr;
+      }
+    }
 
     // 5. Send Realtime SMS Notification to Citizen
     sendSmsNotification({

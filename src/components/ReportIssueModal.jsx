@@ -20,8 +20,9 @@ import {
 import L from 'leaflet';
 import {
   reverseGeocodeUnified,
-  LOKIFY_DARK_TILE_URL,
-  LOKIFY_TILE_ATTRIBUTION,
+  LOKIFY_SATELLITE_TILE_URL,
+  LOKIFY_SATELLITE_LABELS_URL,
+  LOKIFY_SATELLITE_ATTRIBUTION,
   createLeafletSvgIconHtml,
 } from '../services/mapEngine';
 
@@ -133,15 +134,21 @@ export default function ReportIssueModal({
       try {
         const lmap = L.map(mapContainerRef.current, {
           center: [initial.lat, initial.lng],
-          zoom: 16,
+          zoom: 17,
           zoomControl: false,
         });
 
-        L.tileLayer(LOKIFY_DARK_TILE_URL, {
-          attribution: LOKIFY_TILE_ATTRIBUTION,
+        // 1. High-resolution Satellite Imagery (report page only)
+        L.tileLayer(LOKIFY_SATELLITE_TILE_URL, {
+          attribution: LOKIFY_SATELLITE_ATTRIBUTION,
           maxZoom: 19,
-          subdomains: ['a', 'b', 'c'],
         }).addTo(lmap);
+
+        // 2. High-contrast road & place label overlay on satellite
+        L.tileLayer(LOKIFY_SATELLITE_LABELS_URL, {
+          maxZoom: 19,
+        }).addTo(lmap);
+
         leafletMapRef.current = lmap;
 
         const icon = L.divIcon({
@@ -371,19 +378,74 @@ export default function ReportIssueModal({
             </div>
           </div>
 
-          {/* 4. GPS Location Map */}
+          {/* 4. Description with Character Counter */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3]">
+                Description
+              </label>
+              <span
+                className={`text-[11px] font-mono ${
+                  description.length >= 480 ? 'text-[#EF6666]' : 'text-[#758588]'
+                }`}
+              >
+                {description.length}/500
+              </span>
+            </div>
+            <textarea
+              placeholder="Describe the problem, safety hazards, or landmark details..."
+              maxLength={500}
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] placeholder-[#758588] text-sm p-3.5 rounded-xl focus:outline-none transition leading-relaxed"
+            />
+          </div>
+
+          {/* 5. Notifications Binding: Phone (SMS) & Gmail */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] block mb-1.5 flex items-center gap-1">
+                <Phone size={12} className="text-[#A3DCE3]" />
+                <span>SMS Alerts Phone</span>
+              </label>
+              <input
+                type="tel"
+                placeholder="Mobile number for SMS"
+                value={userPhone}
+                onChange={(e) => setUserPhone(e.target.value)}
+                className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-xs text-[#F0F4F4] placeholder-[#758588] px-3.5 py-2.5 rounded-xl focus:outline-none transition font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] block mb-1.5 flex items-center gap-1">
+                <Mail size={12} className="text-[#A3DCE3]" />
+                <span>Resolution Email</span>
+              </label>
+              <input
+                type="email"
+                placeholder="Email for dispatch notification"
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
+                className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-xs text-[#F0F4F4] placeholder-[#758588] px-3.5 py-2.5 rounded-xl focus:outline-none transition font-medium"
+              />
+            </div>
+          </div>
+
+          {/* 6. Issue Location & Satellite Map Tab */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] flex items-center gap-1.5">
                 <MapPin size={13} className="text-[#A3DCE3]" />
                 <span>Issue Location & Map Pin <span className="text-[#EF6666]">*</span></span>
               </label>
-              <span className="text-[10px] font-mono text-[#758588]">
-                GPS Locked
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#112C20] text-[#43C88A] border border-[#1D5C3F]">
+                SATELLITE VIEW
               </span>
             </div>
 
-            {/* Interactive Map Canvas */}
+            {/* Interactive Satellite Map Canvas */}
             <div className="relative w-full h-52 sm:h-60 rounded-2xl overflow-hidden border border-[#354144] bg-[#080F0F] mb-1 shadow-lg">
               <div ref={mapContainerRef} className="w-full h-full" />
 
@@ -413,61 +475,6 @@ export default function ReportIssueModal({
                   </span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* 5. Description with Character Counter */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3]">
-                Description
-              </label>
-              <span
-                className={`text-[11px] font-mono ${
-                  description.length >= 480 ? 'text-[#EF6666]' : 'text-[#758588]'
-                }`}
-              >
-                {description.length}/500
-              </span>
-            </div>
-            <textarea
-              placeholder="Describe the problem, safety hazards, or landmark details..."
-              maxLength={500}
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] placeholder-[#758588] text-sm p-3.5 rounded-xl focus:outline-none transition leading-relaxed"
-            />
-          </div>
-
-          {/* 6. Notifications Binding: Phone (SMS) & Gmail */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] block mb-1.5 flex items-center gap-1">
-                <Phone size={12} className="text-[#A3DCE3]" />
-                <span>SMS Alerts Phone</span>
-              </label>
-              <input
-                type="tel"
-                placeholder="Mobile number for SMS"
-                value={userPhone}
-                onChange={(e) => setUserPhone(e.target.value)}
-                className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-xs text-[#F0F4F4] placeholder-[#758588] px-3.5 py-2.5 rounded-xl focus:outline-none transition font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B1B3] block mb-1.5 flex items-center gap-1">
-                <Mail size={12} className="text-[#A3DCE3]" />
-                <span>Resolution Email</span>
-              </label>
-              <input
-                type="email"
-                placeholder="Email for dispatch notification"
-                value={userEmail}
-                onChange={(e) => setUserEmail(e.target.value)}
-                className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-xs text-[#F0F4F4] placeholder-[#758588] px-3.5 py-2.5 rounded-xl focus:outline-none transition font-medium"
-              />
             </div>
           </div>
 

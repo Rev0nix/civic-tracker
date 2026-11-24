@@ -9,6 +9,14 @@ export const LOKIFY_DARK_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/
 export const LOKIFY_TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
+// High-resolution Satellite Imagery & Hybrid Labels for Report Screen
+export const LOKIFY_SATELLITE_TILE_URL =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+export const LOKIFY_SATELLITE_LABELS_URL =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
+export const LOKIFY_SATELLITE_ATTRIBUTION =
+  'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics';
+
 export interface MapLayerConfig {
   id: 'standard' | 'satellite' | 'hybrid' | 'terrain';
   name: string;

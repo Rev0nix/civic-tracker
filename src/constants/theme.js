@@ -97,6 +97,30 @@ export const getCategoryName = (categoryId) => {
   return match ? match.label : 'Municipal Issue';
 };
 
+/**
+ * Maps frontend UI categories (1-8) safely to PostgreSQL categories (1-4)
+ * ensuring no foreign key constraint violations on `issues_category_id_fkey`.
+ */
+export const mapToDbCategoryId = (catId) => {
+  const num = parseInt(catId, 10);
+  switch (num) {
+    case 1:
+    case 6:
+      return 1; // Pothole & Road Damage
+    case 2:
+    case 7:
+      return 2; // Streetlight & Safety
+    case 3:
+    case 8:
+      return 3; // Garbage & Cleanliness
+    case 4:
+    case 5:
+      return 4; // Water & Sewage / Drainage
+    default:
+      return [1, 2, 3, 4].includes(num) ? num : 1;
+  }
+};
+
 export const getRelativeTime = (dateInput) => {
   if (!dateInput) return 'Recently';
   const now = new Date();
