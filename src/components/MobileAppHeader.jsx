@@ -1,13 +1,11 @@
-import { MapPin, RefreshCw, LogOut, ShieldCheck, AlertTriangle, MapPinOff, Loader2, Bell } from 'lucide-react';
+import { MapPin, RefreshCw, LogOut, AlertTriangle, MapPinOff, Loader2, Bell } from 'lucide-react';
 import AppLogo from './AppLogo';
 
 export default function MobileAppHeader({
   currentLocality,
   locationState = 'found',
   onRefreshLocation,
-  isAdmin = false,
   onLogout,
-  onOpenAdminPortal,
   onOpenAlerts,
   unreadAlertsCount = 0,
 }) {
@@ -62,7 +60,7 @@ export default function MobileAppHeader({
           <RefreshCw size={10} className="shrink-0 text-[#758588]" />
         </button>
 
-        {/* Right: User / Alerts / Logout Actions */}
+        {/* Right: Alerts & Logout Actions (2nd button removed) */}
         <div className="flex items-center gap-1.5">
           {onOpenAlerts && (
             <button
@@ -78,22 +76,6 @@ export default function MobileAppHeader({
               )}
             </button>
           )}
-
-          {/* Ward Officer Admin Toggle */}
-          <button
-            onClick={onOpenAdminPortal}
-            className={`p-1.5 rounded-xl border active:scale-95 transition relative ${
-              isAdmin
-                ? 'bg-[#132B2F] border-[#43C88A] text-[#43C88A] ring-1 ring-[#43C88A]/30'
-                : 'bg-[#192223] border-[#354144] text-[#758588] hover:text-[#A3DCE3]'
-            }`}
-            title={isAdmin ? 'Ward Officer Active (Tap to toggle)' : 'Unlock Ward Officer Mode'}
-          >
-            <ShieldCheck size={16} />
-            {isAdmin && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#43C88A] ring-1 ring-[#101819]" />
-            )}
-          </button>
 
           <button
             onClick={onLogout}

@@ -1,9 +1,14 @@
 // Lokify In-App Updater Engine
 // Multi-source resilient update checker for Android and Web
-// Downloads and installs APK directly within the app without opening external browsers.
+// Downloads and installs APK directly within the app without opening any external browser.
 
-export const CURRENT_APP_VERSION = '1.3.9';
+import { registerPlugin, Capacitor } from '@capacitor/core';
+
+export const CURRENT_APP_VERSION = '1.4.0';
 export const GITHUB_REPO = 'Rev0nix/civic-tracker';
+
+// Register native Android plugin proxy via official Capacitor bridge
+export const LokifyNativeUpdater = registerPlugin('LokifyNativeUpdater');
 
 /**
  * Checks multiple endpoints (raw GitHub, jsDelivr, GitHub API) to guarantee
@@ -128,7 +133,7 @@ export async function checkForAppUpdate() {
 }
 
 /**
- * Compares two semantic version strings (e.g. "1.3.6" vs "1.3.4")
+ * Compares two semantic version strings (e.g. "1.3.9" vs "1.3.8")
  */
 export function isNewerVersion(latest, current) {
   if (!latest || !current) return false;
@@ -158,72 +163,57 @@ export async function downloadAndInstallApkInApp(updateInfo, onProgress) {
     `https://github.com/${GITHUB_REPO}/releases/latest/download/app-release.apk`;
   const cleanVersion = (updateInfo?.latestVersion || 'latest').replace(/^v/, '');
 
-  // 1. Android Native Capacitor Engine
-  try {
-    const nativeUpdater =
-      window.Capacitor?.Plugins?.LokifyNativeUpdater ||
-      (window.Capacitor?.isPluginAvailable &&
-        window.Capacitor.isPluginAvailable('LokifyNativeUpdater') &&
-        window.Capacitor.Plugins.LokifyNativeUpdater);
-
-    if (nativeUpdater) {
-      let listenerHandle = null;
-      if (typeof nativeUpdater.addListener === 'function') {
-        listenerHandle = await nativeUpdater.addListener('downloadProgress', (data) => {
+  // 1. Android Native Capacitor Engine (Strictly In-App)
+  if (Capacitor.isNativePlatform()) {
+    let listenerHandle = null;
+    try {
+      if (typeof LokifyNativeUpdater.addListener === 'function') {
+        listenerHandle = await LokifyNativeUpdater.addListener('downloadProgress', (data) => {
           if (onProgress && typeof onProgress === 'function') {
             onProgress(data.progress || 0, data.downloadedBytes || 0, data.totalBytes || 0);
           }
         });
       }
 
-      const res = await nativeUpdater.downloadAndInstall({
+      const res = await LokifyNativeUpdater.downloadAndInstall({
         url: downloadUrl,
         version: cleanVersion,
       });
 
-      if (listenerHandle && typeof listenerHandle.remove === 'function') {
-        listenerHandle.remove();
-      }
-
       return {
         success: true,
         inApp: true,
-        message: 'Native installer opened in-app',
+        message: 'Package installer launched in-app',
         res,
       };
+    } catch (nativeErr) {
+      console.error('Lokify native in-app installer failed:', nativeErr);
+      throw nativeErr;
+    } finally {
+      if (listenerHandle && typeof listenerHandle.remove === 'function') {
+        listenerHandle.remove();
+      }
     }
-  } catch (err) {
-    console.warn('Native in-app updater error, evaluating fallback:', err);
   }
 
-  // 2. Browser / Progressive fallback (Never leaves or opens external browser window)
+  // 2. Web / Browser fallback (Streams in-app, never navigates away or launches external tabs)
   try {
-    if (onProgress) onProgress(15, 0, 0);
+    if (onProgress) onProgress(20, 0, 0);
 
     const stepInterval = setInterval(() => {
       if (onProgress) {
-        onProgress((prev) => (prev >= 90 ? 90 : (prev || 15) + 20));
+        onProgress((prev) => (prev >= 90 ? 90 : (prev || 20) + 20));
       }
     }, 250);
 
-    // Create an invisible download trigger in DOM without navigating the active window
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = `lokify-v${cleanVersion}.apk`;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     clearInterval(stepInterval);
-    if (document.body.contains(link)) document.body.removeChild(link);
-
     if (onProgress) onProgress(100, 0, 0);
 
     return {
       success: true,
       inApp: true,
-      message: 'Update download triggered in-app',
+      message: 'In-app update ready',
     };
   } catch (err) {
     return {

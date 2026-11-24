@@ -1,11 +1,11 @@
 package com.rev0nix.civictrack
 
-import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.getcapacitor.JSObject
@@ -22,8 +22,8 @@ import kotlin.concurrent.thread
 
 /**
  * Native Android In-App APK Downloader and Installer for Lokify
- * Downloads APK directly within the app without opening an external browser,
- * and launches the Android system package installer.
+ * Downloads APK directly within the app without opening any external browser,
+ * and launches the Android system package installer on screen.
  */
 @CapacitorPlugin(name = "LokifyNativeUpdater")
 class LokifyNativeUpdaterPlugin : Plugin() {
@@ -47,7 +47,7 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             return
         }
 
-        Log.i(TAG, "Starting native in-app APK download for version $version from $downloadUrl")
+        Log.i(TAG, "Starting strictly in-app APK download for version $version from $downloadUrl")
 
         // Run download on background thread to keep UI completely smooth
         thread {
@@ -56,27 +56,6 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             var outputStream: FileOutputStream? = null
 
             try {
-                // Also enqueue to Android DownloadManager so it is recorded in system downloads
-                try {
-                    val dm = activity.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
-                    if (dm != null) {
-                        val req = DownloadManager.Request(Uri.parse(downloadUrl)).apply {
-                            setTitle("Lokify v$version Update")
-                            setDescription("Lokify municipal app update package")
-                            setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                            setDestinationInExternalPublicDir(
-                                Environment.DIRECTORY_DOWNLOADS,
-                                "lokify-v$version.apk"
-                            )
-                            setMimeType("application/vnd.android.package-archive")
-                        }
-                        dm.enqueue(req)
-                        Log.i(TAG, "Enqueued update to Android system DownloadManager")
-                    }
-                } catch (dmEx: Exception) {
-                    Log.w(TAG, "DownloadManager enqueue skipped: ${dmEx.message}")
-                }
-
                 // Follow HTTP 301/302 redirects (e.g. GitHub Releases -> Azure/S3 storage)
                 var currentUrl = downloadUrl
                 var redirectCount = 0
@@ -107,10 +86,10 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                 }
 
                 val totalBytes = connection?.contentLengthLong ?: -1L
-                inputStream = connection?.inputStream ?: throw IllegalStateException("Failed to open connection stream")
+                inputStream = connection?.inputStream ?: throw IllegalStateException("Failed to open download stream from $currentUrl")
 
-                // Target destination in app's private external or cache dir (mapped in FileProvider)
-                val targetDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: activity.cacheDir
+                // Target destination in app's cache directory (always writable, mapped in FileProvider)
+                val targetDir = activity.cacheDir
                 if (!targetDir.exists()) {
                     targetDir.mkdirs()
                 }
@@ -132,7 +111,7 @@ class LokifyNativeUpdaterPlugin : Plugin() {
 
                     if (totalBytes > 0) {
                         val percent = ((totalBytesRead * 100) / totalBytes).toInt()
-                        if (percent - lastReportedPercent >= 5 || percent >= 100) {
+                        if (percent - lastReportedPercent >= 4 || percent >= 100) {
                             lastReportedPercent = percent
                             val progressData = JSObject().apply {
                                 put("progress", percent)
@@ -145,8 +124,9 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                     }
                 }
                 outputStream.flush()
+                apkFile.setReadable(true, false)
 
-                Log.i(TAG, "APK download complete: ${apkFile.absolutePath} ($totalBytesRead bytes)")
+                Log.i(TAG, "In-app APK download finished: ${apkFile.absolutePath} ($totalBytesRead bytes)")
 
                 // Notify final 100% progress
                 val completeData = JSObject().apply {
@@ -157,9 +137,19 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                 }
                 notifyListeners("downloadProgress", completeData)
 
-                // Launch Android Package Installer immediately in-app
+                // Launch Android Package Installer strictly in-app
                 activity.runOnUiThread {
                     try {
+                        // Check if Android 8+ requires permission to install from this source
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
+                            Log.i(TAG, "Requesting unknown sources permission for Lokify")
+                            val permissionIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                data = Uri.parse("package:${activity.packageName}")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            activity.startActivity(permissionIntent)
+                        }
+
                         val authority = "${activity.packageName}.fileprovider"
                         val contentUri = FileProvider.getUriForFile(activity, authority, apkFile)
 
@@ -169,13 +159,13 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
 
-                        Log.i(TAG, "Launching Android package installer for URI: $contentUri")
+                        Log.i(TAG, "Launching Android package installer in-app for URI: $contentUri")
                         activity.startActivity(installIntent)
 
                         call.resolve(JSObject().apply {
                             put("success", true)
                             put("filePath", apkFile.absolutePath)
-                            put("message", "Package installer launched in-app successfully")
+                            put("message", "Android package installer prompt launched in-app")
                         })
                     } catch (installErr: Exception) {
                         Log.e(TAG, "Failed to launch package installer", installErr)

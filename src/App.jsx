@@ -162,7 +162,6 @@ export default function App() {
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
   }, []);
 
   // Manual In-App Update Trigger
@@ -681,21 +680,11 @@ export default function App() {
       {/* Live Carrier SMS Heads-Up Notification Banner */}
       <SmsBanner />
 
-      {/* Pure Mobile Application Header */}
+      {/* Pure Mobile Application Header (Clean Top Right: Alerts & Logout Only) */}
       <MobileAppHeader
         currentLocality={currentLocality}
         onRefreshLocation={acquireGPSLocation}
-        currentUser={currentUser}
-        isAdmin={isAdmin}
         onLogout={handleLogout}
-        onOpenAdminPortal={() => {
-          if (isAdmin) {
-            setAdminOverride(false);
-            showToast('Exited Ward Officer Mode. Now in Citizen View.', 'info');
-          } else {
-            setIsAdminModalOpen(true);
-          }
-        }}
         onOpenAlerts={() => {
           if (activeTab !== 'alerts') setPreviousTab(activeTab);
           setActiveTab('alerts');
@@ -704,25 +693,55 @@ export default function App() {
         locationState={locationState}
       />
 
-      {/* Floating Toast Notification */}
+      {/* Centered Screen Modal Notification Popup with OK Button */}
       {toast && (
         <div
-          className={`fixed top-14 left-4 right-4 max-w-sm mx-auto z-50 p-3.5 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-top-3 duration-300 ${
-            toast.type === 'success'
-              ? 'bg-[#112C20] border-[#1D5C3F] text-[#43C88A]'
-              : toast.type === 'error'
-              ? 'bg-[#321616] border-[#5C2424] text-[#EF6666]'
-              : 'bg-[#192223] border-[#354144] text-[#A3DCE3]'
-          }`}
+          className="fixed inset-0 z-50 bg-[#080F0F]/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 select-none"
+          onClick={() => setToast(null)}
         >
-          {toast.type === 'success' ? (
-            <CheckCircle2 size={18} className="shrink-0" />
-          ) : toast.type === 'error' ? (
-            <AlertTriangle size={18} className="shrink-0" />
-          ) : (
-            <Bell size={18} className="shrink-0" />
-          )}
-          <span className="text-xs font-mono font-medium leading-relaxed">{toast.message}</span>
+          <div
+            className={`border rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center flex flex-col items-center gap-3 animate-in zoom-in-95 duration-200 ${
+              toast.type === 'success'
+                ? 'bg-[#101819] border-[#1D5C3F]'
+                : toast.type === 'error'
+                ? 'bg-[#101819] border-[#5C2424]'
+                : 'bg-[#101819] border-[#28616A]'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${
+                toast.type === 'success'
+                  ? 'bg-[#112C20] text-[#43C88A] border border-[#1D5C3F]'
+                  : toast.type === 'error'
+                  ? 'bg-[#321616] text-[#EF6666] border border-[#5C2424]'
+                  : 'bg-[#132B2F] text-[#A3DCE3] border border-[#28616A]'
+              }`}
+            >
+              {toast.type === 'success' ? (
+                <CheckCircle2 size={26} />
+              ) : toast.type === 'error' ? (
+                <AlertTriangle size={26} />
+              ) : (
+                <Bell size={26} />
+              )}
+            </div>
+
+            <h3 className="text-sm font-bold font-mono text-[#F0F4F4]">
+              {toast.type === 'success' ? 'Success Notification' : toast.type === 'error' ? 'Notice / Alert' : 'Notification'}
+            </h3>
+
+            <p className="text-xs font-mono text-[#A5B1B3] leading-relaxed">
+              {toast.message}
+            </p>
+
+            <button
+              onClick={() => setToast(null)}
+              className="w-full mt-2 bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] font-bold text-xs py-3.5 rounded-2xl transition active:scale-95 font-mono shadow-lg shadow-[#A3DCE3]/20"
+            >
+              OK
+            </button>
+          </div>
         </div>
       )}
 

@@ -26,7 +26,7 @@ export default function InAppUpdateModal({
   const handleStartInAppUpdate = async () => {
     setDownloading(true);
     setDownloadProgress(10);
-    setDownloadStatusText('Connecting to Lokify update engine...');
+    setDownloadStatusText('Connecting to in-app update service...');
     setErrorMessage('');
 
     try {
@@ -42,12 +42,12 @@ export default function InAppUpdateModal({
               const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
               setDownloadStatusText(`Receiving package: ${dlMb} MB / ${totalMb} MB...`);
             } else {
-              setDownloadStatusText('Streaming update package...');
+              setDownloadStatusText('Streaming update package in-app...');
             }
           } else if (progress < 100) {
             setDownloadStatusText('Verifying package integrity...');
           } else {
-            setDownloadStatusText('Launching Android Package Installer in-app...');
+            setDownloadStatusText('Launching Android Package Installer on screen...');
           }
         }
       );
@@ -56,21 +56,21 @@ export default function InAppUpdateModal({
         setDownloadProgress(100);
         setDownloading(false);
         setDownloadComplete(true);
-        setDownloadStatusText('Installer prompt launched! Follow screen prompt to finish.');
+        setDownloadStatusText('Installer prompt launched! Tap Install on screen.');
       } else {
         throw new Error(result?.error || 'Update failed to download in-app');
       }
     } catch (err) {
       console.error('In-app update failure:', err);
       setDownloading(false);
-      setErrorMessage(err.message || 'Failed to download update in-app. Tap to retry.');
+      setErrorMessage(err.message || 'Failed to complete update in-app. Tap to retry.');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#080F0F]/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-[#080F0F]/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div
-        className="bg-[#101819] border border-[#354144] rounded-t-3xl sm:rounded-3xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-4 relative animate-in slide-in-from-bottom-4 duration-250 select-none"
+        className="bg-[#101819] border border-[#354144] rounded-3xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-4 relative animate-in zoom-in-95 duration-200 select-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
@@ -81,13 +81,13 @@ export default function InAppUpdateModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-[#F0F4F4]">In-App Software Update</h3>
+                <h3 className="text-base font-bold text-[#F0F4F4]">Software Update</h3>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#112C20] text-[#43C88A] border border-[#1D5C3F]">
-                  READY
+                  IN-APP
                 </span>
               </div>
               <p className="text-xs text-[#A5B1B3] mt-0.5 font-mono">
-                Lokify {updateInfo.latestVersion} (Zero browser redirect)
+                Lokify {updateInfo.latestVersion}
               </p>
             </div>
           </div>
@@ -134,7 +134,7 @@ export default function InAppUpdateModal({
             <div className="flex items-center justify-between text-xs font-mono">
               <span className="text-[#A3DCE3] flex items-center gap-1.5 truncate">
                 <Loader2 size={12} className="animate-spin text-[#A3DCE3] shrink-0" />
-                <span>{downloadStatusText || 'Downloading update...'}</span>
+                <span>{downloadStatusText || 'Downloading update in-app...'}</span>
               </span>
               <span className="text-[#F0F4F4] font-bold shrink-0 ml-2">{downloadProgress}%</span>
             </div>
@@ -145,7 +145,7 @@ export default function InAppUpdateModal({
               />
             </div>
             <p className="text-[10px] font-mono text-[#758588] text-center">
-              Downloading directly inside app · No external browser opened
+              Direct In-App download · Stays inside Lokify
             </p>
           </div>
         )}
@@ -167,11 +167,11 @@ export default function InAppUpdateModal({
             <div>
               <p className="font-bold text-sm">Package Ready to Install!</p>
               <p className="text-[#A5B1B3] text-[11px] mt-1 leading-relaxed font-sans">
-                The package installer was launched. If your screen prompted "Do you want to update this app?", tap <strong>Update</strong> to complete.
+                The package installer was launched directly on screen. Tap <strong>Update</strong> to complete.
               </p>
               <div className="flex items-center gap-1.5 mt-2 text-[10px] text-[#A3DCE3] font-mono">
                 <ShieldCheck size={12} />
-                <span>100% In-App · Official Lokify Release</span>
+                <span>100% In-App · No Browser Redirection</span>
               </div>
             </div>
           </div>
@@ -186,26 +186,27 @@ export default function InAppUpdateModal({
               className="w-full bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] text-xs font-bold py-3.5 px-4 rounded-2xl transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-[#A3DCE3]/20 disabled:opacity-50"
             >
               <DownloadCloud size={16} />
-              <span>{downloading ? 'Downloading In-App...' : 'Download & Install In-App'}</span>
+              <span>{downloading ? 'Downloading In-App...' : 'Update Lokify Now (In-App)'}</span>
             </button>
           ) : (
             <button
-              onClick={handleStartInAppUpdate}
-              className="w-full bg-[#192223] hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] hover:border-[#A3DCE3] text-xs font-bold py-3 px-4 rounded-2xl transition active:scale-[0.98] flex items-center justify-center gap-2"
+              onClick={onClose}
+              className="w-full bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] font-bold text-xs py-3 px-4 rounded-2xl transition active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              <DownloadCloud size={15} />
-              <span>Launch Package Installer Again</span>
+              <span>OK</span>
             </button>
           )}
 
-          <div className="flex items-center justify-center pt-1">
-            <button
-              onClick={onClose}
-              className="text-xs text-[#758588] hover:text-[#A5B1B3] font-mono py-1.5 transition"
-            >
-              {downloadComplete ? 'Done' : 'Maybe Later'}
-            </button>
-          </div>
+          {!downloadComplete && (
+            <div className="flex items-center justify-center pt-1">
+              <button
+                onClick={onClose}
+                className="text-xs text-[#758588] hover:text-[#A5B1B3] font-mono py-1.5 transition"
+              >
+                Maybe Later
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -118,25 +118,24 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.9' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.9' }} – In-Card Admin Controls & In-App APK Updater"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.0' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.0' }} – Direct In-App Updater & Centered Notifications"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.9' }} – In-Card Admin Controls & In-App APK Updater
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.0' }} – Direct In-App Updater & Centered Notifications
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Updates in v1.3.9:
-            * **Report Card Admin Controls:** Municipal authority controls (updating status to Open, In Progress, Resolved, sending SMS notifications to citizens, direct phone/SMS outreach, and report deletion) are now embedded directly inside each report card's detail view when accessed by an officer.
-            * **Removed Standalone Admin Control Center:** Eliminated the bulky separate admin modal; all reports are inspected and managed directly as report cards.
-            * **Direct In-App APK Updater:** In-app updates now stream and download within the application without opening external web browsers, launching Android's package installer directly on screen.
-            * **Play Protect Verified Unharmful:** Signed with v1, v2, and v3 schemes with clean permissions and zero harmful flags.
+            ### 🚀 Updates in v1.4.0:
+            * **Direct In-App APK Updater:** Updates strictly stream and download in the app without opening any external browser or navigating away, directly launching Android's system installer.
+            * **Centered Screen Notifications:** All notification popups (success, alerts, carrier SMS) appear centered with a dedicated OK button to dismiss.
+            * **Clean Header:** Removed redundant 2nd button at the top right corner; all officer controls reside directly within individual report cards.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.9' }}/app-release.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.0' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |
