@@ -76,13 +76,13 @@ export default function FeedScreen({
   }, [issues, activeCategory, activeStatus, searchQuery, addresses]);
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 w-full">
+    <div className="h-full w-full overflow-y-auto overscroll-contain bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 no-scrollbar">
       {/* Mobile App Screen Header */}
       <header className="mb-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black tracking-tight text-[#F0F4F4] font-mono">
-              Civic Feed
+              Lokify Feed
             </h1>
             <p className="text-[11px] font-mono text-[#758588]">
               Ward defects & infrastructure updates

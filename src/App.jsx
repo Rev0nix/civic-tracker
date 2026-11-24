@@ -18,7 +18,7 @@ import AdminModal from './components/AdminModal';
 import AiAssistantModal from './components/AiAssistantModal';
 import CivicMap from './components/CivicMap';
 import AppLogo from './components/AppLogo';
-import { Bell, CheckCircle2, AlertTriangle, MapPin } from 'lucide-react';
+import { Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
 import './App.css';
 
 // Initial reference alerts
@@ -405,7 +405,7 @@ export default function App() {
   const handleShare = async (issue) => {
     const shareData = {
       title: issue.title,
-      text: `Lokify Civic Report: ${issue.title} (Status: ${issue.status})`,
+      text: `Lokify Municipal Report: ${issue.title} (Status: ${issue.status})`,
       url: window.location.href,
     };
 
@@ -565,7 +565,7 @@ export default function App() {
   // If user is not logged in, enforce the Login Screen for both Web & App!
   if (!currentUser) {
     return (
-      <div className="bg-[#080F0F] min-h-screen text-[#F0F4F4]">
+      <div className="fixed inset-0 w-full h-[100dvh] max-w-md mx-auto bg-[#080F0F] text-[#F0F4F4] font-sans flex flex-col overflow-hidden select-none">
         {/* Animated Startup Splash Screen */}
         {showSplash && (
           <div className="fixed inset-0 z-50 bg-[#080F0F] flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in duration-300">
@@ -574,7 +574,7 @@ export default function App() {
               LOKIFY
             </h1>
             <p className="text-xs font-mono text-[#A5B1B3] tracking-widest uppercase">
-              Civic Issue Reporting & Municipal Tracking
+              Smart Municipal Grievance & Issue Tracking
             </p>
           </div>
         )}
@@ -599,7 +599,7 @@ export default function App() {
   }
 
   return (
-    <div className="bg-[#080F0F] text-[#F0F4F4] min-h-screen relative font-sans flex flex-col max-w-md mx-auto shadow-2xl overflow-x-hidden border-x border-[#1a2528]/40 pb-20 select-none">
+    <div className="fixed inset-0 w-full h-[100dvh] max-w-md mx-auto bg-[#080F0F] text-[#F0F4F4] font-sans flex flex-col overflow-hidden border-x border-[#1a2528]/40 select-none">
       {/* Live Carrier SMS Heads-Up Notification Banner */}
       <SmsBanner />
 
@@ -635,7 +635,7 @@ export default function App() {
       )}
 
       {/* Active Tab Screen */}
-      <main className="flex-1 w-full px-0">
+      <main className="flex-1 w-full overflow-hidden relative">
         {activeTab === 'feed' && (
           <FeedScreen
             issues={issues}
@@ -652,31 +652,14 @@ export default function App() {
         )}
 
         {activeTab === 'map' && (
-          <div className="p-2 space-y-2">
-            <div className="flex items-center justify-between px-2 pt-1">
-              <div>
-                <h2 className="text-lg font-black font-mono tracking-tight text-[#F0F4F4]">
-                  Civic GIS Radar
-                </h2>
-                <span className="text-[10px] font-mono text-[#A3DCE3]">
-                  Dual Engine • Key: 016089-E20F62-171E41
-                </span>
-              </div>
-              <button
-                onClick={acquireGPSLocation}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] text-xs font-mono font-semibold"
-              >
-                <MapPin size={13} className="text-[#43C88A]" />
-                <span>Locate</span>
-              </button>
-            </div>
+          <div className="h-full w-full relative">
             <CivicMap
               latitude={userLocation?.lat}
               longitude={userLocation?.lng}
               issues={issues}
               addresses={addresses}
               onSelectIssue={(issue) => setSelectedIssue(issue)}
-              height="h-[calc(100vh-170px)]"
+              height="h-full"
             />
           </div>
         )}
@@ -777,7 +760,7 @@ export default function App() {
         }}
       />
 
-      {/* Multilingual Civic AI Assistant */}
+      {/* Multilingual Lokify AI Assistant */}
       <AiAssistantModal
         isOpen={isAiModalOpen}
         onClose={() => setIsAiModalOpen(false)}

@@ -14,10 +14,10 @@ export const LOKIFY_TILE_ATTRIBUTION =
 const ENGINE_STORAGE_KEY = 'lokify_preferred_map_engine';
 
 export function getPreferredMapEngine(): MapEngineMode {
-  if (typeof window === 'undefined') return 'google';
+  if (typeof window === 'undefined') return 'leaflet';
   const saved = localStorage.getItem(ENGINE_STORAGE_KEY);
   if (saved === 'leaflet' || saved === 'google') return saved;
-  return 'google';
+  return 'leaflet';
 }
 
 export function setPreferredMapEngine(mode: MapEngineMode): void {

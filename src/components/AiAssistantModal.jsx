@@ -6,7 +6,7 @@ export default function AiAssistantModal({ isOpen, onClose }) {
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: 'Namaste! I am your Lokify Civic Assistant. Ask me about issue statuses, municipal guidelines, or reporting timelines in English or Kannada.',
+      text: 'Namaste! I am your Lokify Municipal Assistant. Ask me about issue statuses, municipal guidelines, or reporting timelines in English or Kannada.',
     },
   ]);
 
@@ -56,7 +56,7 @@ export default function AiAssistantModal({ isOpen, onClose }) {
               <Bot size={18} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-[#F0F4F4]">Lokify Civic AI</h3>
+              <h3 className="text-sm font-bold text-[#F0F4F4]">Lokify AI Assistant</h3>
               <span className="text-[11px] font-mono text-[#A3DCE3] flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#43C88A] inline-block animate-pulse" />
                 Multilingual Support (EN / KN)

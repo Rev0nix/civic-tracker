@@ -180,7 +180,7 @@ export default function AuthScreen({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] flex flex-col justify-between items-center px-4 py-6 relative select-none w-full max-w-md mx-auto">
+    <div className="h-full w-full overflow-y-auto overscroll-contain bg-[#080F0F] text-[#F0F4F4] flex flex-col justify-between items-center px-4 py-6 relative select-none max-w-md mx-auto no-scrollbar">
       {/* Background ambient lighting */}
       <div className="absolute top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#132B2F] rounded-full blur-[100px] pointer-events-none opacity-40" />
 

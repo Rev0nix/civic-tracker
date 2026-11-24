@@ -3,7 +3,7 @@ import { Home, MapPin, Plus, Bell, User } from 'lucide-react';
 export default function BottomNav({ activeTab, onTabChange, onOpenReport, unreadAlertsCount = 0 }) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] px-3 py-1.5 safe-area-pb select-none"
+      className="shrink-0 w-full z-40 bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] px-3 py-1.5 select-none relative"
       aria-label="Mobile Navigation"
     >
       <div className="max-w-md mx-auto flex items-center justify-between">

@@ -116,26 +116,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.6' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.6' }} – Pure Mobile Phone Release"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.7' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.7' }} – Fixed Mobile Layout & Minimized Direct Map"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.6' }} – Pure Mobile Phone Application Release
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.7' }} – Fixed Phone Layout & Minimized Direct Map Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Fixes & Mobile Redesign in v1.2.6:
-            * **Fixed Android App Not Opening on Phones:** Resolved Vite asset base path bug (`base: './'`). Capacitor WebView assets now load with 100% reliability on native Android devices.
-            * **Pure Mobile Phone Architecture:** Redesigned app shell, authentication screen, and headers exclusively for native mobile phone interaction (removed desktop website elements).
-            * **Elevated Center Action Button:** Mobile bottom navigation with quick 1-tap `+ Report` floating action button.
-            * **Compact Mobile Header:** Lightweight `MobileAppHeader` with GPS locality status and instant touch refresh.
-            * **Hardware Sensor & Network Permissions:** Added `ACCESS_NETWORK_STATE`, `hardwareAccelerated`, and `usesCleartextTraffic` in AndroidManifest for smooth mobile WebView operation.
+            ### 🚀 Highlights & Fixes in v1.2.7:
+            * **Fixed Phone App Layouts:** Pinned mobile viewport (`100dvh`) with fixed header, dock-pinned bottom navigation, and decoupled momentum-scrolling screen containers. Eliminated whole-page bouncing and layout displacement on phones.
+            * **Direct Map Opening:** Instant Leaflet GIS dark engine initialization with zero authentication delays or blank screens.
+            * **Minimized Map Chrome & Auto-Disappearing Buttons:** Map fills the screen edge-to-edge; clunky overlay buttons (filter pills, engine toggle, satellite layer) disappear when the map appears for an unobstructed GIS view, with an unobtrusive button to toggle controls when needed.
+            * **Complete Rebranding to Lokify:** Replaced all occurrences of "Civic Tracker" with "Lokify" across app titles, headers, AI assistant, and package configurations.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.6' }}/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.7' }}/app-debug.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

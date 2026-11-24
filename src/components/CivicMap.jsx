@@ -72,6 +72,7 @@ export default function CivicMap({
 
   const [mapError, setMapError] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showControls, setShowControls] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('All'); // 'All' | 'Active' | 'Resolved'
   const [selectedPinIssue, setSelectedPinIssue] = useState(null);
@@ -206,8 +207,17 @@ export default function CivicMap({
         leafletMapRef.current = map;
 
         map.whenReady(() => {
-          if (active) setIsLoaded(true);
+          if (active) {
+            setIsLoaded(true);
+            map.invalidateSize();
+          }
         });
+
+        setTimeout(() => {
+          if (active && leafletMapRef.current) {
+            leafletMapRef.current.invalidateSize();
+          }
+        }, 150);
 
         map.on('click', () => {
           setSelectedPinIssue(null);
@@ -386,14 +396,14 @@ export default function CivicMap({
 
   return (
     <div
-      className={`relative w-full ${height} rounded-3xl overflow-hidden border border-[#354144] bg-[#101819] flex flex-col shadow-2xl`}
+      className={`relative w-full ${height} overflow-hidden bg-[#101819] flex flex-col`}
     >
       {/* Map Container */}
-      <div ref={mapElement} className="w-full h-full" aria-label="Lokify Civic Map" />
+      <div ref={mapElement} className="w-full h-full" aria-label="Lokify Map" />
 
       {/* Map Error / Auto-switch Toast */}
       {mapError && (
-        <div className="absolute top-16 left-4 right-4 z-30 p-2.5 bg-[#192223]/95 border border-[#354144] text-[#A3DCE3] text-xs font-mono rounded-2xl shadow-xl flex items-center justify-between gap-2 backdrop-blur-md">
+        <div className="absolute top-3 left-3 right-16 z-30 p-2.5 bg-[#192223]/95 border border-[#354144] text-[#A3DCE3] text-xs font-mono rounded-2xl shadow-xl flex items-center justify-between gap-2 backdrop-blur-md">
           <span className="truncate">{mapError}</span>
           <button
             onClick={() => setMapError('')}
@@ -404,66 +414,87 @@ export default function CivicMap({
         </div>
       )}
 
-      {/* Top Filter Chips */}
-      <div className="absolute top-4 left-4 right-32 z-10 flex items-center gap-2 overflow-x-auto no-scrollbar pointer-events-auto">
-        {[
-          { key: 'All', label: `All (${totalCount})` },
-          { key: 'Active', label: `Active (${activeCount})` },
-          { key: 'Resolved', label: `Resolved (${resolvedCount})` },
-        ].map((f) => {
-          const isSelected = selectedFilter === f.key;
-          return (
+      {/* Unobtrusive Floating Map Action Buttons */}
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 pointer-events-auto">
+        <button
+          onClick={handleRecenter}
+          className="w-8 h-8 rounded-full bg-[#101819]/80 backdrop-blur-md border border-[#354144]/80 text-[#A5B1B3] hover:text-[#A3DCE3] flex items-center justify-center shadow-md active:scale-90 transition"
+          title="Recenter location"
+          aria-label="Recenter"
+        >
+          <LocateFixed size={14} />
+        </button>
+        <button
+          onClick={() => setShowControls((prev) => !prev)}
+          className={`w-8 h-8 rounded-full backdrop-blur-md border flex items-center justify-center shadow-md active:scale-90 transition ${
+            showControls
+              ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
+              : 'bg-[#101819]/80 text-[#A5B1B3] border-[#354144]/80 hover:text-[#A3DCE3]'
+          }`}
+          title={showControls ? 'Close map controls' : 'Open map controls'}
+          aria-label="Toggle map controls"
+        >
+          {showControls ? <X size={14} /> : <Layers size={14} />}
+        </button>
+      </div>
+
+      {/* Floating Controls Overlay (disappears by default when map appears; opens only when toggled) */}
+      {showControls && (
+        <div className="absolute top-13 left-3 right-3 z-20 p-3 bg-[#101819]/95 backdrop-blur-xl border border-[#354144] rounded-2xl shadow-2xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono font-semibold text-[#A5B1B3] uppercase tracking-wider">
+              Filter Issues
+            </span>
+            {/* Engine Switcher */}
             <button
-              key={f.key}
-              onClick={() => setSelectedFilter(f.key)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold backdrop-blur-md transition-all whitespace-nowrap border ${
-                isSelected
-                  ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3] shadow-md shadow-[#A3DCE3]/20'
-                  : 'bg-[#192223]/90 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
+              onClick={toggleEngine}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#192223] border border-[#354144] text-[11px] font-mono text-[#A3DCE3] active:scale-95"
+            >
+              {engine === 'google' ? <MapIcon size={12} /> : <Globe size={12} />}
+              <span>{engine === 'google' ? 'Google Maps' : 'Leaflet GIS'}</span>
+            </button>
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            {[
+              { key: 'All', label: `All (${totalCount})` },
+              { key: 'Active', label: `Active (${activeCount})` },
+              { key: 'Resolved', label: `Resolved (${resolvedCount})` },
+            ].map((f) => {
+              const isSelected = selectedFilter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setSelectedFilter(f.key)}
+                  className={`px-3 py-1 rounded-xl text-xs font-mono font-medium transition ${
+                    isSelected
+                      ? 'bg-[#A3DCE3] text-[#080F0F] font-bold shadow-sm'
+                      : 'bg-[#192223] text-[#A5B1B3] hover:text-[#F0F4F4] border border-[#354144]'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Satellite Layer Toggle */}
+          <div className="flex items-center justify-between pt-1 border-t border-[#253538]">
+            <span className="text-xs text-[#A5B1B3] font-mono">Satellite View</span>
+            <button
+              onClick={handleToggleSatellite}
+              className={`px-3 py-1 rounded-xl text-xs font-mono font-semibold border transition ${
+                isSatellite
+                  ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
+                  : 'bg-[#192223] text-[#A5B1B3] border-[#354144]'
               }`}
             >
-              {f.label}
+              {isSatellite ? 'Satellite ON' : 'Dark GIS'}
             </button>
-          );
-        })}
-      </div>
-
-      {/* Top Right Controls & Engine Switcher */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
-        {/* Engine Switcher Toggle */}
-        <button
-          onClick={toggleEngine}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#192223]/95 border border-[#354144] hover:border-[#A3DCE3] text-[11px] font-mono text-[#A3DCE3] shadow-lg backdrop-blur-md transition active:scale-95"
-          title={`Currently using ${engine === 'google' ? 'Google Maps API' : 'Leaflet / Dark GIS'}. Click to toggle.`}
-        >
-          {engine === 'google' ? <MapIcon size={14} /> : <Globe size={14} />}
-          <span>{engine === 'google' ? 'Google Maps' : 'Leaflet GIS'}</span>
-        </button>
-
-        <div className="flex gap-2">
-          {/* Satellite Toggle */}
-          <button
-            onClick={handleToggleSatellite}
-            className={`w-9 h-9 rounded-2xl flex items-center justify-center transition border shadow-lg backdrop-blur-md ${
-              isSatellite
-                ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
-                : 'bg-[#192223]/90 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
-            }`}
-            title="Toggle Satellite"
-          >
-            <Layers size={16} />
-          </button>
-
-          {/* Recenter */}
-          <button
-            onClick={handleRecenter}
-            className="w-9 h-9 rounded-2xl bg-[#192223]/90 text-[#A5B1B3] border border-[#354144] hover:text-[#A3DCE3] flex items-center justify-center transition shadow-lg backdrop-blur-md"
-            title="Recenter location"
-          >
-            <LocateFixed size={16} />
-          </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Selected Issue Preview Card at bottom */}
       {selectedPinIssue && (

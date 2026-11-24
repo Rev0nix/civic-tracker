@@ -110,7 +110,7 @@ export default function ProfileScreen({
         },
         {
           id: 'ai-help',
-          label: 'Civic AI Assistant',
+          label: 'Lokify AI Assistant',
           icon: Bot,
           subtitle: 'English & Kannada guidance',
           onClick: onOpenAiAssistant,
@@ -130,7 +130,7 @@ export default function ProfileScreen({
   ];
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 w-full">
+    <div className="h-full w-full overflow-y-auto overscroll-contain bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 no-scrollbar">
       {/* Header Title */}
       <div className="mb-4">
         <h1 className="text-xl font-black tracking-tight text-[#F0F4F4] font-mono">

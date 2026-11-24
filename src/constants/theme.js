@@ -94,7 +94,7 @@ export const formatIssueId = (rawId) => {
 
 export const getCategoryName = (categoryId) => {
   const match = CATEGORIES.find((c) => c.id === String(categoryId));
-  return match ? match.label : 'Civic Issue';
+  return match ? match.label : 'Municipal Issue';
 };
 
 export const getRelativeTime = (dateInput) => {

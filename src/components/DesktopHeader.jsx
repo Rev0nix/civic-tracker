@@ -23,7 +23,7 @@ export default function DesktopHeader({
 }) {
   const navTabs = [
     { id: 'feed', label: 'Feed', icon: Home },
-    { id: 'map', label: 'Civic Map', icon: MapPin },
+    { id: 'map', label: 'Lokify Map', icon: MapPin },
     { id: 'my-issues', label: 'My Issues', icon: ClipboardList },
     { id: 'alerts', label: 'Alerts', icon: Bell, badge: unreadAlertsCount },
     { id: 'profile', label: 'Profile', icon: User },
@@ -50,7 +50,7 @@ export default function DesktopHeader({
           </div>
         </div>
 
-        {/* Center Navigation Tabs (includes Civic Map) */}
+        {/* Center Navigation Tabs (includes Lokify Map) */}
         <nav className="flex items-center gap-2 bg-[#192223] border border-[#354144] p-1.5 rounded-2xl">
           {navTabs.map((tab) => {
             const Icon = tab.icon;

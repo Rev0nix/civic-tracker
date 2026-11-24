@@ -60,7 +60,7 @@ export default function MyIssuesScreen({
   };
 
   return (
-    <div className="min-h-screen bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 w-full">
+    <div className="h-full w-full overflow-y-auto overscroll-contain bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 no-scrollbar">
       {/* Mobile Header */}
       <header className="mb-4">
         <div className="flex items-center justify-between mb-1">
