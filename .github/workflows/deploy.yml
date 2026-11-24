@@ -104,42 +104,52 @@ jobs:
       - name: Sync Capacitor Android Project
         run: npx cap sync android
 
-      - name: Build Android Debug APK
+      - name: Build Android APKs (Debug & Release)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace
 
-      - name: Verify APK Generated
+      - name: Verify APKs Generated
         run: |
           ls -la android/app/build/outputs/apk/debug/app-debug.apk
+          ls -la android/app/build/outputs/apk/release/app-release.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.2' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.2' }} – In-App Updater & Dedicated Lok AI Page"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }} – Signed Release & Installation Fix"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.2' }} – In-App Updater & Dedicated Lok AI Assistant
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }} – Signed Release & Installation Fix
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Highlights & Features in v1.3.2:
-            * **In-App Direct Update & APK Installer:** Seamlessly check for updates directly from the Profile screen and automatically on launch. Download and prompt APK package installation directly within the app without manual browser searches.
-            * **Dedicated Lok AI Page ("Hey, I am Lok"):** A dedicated, interactive civic intelligence page accessible directly from the bottom navigation bar with greeting *"Hey, I am Lok"*, municipal resolution SLAs, automated routing advice, bilingual support, and one-tap report launcher.
-            * **Alerts Bell Quick Access:** Dedicated notification bell in the top mobile header for instant access to civic alerts from any tab.
-            * **GIS Map & Clean UI Improvements:** Clean map view with no obstructing empty state banners, multi-layer GIS mapping (Standard, Satellite, Hybrid, Terrain), and streamlined citizen settings.
+            ### ⚠️ Important Installation Note:
+            If your Android device displays *"App not installed"*, this occurs because the previously installed test build was signed with a temporary key. 
+            **Simply uninstall the old Lokify app from your phone once**, then install this **v1.3.3 APK**. 
+            This release includes a permanent, unified repository signing key and updated `versionCode` so all subsequent in-app updates will install seamlessly without needing to uninstall!
+
+            ### 🚀 Highlights & Fixes in v1.3.3:
+            * **Fixed "App Not Installed" Conflict:** Configured a permanent 2048-bit RSA repository keystore with both **v1 (JAR) and v2 (Full APK) signing schemes** enabled, preventing Android signature rejection across devices and builds.
+            * **Incremented Android VersionCode:** Bumped `versionCode` to `10303` to prevent package manager downgrade blocks.
+            * **Added Package Installer Permissions:** Declared `REQUEST_INSTALL_PACKAGES` and storage provider paths in `AndroidManifest.xml` for seamless in-app and downloaded package installs.
+            * **In-App Direct Update & APK Installer:** In-app update checker in Profile screen with automatic launch checks and 1-tap download prompt.
+            * **Dedicated Lok AI Page ("Hey, I am Lok"):** Civic AI intelligence companion with greeting *"Hey, I am Lok"*, municipal resolution SLA benchmarks, and 1-tap report launcher.
+            * **GIS Map & Clean Mobile UI:** Unobstructed map view, multi-layer GIS mapping (Standard, Satellite, Hybrid, Terrain), and responsive mobile layouts.
 
             ---
 
-            ### 📲 Mobile App Download:
-            Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.2' }}/app-debug.apk)**
+            ### 📲 Mobile App Downloads:
+            Download the Android APK below:
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }}/app-debug.apk)** (Signed Debug APK)
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }}/app-release.apk)** (Optimized Signed Release APK)
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |
             android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/release/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -97,8 +97,8 @@ export default function ProfileScreen({
           id: 'software-update',
           label: 'Software Update',
           icon: DownloadCloud,
-          subtitle: 'Version 1.3.2 · Tap to check in-app updates',
-          badge: 'v1.3.2',
+          subtitle: 'Version 1.3.3 · Tap to check in-app updates',
+          badge: 'v1.3.3',
           onClick: onCheckUpdate,
         },
         {
@@ -130,10 +130,10 @@ export default function ProfileScreen({
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.3.2 · Production Mobile',
+          subtitle: 'v1.3.3 · Production Mobile',
           onClick: () =>
             alert(
-              'Lokify v1.3.2\nSmart Municipal Grievance & Issue Tracking Platform\nConnected to Supabase Realtime, SMS Gateway & Leaflet GIS'
+              'Lokify v1.3.3\nSmart Municipal Grievance & Issue Tracking Platform\nConnected to Supabase Realtime, SMS Gateway & Leaflet GIS'
             ),
         },
       ],

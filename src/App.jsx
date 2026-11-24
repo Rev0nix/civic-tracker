@@ -171,7 +171,7 @@ export default function App() {
       setUpdateInfo(info);
       setUpdateModalOpen(true);
     } else {
-      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.2'})!`, 'success');
+      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.3'})!`, 'success');
     }
   }, [showToast]);
 
