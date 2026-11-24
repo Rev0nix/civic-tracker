@@ -118,32 +118,30 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }} – Official Signed Mobile Release"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.4' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.4' }} – Official Signed Mobile Release"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }} – Official Signed Mobile Release
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.4' }} – Official Signed Mobile Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### ⚠️ Important Installation Note:
-            If your Android device displays *"App not installed"*, this occurs because any previously installed test build was signed with a temporary key. 
-            **Simply uninstall the old Lokify app from your phone once**, then install this **v1.3.3 APK**. 
-            This release includes a permanent, unified repository signing key and updated `versionCode` so all subsequent in-app updates will install seamlessly without needing to uninstall!
+            ### ⚠️ Google Play Protect Notice:
+            Because this APK is downloaded directly from GitHub rather than Google Play Store, Google Play Protect may show a prompt:
+            *"This app may be harmful"* or *"Blocked by Play Protect"*.
+            **To install:** Tap **\"More details\"** (or the small arrow), then tap **\"Install anyway\"**.
 
-            ### 🚀 Highlights & Fixes in v1.3.3:
-            * **Fixed "App Not Installed" Conflict:** Configured a permanent 2048-bit RSA repository keystore with both **v1 (JAR) and v2 (Full APK) signing schemes** enabled, preventing Android signature rejection across devices and builds.
-            * **Incremented Android VersionCode:** Bumped `versionCode` to `10303` to prevent package manager downgrade blocks.
-            * **Added Package Installer Permissions:** Declared `REQUEST_INSTALL_PACKAGES` and storage provider paths in `AndroidManifest.xml` for seamless in-app and downloaded package installs.
-            * **In-App Direct Update & APK Installer:** In-app update checker in Profile screen with automatic launch checks and 1-tap download prompt.
-            * **Dedicated Lok AI Page ("Hey, I am Lok"):** Civic AI intelligence companion with greeting *"Hey, I am Lok"*, municipal resolution SLA benchmarks, and 1-tap report launcher.
-            * **GIS Map & Clean Mobile UI:** Unobstructed map view, multi-layer GIS mapping (Standard, Satellite, Hybrid, Terrain), and responsive mobile layouts.
+            ### 🚀 Highlights & Fixes in v1.3.4:
+            * **Alerts Screen Reverse / Back Button:** Added a sleek, dedicated return button to the Carrier Alerts screen so you can return instantly to your previous tab with 1 tap.
+            * **Rebuilt Lok AI Screen Layout:** Fixed the layout of the dedicated AI page—eliminated redundant headers, removed awkward bottom gaps, added clean horizontal suggestion pills, and seated the input dock right above the navigation bar.
+            * **Android 15 Compatibility Target:** Adjusted targetSdkVersion and compileSdkVersion to API 35 (Android 15 standard) with permanent 2048-bit RSA signing.
+            * **Clean Release Artifacts:** Dedicated single production `app-release.apk` artifact.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.3' }}/app-release.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.4' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

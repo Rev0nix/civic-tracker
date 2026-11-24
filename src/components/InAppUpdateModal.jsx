@@ -129,7 +129,10 @@ export default function InAppUpdateModal({
             <div>
               <p className="font-bold">Download Initiated!</p>
               <p className="text-[#A5B1B3] text-[11px] mt-0.5 leading-relaxed font-sans">
-                Check your device's notification bar or Downloads folder, and tap the APK to complete installation.
+                Check your device's notification bar or Downloads folder, and tap the APK to install.
+              </p>
+              <p className="text-[#758588] text-[10px] mt-1 font-sans">
+                ℹ️ If Play Protect prompts "This app may be harmful", tap <strong>More details &rarr; Install anyway</strong>.
               </p>
             </div>
           </div>

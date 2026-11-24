@@ -79,7 +79,8 @@ export default function App() {
     }
   });
 
-  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'my-issues' | 'alerts' | 'profile'
+  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'map' | 'my-issues' | 'alerts' | 'lok-ai' | 'profile'
+  const [previousTab, setPreviousTab] = useState('feed');
   const [issues, setIssues] = useState([]);
   const [addresses, setAddresses] = useState({});
   const [userLocation, setUserLocation] = useState(null);
@@ -661,7 +662,10 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         onOpenAdminPortal={() => setIsAdminModalOpen(true)}
-        onOpenAlerts={() => setActiveTab('alerts')}
+        onOpenAlerts={() => {
+          if (activeTab !== 'alerts') setPreviousTab(activeTab);
+          setActiveTab('alerts');
+        }}
         unreadAlertsCount={unreadAlertsCount}
         locationState={locationState}
       />
@@ -736,6 +740,7 @@ export default function App() {
             onMarkAllRead={handleMarkAllAlertsRead}
             onMarkRead={handleMarkAlertRead}
             onSelectAlert={handleSelectAlert}
+            onBack={() => setActiveTab(previousTab || 'feed')}
           />
         )}
 
@@ -770,7 +775,10 @@ export default function App() {
       {/* Mobile App Bottom Navigation Bar */}
       <BottomNav
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
+        onTabChange={(tab) => {
+          if (activeTab !== 'alerts') setPreviousTab(activeTab);
+          setActiveTab(tab);
+        }}
         onOpenReport={() => setIsReportModalOpen(true)}
         unreadAlertsCount={unreadAlertsCount}
       />

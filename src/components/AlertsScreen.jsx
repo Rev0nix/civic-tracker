@@ -6,6 +6,7 @@ import {
   Wrench,
   MessageSquare,
   AlertCircle,
+  ArrowLeft,
 } from 'lucide-react';
 import { formatIssueId, getRelativeTime } from '../constants/theme';
 
@@ -14,6 +15,7 @@ export default function AlertsScreen({
   onMarkAllRead,
   onMarkRead,
   onSelectAlert,
+  onBack,
 }) {
   // Group notifications into Today, Yesterday, Earlier
   const groupedAlerts = useMemo(() => {
@@ -133,20 +135,33 @@ export default function AlertsScreen({
   return (
     <div className="h-full w-full flex flex-col bg-[#080F0F] text-[#F0F4F4] overflow-hidden">
       {/* Pinned Mobile Top Tab Section */}
-      <header className="shrink-0 w-full px-3 pt-2.5 pb-2 bg-[#080F0F] border-b border-[#253538] flex items-center justify-between z-20">
-        <div>
-          <h1 className="text-lg font-black tracking-tight text-[#F0F4F4] font-mono leading-none">
-            Carrier Alerts
-          </h1>
-          <p className="text-[10px] font-mono text-[#758588] mt-0.5">
-            Real-time SMS & municipal updates
-          </p>
+      <header className="shrink-0 w-full px-3 py-3 bg-[#101819] border-b border-[#253538] flex items-center justify-between z-20">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="w-9 h-9 rounded-xl bg-[#192223] hover:bg-[#202B2D] text-[#A3DCE3] hover:text-[#F0F4F4] border border-[#354144] flex items-center justify-center transition active:scale-95 shadow-sm shrink-0"
+              title="Back to previous screen"
+              aria-label="Back"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
+
+          <div className="min-w-0">
+            <h1 className="text-base font-black tracking-tight text-[#F0F4F4] font-mono leading-none">
+              Carrier Alerts
+            </h1>
+            <p className="text-[10px] font-mono text-[#758588] mt-0.5 truncate">
+              Real-time SMS & municipal updates
+            </p>
+          </div>
         </div>
 
         {unreadCount > 0 && (
           <button
             onClick={onMarkAllRead}
-            className="flex items-center gap-1.5 bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#A3DCE3] px-3 py-1.5 rounded-xl text-xs font-mono font-semibold text-[#A3DCE3] transition active:scale-95 shadow-sm"
+            className="flex items-center gap-1.5 bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#A3DCE3] px-3 py-1.5 rounded-xl text-xs font-mono font-semibold text-[#A3DCE3] transition active:scale-95 shadow-sm shrink-0"
           >
             <CheckCheck size={13} />
             <span>Mark read</span>
@@ -155,7 +170,7 @@ export default function AlertsScreen({
       </header>
 
       {/* Scrollable Alerts List Container */}
-      <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3 py-3 pb-24 no-scrollbar">
+      <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3 py-3 pb-6 no-scrollbar">
 
       {alerts.length === 0 ? (
         <div className="bg-[#192223] border border-[#354144] rounded-3xl p-10 text-center my-6 flex flex-col items-center">
