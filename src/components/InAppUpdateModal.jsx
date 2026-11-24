@@ -150,13 +150,24 @@ export default function InAppUpdateModal({
               <span>{downloading ? 'Preparing Download...' : 'Install Update In-App'}</span>
             </button>
           ) : (
-            <button
-              onClick={handleStartUpdate}
-              className="w-full bg-[#192223] hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] hover:border-[#A3DCE3] text-xs font-bold py-3 px-4 rounded-2xl transition active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <DownloadCloud size={15} />
-              <span>Download Again</span>
-            </button>
+            <div className="flex flex-col gap-2">
+              <a
+                href={updateInfo.downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-[#112C20] hover:bg-[#183D2C] text-[#43C88A] border border-[#1D5C3F] text-xs font-bold py-3 px-4 rounded-2xl transition active:scale-[0.98] flex items-center justify-center gap-2 text-center"
+              >
+                <DownloadCloud size={15} />
+                <span>Open Browser Download Directly</span>
+              </a>
+              <button
+                onClick={handleStartUpdate}
+                className="w-full bg-[#192223] hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] hover:border-[#A3DCE3] text-xs font-bold py-2.5 px-4 rounded-2xl transition active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <DownloadCloud size={14} />
+                <span>Trigger In-App Again</span>
+              </button>
+            </div>
           )}
 
           <div className="flex items-center justify-between gap-2">

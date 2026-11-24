@@ -171,8 +171,10 @@ export default function App() {
     if (info && info.hasUpdate) {
       setUpdateInfo(info);
       setUpdateModalOpen(true);
+    } else if (info && info.error) {
+      showToast(`Update check failed: ${info.error}. Retrying...`, 'error');
     } else {
-      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.3'})!`, 'success');
+      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.6'})!`, 'success');
     }
   }, [showToast]);
 
@@ -763,7 +765,6 @@ export default function App() {
               upvotesReceived={upvotesReceived}
               onNavigateTab={(tab) => setActiveTab(tab)}
               onLogout={handleLogout}
-              onOpenAiAssistant={() => setActiveTab('lok-ai')}
               onCheckUpdate={handleManualUpdateCheck}
               onUpdateProfile={(updated) => {
                 setCurrentUser((prev) => ({ ...prev, ...updated }));

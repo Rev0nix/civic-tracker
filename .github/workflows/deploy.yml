@@ -118,11 +118,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.5' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.5' }} – Pure Mobile UI & GIS Upgrades"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.6' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.6' }} – Resilient In-App Updater & UI Upgrades"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.5' }} – Pure Mobile UI & GIS Upgrades
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.6' }} – Resilient In-App Updater & UI Upgrades
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
@@ -131,18 +131,17 @@ jobs:
             *"This app may be harmful"* or *"Blocked by Play Protect"*.
             **To install:** Tap **\"More details\"** (or the small arrow), then tap **\"Install anyway\"**.
 
-            ### 🚀 Highlights & Fixes in v1.3.5:
-            * **Revamped Report An Issue Screen:** Cleaned up the layout, removed "Tap or drag pin to position" banner, locked pin to device GPS, and embedded the live address inside the map canvas.
-            * **Functional GPS Refresh & Single Map Button:** Kept only one action button on the report map—a responsive GPS locate/refresh button that queries live hardware location, spins during acquisition, and recenters with smooth animation.
-            * **Clean Full-Screen GIS Map:** Removed top horizontal category/status filter tabs ("All", "Active", "Resolved", "Potholes", etc.) from the Map tab, providing an unobstructed full-screen GIS experience.
-            * **Auto-Closing Layer Selector:** Added a backdrop overlay so clicking outside the layer selector immediately closes it.
-            * **Silky Smooth Page Translations:** Integrated native hardware-accelerated transition animations across all page navigation.
+            ### 🚀 Highlights & Fixes in v1.3.6:
+            * **Settings Screen AI Tab Removed:** Cleaned up Settings menu by removing redundant AI tab (Lok AI remains directly accessible via its dedicated tab).
+            * **Multi-Source Resilient In-App Updater:** Added zero rate-limit raw CDN and GitHub version endpoints, guaranteeing that in-app update checks reliably detect new releases without being blocked by API rate limits or caching.
+            * **Direct APK Download & Install Trigger:** Enhanced in-app updater modal with immediate native Android dispatch and a direct browser fallback download button.
+            * **Preserved Full-Screen GIS & Report Screen Upgrades:** Retained pure locked GPS coordinate reporting, single responsive GPS button, and full-screen GIS map.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.5' }}/app-release.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.6' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

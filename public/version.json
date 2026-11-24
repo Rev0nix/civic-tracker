@@ -1,0 +1,9 @@
+{
+  "version": "1.3.6",
+  "versionCode": 10306,
+  "releaseName": "Lokify v1.3.6 – System Update",
+  "releaseNotes": "• Settings Cleanup: Removed AI tab from settings screen for streamlined navigation.\n• Resilient Multi-Source In-App Updater: Zero rate-limit updates with instant detection.\n• High-performance Android APK direct download trigger.\n• Pure mobile GIS map & locked GPS reporting.",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.3.6/app-release.apk",
+  "fileSize": "4.5 MB",
+  "publishedAt": "2026-11-24T11:45:00Z"
+}

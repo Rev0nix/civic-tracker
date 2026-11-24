@@ -11,7 +11,6 @@ import {
   LogOut,
   ChevronRight,
   Edit3,
-  Bot,
   Phone,
   MessageSquare,
   DownloadCloud,
@@ -28,7 +27,6 @@ export default function ProfileScreen({
   upvotesReceived = 0,
   onNavigateTab,
   onLogout,
-  onOpenAiAssistant,
   onCheckUpdate,
   onUpdateProfile,
 }) {
@@ -97,8 +95,8 @@ export default function ProfileScreen({
           id: 'software-update',
           label: 'Software Update',
           icon: DownloadCloud,
-          subtitle: 'Version 1.3.5 · Tap to check in-app updates',
-          badge: 'v1.3.5',
+          subtitle: 'Version 1.3.6 · Tap to check in-app updates',
+          badge: 'v1.3.6',
           onClick: onCheckUpdate,
         },
         {
@@ -116,24 +114,13 @@ export default function ProfileScreen({
           onClick: () => alert('Your credentials and reports are encrypted and protected.'),
         },
         {
-          id: 'ai-help',
-          label: 'Lok AI Assistant',
-          icon: Bot,
-          subtitle: 'Hey, I am Lok · Civic assistant',
-          badge: 'AI',
-          onClick: () => {
-            if (onOpenAiAssistant) onOpenAiAssistant();
-            else if (onNavigateTab) onNavigateTab('lok-ai');
-          },
-        },
-        {
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.3.5 · Production Mobile',
+          subtitle: 'v1.3.6 · Production Mobile',
           onClick: () =>
             alert(
-              'Lokify v1.3.5\nSmart Municipal Grievance & Issue Tracking Platform\nConnected to Supabase Realtime, SMS Gateway & Leaflet GIS'
+              'Lokify v1.3.6\nSmart Municipal Grievance & Issue Tracking Platform\nConnected to Supabase Realtime, SMS Gateway & Leaflet GIS'
             ),
         },
       ],
