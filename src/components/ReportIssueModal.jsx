@@ -19,13 +19,11 @@ import {
   Layers,
 } from 'lucide-react';
 import L from 'leaflet';
-import { loadGoogleMaps, LOKIFY_DARK_MAP_STYLES } from '../googleMaps';
 import {
   reverseGeocodeUnified,
   LOKIFY_DARK_TILE_URL,
   LOKIFY_TILE_ATTRIBUTION,
   createLeafletSvgIconHtml,
-  getPreferredMapEngine,
 } from '../services/mapEngine';
 
 const CATEGORY_CHIPS = [
@@ -163,70 +161,7 @@ export default function ReportIssueModal({
         }
       };
 
-      if (getPreferredMapEngine() === 'leaflet') {
-        initLeaflet();
-      } else {
-        loadGoogleMaps()
-          .then((maps) => {
-            if (!active || !mapContainerRef.current) return;
-
-            const map = new maps.Map(mapContainerRef.current, {
-              center: initial,
-              zoom: 16,
-              mapTypeId: isSatellite ? maps.MapTypeId.HYBRID : maps.MapTypeId.ROADMAP,
-              styles: isSatellite ? [] : LOKIFY_DARK_MAP_STYLES,
-              mapTypeControl: false,
-              streetViewControl: false,
-              fullscreenControl: false,
-              zoomControl: true,
-              clickableIcons: false,
-            });
-            mapInstanceRef.current = map;
-
-            const marker = new maps.Marker({
-              position: initial,
-              map,
-              draggable: true,
-              title: 'Drag or tap anywhere to place issue pin',
-              icon: {
-                path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-                fillColor: '#EF6666',
-                fillOpacity: 1,
-                strokeColor: '#080F0F',
-                strokeWeight: 2,
-                scale: 1.6,
-                anchor: new maps.Point(12, 22),
-              },
-            });
-            markerRef.current = marker;
-
-            const updateCoords = (latLng) => {
-              const lat = latLng.lat();
-              const lng = latLng.lng();
-              setUserCustomCoords({ lat, lng });
-              reverseGeocodeUnified(lat, lng).then((addr) => {
-                if (active) setGeocodedAddress(addr);
-              });
-            };
-
-            map.addListener('click', (e) => {
-              marker.setPosition(e.latLng);
-              updateCoords(e.latLng);
-            });
-
-            marker.addListener('dragend', (e) => {
-              updateCoords(e.latLng);
-            });
-
-            reverseGeocodeUnified(initial.lat, initial.lng).then((addr) => {
-              if (active) setGeocodedAddress(addr);
-            });
-          })
-          .catch((err) => {
-            console.warn('Google Maps modal fallback to Leaflet:', err);
-            initLeaflet();
-          });
-      }
+      initLeaflet();
     }, 150);
 
     return () => {
@@ -487,16 +422,21 @@ export default function ReportIssueModal({
                 <button
                   type="button"
                   onClick={() => {
-                    if (!mapInstanceRef.current) return;
                     const next = !isSatellite;
                     setIsSatellite(next);
-                    if (window.google?.maps) {
-                      mapInstanceRef.current.setMapTypeId(
-                        next ? window.google.maps.MapTypeId.HYBRID : window.google.maps.MapTypeId.ROADMAP
-                      );
-                      if (!next) {
-                        mapInstanceRef.current.setOptions({ styles: LOKIFY_DARK_MAP_STYLES });
-                      }
+                    if (leafletTileRef.current) {
+                      leafletTileRef.current.remove();
+                    }
+                    const tileUrl = next
+                      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                      : LOKIFY_DARK_TILE_URL;
+                    const attr = next ? 'Tiles &copy; Esri' : LOKIFY_TILE_ATTRIBUTION;
+                    if (leafletMapRef.current) {
+                      leafletTileRef.current = L.tileLayer(tileUrl, {
+                        attribution: attr,
+                        maxZoom: 19,
+                        subdomains: ['a', 'b', 'c'],
+                      }).addTo(leafletMapRef.current);
                     }
                   }}
                   className={`w-8 h-8 rounded-xl backdrop-blur-md border flex items-center justify-center shadow-md active:scale-95 transition ${

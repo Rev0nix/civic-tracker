@@ -12,20 +12,16 @@ import {
   Check,
   AlertTriangle,
   RefreshCw,
-  Globe,
-  Map as MapIcon,
   Layers as LayersIcon,
 } from 'lucide-react';
 import L from 'leaflet';
-import { loadGoogleMaps, LOKIFY_DARK_MAP_STYLES, extractLocality } from '../googleMaps';
+import { extractLocality } from '../googleMaps';
 import { formatIssueId, STATUS_CONFIG, getCategoryName, getRelativeTime } from '../constants/theme';
 import {
   DEFAULT_COORDS,
   MAP_LAYERS,
   getMarkerStatusColor,
   createLeafletSvgIconHtml,
-  getPreferredMapEngine,
-  setPreferredMapEngine,
 } from '../services/mapEngine';
 
 function parseCoords(loc, lat, lng) {
@@ -84,19 +80,10 @@ export default function CivicMap({
 }) {
   const mapElement = useRef(null);
 
-  // Engine state: 'leaflet' | 'google'
-  const [engine, setEngine] = useState(getPreferredMapEngine);
-
   // Layer State
   const [activeLayerId, setActiveLayerId] = useState('standard');
   const [isLayerSheetOpen, setIsLayerSheetOpen] = useState(false);
   const [tileError, setTileError] = useState(false);
-
-  // Google Maps refs
-  const googleMapRef = useRef(null);
-  const mapsSdkRef = useRef(null);
-  const googleMarkersRef = useRef([]);
-  const googleUserMarkerRef = useRef(null);
 
   // Leaflet refs
   const leafletMapRef = useRef(null);
@@ -104,6 +91,7 @@ export default function CivicMap({
   const leafletOverlayLayerRef = useRef(null);
   const leafletMarkersRef = useRef([]);
   const leafletUserMarkerRef = useRef(null);
+  const fallbackUsedRef = useRef(false);
 
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('All');
@@ -167,13 +155,6 @@ export default function CivicMap({
 
   // Cleanup helper
   const destroyCurrentMap = useCallback(() => {
-    if (googleMapRef.current) {
-      googleMarkersRef.current.forEach((m) => m.setMap(null));
-      googleMarkersRef.current = [];
-      if (googleUserMarkerRef.current) googleUserMarkerRef.current.setMap(null);
-      googleUserMarkerRef.current = null;
-      googleMapRef.current = null;
-    }
     if (leafletMapRef.current) {
       leafletMarkersRef.current.forEach((m) => m.remove());
       leafletMarkersRef.current = [];
@@ -192,319 +173,220 @@ export default function CivicMap({
     setIsLoaded(false);
   }, []);
 
-  // Listen for Google Maps authentication failures and auto-fallback to Leaflet
-  useEffect(() => {
-    const handleAuthError = (e) => {
-      console.warn('Google Maps auth error caught. Auto-switching to Leaflet GIS engine:', e.detail);
-      setEngine('leaflet');
-      setPreferredMapEngine('leaflet');
-    };
-    window.addEventListener('lokify:map_auth_error', handleAuthError);
-    return () => window.removeEventListener('lokify:map_auth_error', handleAuthError);
-  }, []);
-
-  // Switch engine manually
-  const toggleEngine = () => {
-    const nextEngine = engine === 'google' ? 'leaflet' : 'google';
-    destroyCurrentMap();
-    setEngine(nextEngine);
-    setPreferredMapEngine(nextEngine);
-  };
-
-  // Switch Layer helper
+  // Layer switching helper
   const switchLayer = useCallback((layerId) => {
     setActiveLayerId(layerId);
+    setTileError(false);
+    fallbackUsedRef.current = false;
     const config = MAP_LAYERS[layerId];
-    if (!config) return;
+    if (!config || !leafletMapRef.current) return;
 
-    if (leafletMapRef.current) {
-      if (leafletTileLayerRef.current) {
-        leafletTileLayerRef.current.remove();
-      }
-      if (leafletOverlayLayerRef.current) {
-        leafletOverlayLayerRef.current.remove();
-        leafletOverlayLayerRef.current = null;
-      }
-
-      const baseLayer = L.tileLayer(config.url, {
-        attribution: config.attribution,
-        maxZoom: config.maxZoom,
-      });
-
-      baseLayer.on('tileerror', () => {
-        setTileError(true);
-      });
-      baseLayer.on('load', () => {
-        setTileError(false);
-      });
-
-      baseLayer.addTo(leafletMapRef.current);
-      leafletTileLayerRef.current = baseLayer;
-
-      if (config.overlayUrl) {
-        const overlay = L.tileLayer(config.overlayUrl, {
-          attribution: '',
-          maxZoom: config.maxZoom,
-        }).addTo(leafletMapRef.current);
-        leafletOverlayLayerRef.current = overlay;
-      }
+    if (leafletTileLayerRef.current) {
+      leafletTileLayerRef.current.remove();
+    }
+    if (leafletOverlayLayerRef.current) {
+      leafletOverlayLayerRef.current.remove();
+      leafletOverlayLayerRef.current = null;
     }
 
-    if (googleMapRef.current && mapsSdkRef.current) {
-      const maps = mapsSdkRef.current;
-      if (layerId === 'satellite') {
-        googleMapRef.current.setMapTypeId(maps.MapTypeId.SATELLITE);
-        googleMapRef.current.setOptions({ styles: [] });
-      } else if (layerId === 'hybrid') {
-        googleMapRef.current.setMapTypeId(maps.MapTypeId.HYBRID);
-        googleMapRef.current.setOptions({ styles: [] });
-      } else if (layerId === 'terrain') {
-        googleMapRef.current.setMapTypeId(maps.MapTypeId.TERRAIN);
-        googleMapRef.current.setOptions({ styles: [] });
+    const baseLayer = L.tileLayer(config.url, {
+      subdomains: config.subdomains || ['a', 'b', 'c'],
+      attribution: config.attribution,
+      maxZoom: config.maxZoom,
+    });
+
+    baseLayer.on('tileerror', () => {
+      // If standard OSM fails, auto-fallback to Esri World Street Map
+      if (layerId === 'standard' && !fallbackUsedRef.current) {
+        fallbackUsedRef.current = true;
+        if (leafletMapRef.current) {
+          baseLayer.remove();
+          const fallback = L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+            { attribution: 'Tiles &copy; Esri', maxZoom: 19 }
+          ).addTo(leafletMapRef.current);
+          leafletTileLayerRef.current = fallback;
+        }
       } else {
-        googleMapRef.current.setMapTypeId(maps.MapTypeId.ROADMAP);
-        googleMapRef.current.setOptions({ styles: LOKIFY_DARK_MAP_STYLES });
+        setTileError(true);
       }
+    });
+
+    baseLayer.on('load', () => {
+      setTileError(false);
+    });
+
+    baseLayer.addTo(leafletMapRef.current);
+    leafletTileLayerRef.current = baseLayer;
+
+    if (config.overlayUrl) {
+      const overlay = L.tileLayer(config.overlayUrl, {
+        attribution: '',
+        maxZoom: config.maxZoom,
+      }).addTo(leafletMapRef.current);
+      leafletOverlayLayerRef.current = overlay;
     }
   }, []);
 
-  // Initialize Map Engine (Google or Leaflet)
+  // Initialize Leaflet Map
   useEffect(() => {
     let active = true;
     if (!mapElement.current) return;
 
     destroyCurrentMap();
 
-    if (engine === 'google') {
-      loadGoogleMaps()
-        .then((maps) => {
-          if (!active || !mapElement.current) return;
-          mapsSdkRef.current = maps;
+    try {
+      const map = L.map(mapElement.current, {
+        center: [activeCenter.lat, activeCenter.lng],
+        zoom: 14,
+        zoomControl: false,
+        attributionControl: false,
+        preferCanvas: true,
+      });
 
-          const map = new maps.Map(mapElement.current, {
-            center: activeCenter,
-            zoom: 14,
-            mapTypeId:
-              activeLayerId === 'satellite'
-                ? maps.MapTypeId.SATELLITE
-                : activeLayerId === 'hybrid'
-                ? maps.MapTypeId.HYBRID
-                : activeLayerId === 'terrain'
-                ? maps.MapTypeId.TERRAIN
-                : maps.MapTypeId.ROADMAP,
-            styles: activeLayerId === 'standard' ? LOKIFY_DARK_MAP_STYLES : [],
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: false,
-            zoomControl: false, // Handled by our floating controls
-            clickableIcons: false,
-          });
+      // Add subtle attribution in corner
+      L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
 
-          googleMapRef.current = map;
-          setIsLoaded(true);
+      const config = MAP_LAYERS[activeLayerId] || MAP_LAYERS.standard;
+      const tileLayer = L.tileLayer(config.url, {
+        subdomains: config.subdomains || ['a', 'b', 'c'],
+        attribution: config.attribution,
+        maxZoom: config.maxZoom,
+      });
 
-          maps.event.addListener(map, 'click', () => {
-            setSelectedPinIssue(null);
-          });
-        })
-        .catch((err) => {
-          if (!active) return;
-          console.warn('Google Maps failed to load, falling back to Leaflet GIS:', err);
-          setEngine('leaflet');
-          setPreferredMapEngine('leaflet');
-        });
-    } else {
-      // Leaflet Engine
-      try {
-        const map = L.map(mapElement.current, {
-          center: [activeCenter.lat, activeCenter.lng],
-          zoom: 14,
-          zoomControl: false, // Handled by our floating controls
-          attributionControl: false,
-        });
-
-        // Add subtle attribution in corner
-        L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
-
-        const config = MAP_LAYERS[activeLayerId] || MAP_LAYERS.standard;
-        const tileLayer = L.tileLayer(config.url, {
-          attribution: config.attribution,
-          maxZoom: config.maxZoom,
-        });
-
-        tileLayer.on('tileerror', () => {
+      tileLayer.on('tileerror', () => {
+        if (activeLayerId === 'standard' && !fallbackUsedRef.current) {
+          fallbackUsedRef.current = true;
+          if (map) {
+            tileLayer.remove();
+            const fallback = L.tileLayer(
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+              { attribution: 'Tiles &copy; Esri', maxZoom: 19 }
+            ).addTo(map);
+            leafletTileLayerRef.current = fallback;
+          }
+        } else {
           setTileError(true);
-        });
-        tileLayer.on('load', () => {
-          setTileError(false);
-        });
-
-        tileLayer.addTo(map);
-        leafletTileLayerRef.current = tileLayer;
-
-        if (config.overlayUrl) {
-          leafletOverlayLayerRef.current = L.tileLayer(config.overlayUrl, {
-            attribution: '',
-            maxZoom: config.maxZoom,
-          }).addTo(map);
         }
+      });
 
-        leafletMapRef.current = map;
+      tileLayer.on('load', () => {
+        setTileError(false);
+      });
 
-        map.whenReady(() => {
-          if (active) {
-            setIsLoaded(true);
-            map.invalidateSize();
-          }
-        });
+      tileLayer.addTo(map);
+      leafletTileLayerRef.current = tileLayer;
 
-        setTimeout(() => {
-          if (active && leafletMapRef.current) {
-            leafletMapRef.current.invalidateSize();
-          }
-        }, 200);
-
-        map.on('click', () => {
-          setSelectedPinIssue(null);
-        });
-      } catch (err) {
-        console.error('Leaflet initialization error:', err);
+      if (config.overlayUrl) {
+        leafletOverlayLayerRef.current = L.tileLayer(config.overlayUrl, {
+          attribution: '',
+          maxZoom: config.maxZoom,
+        }).addTo(map);
       }
+
+      leafletMapRef.current = map;
+
+      map.whenReady(() => {
+        if (active) {
+          setIsLoaded(true);
+          map.invalidateSize();
+        }
+      });
+
+      // Invalidate multiple times for smooth mobile container layout
+      const t1 = setTimeout(() => { if (active && leafletMapRef.current) leafletMapRef.current.invalidateSize(); }, 50);
+      const t2 = setTimeout(() => { if (active && leafletMapRef.current) leafletMapRef.current.invalidateSize(); }, 200);
+      const t3 = setTimeout(() => { if (active && leafletMapRef.current) leafletMapRef.current.invalidateSize(); }, 500);
+
+      map.on('click', () => {
+        setSelectedPinIssue(null);
+      });
+
+      const handleResize = () => {
+        if (leafletMapRef.current) leafletMapRef.current.invalidateSize();
+      };
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        active = false;
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        window.removeEventListener('resize', handleResize);
+      };
+    } catch (err) {
+      console.error('Leaflet initialization error:', err);
     }
 
     return () => {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engine]);
+  }, []);
 
   // Update User Marker
   useEffect(() => {
-    if (!isLoaded || !userCenter) return;
+    if (!isLoaded || !userCenter || !leafletMapRef.current) return;
+    const map = leafletMapRef.current;
 
-    if (engine === 'google' && googleMapRef.current && mapsSdkRef.current) {
-      const maps = mapsSdkRef.current;
-      const map = googleMapRef.current;
-      if (googleUserMarkerRef.current) {
-        googleUserMarkerRef.current.setPosition(userCenter);
-      } else {
-        googleUserMarkerRef.current = new maps.Marker({
-          position: userCenter,
-          map,
-          title: 'You are here',
-          zIndex: 999,
-          icon: {
-            path: maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#A3DCE3',
-            fillOpacity: 1,
-            strokeColor: '#080F0F',
-            strokeWeight: 3,
-          },
-        });
-      }
-    } else if (engine === 'leaflet' && leafletMapRef.current) {
-      const map = leafletMapRef.current;
-      if (leafletUserMarkerRef.current) {
-        leafletUserMarkerRef.current.setLatLng([userCenter.lat, userCenter.lng]);
-      } else {
-        const userIcon = L.divIcon({
-          html: `<div class="w-4 h-4 rounded-full bg-[#A3DCE3] border-2 border-[#080F0F] gps-radar-pulse"></div>`,
-          className: 'user-gps-marker',
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
-        });
-        leafletUserMarkerRef.current = L.marker([userCenter.lat, userCenter.lng], {
-          icon: userIcon,
-          zIndexOffset: 1000,
-        }).addTo(map);
-      }
+    if (leafletUserMarkerRef.current) {
+      leafletUserMarkerRef.current.setLatLng([userCenter.lat, userCenter.lng]);
+    } else {
+      const userIcon = L.divIcon({
+        html: `<div class="w-4 h-4 rounded-full bg-[#A3DCE3] border-2 border-[#080F0F] gps-radar-pulse"></div>`,
+        className: 'user-gps-marker',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+      });
+      leafletUserMarkerRef.current = L.marker([userCenter.lat, userCenter.lng], {
+        icon: userIcon,
+        zIndexOffset: 1000,
+      }).addTo(map);
     }
-  }, [userCenter, isLoaded, engine]);
+  }, [userCenter, isLoaded]);
 
   // Update Issue Markers
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !leafletMapRef.current) return;
+    const map = leafletMapRef.current;
 
-    if (engine === 'google' && googleMapRef.current && mapsSdkRef.current) {
-      const maps = mapsSdkRef.current;
-      const map = googleMapRef.current;
+    leafletMarkersRef.current.forEach((m) => m.remove());
+    leafletMarkersRef.current = [];
 
-      googleMarkersRef.current.forEach((m) => m.setMap(null));
-      googleMarkersRef.current = [];
+    visibleIssues.forEach((issue) => {
+      const coords = parseCoords(issue.location, issue.latitude, issue.longitude);
+      if (!coords) return;
 
-      visibleIssues.forEach((issue) => {
-        const coords = parseCoords(issue.location, issue.latitude, issue.longitude);
-        if (!coords) return;
+      const statusColor = getMarkerStatusColor(issue.status);
+      const iconHtml = createLeafletSvgIconHtml(statusColor, issue.category_id, 32);
 
-        const pinColor = getMarkerStatusColor(issue.status);
-        const marker = new maps.Marker({
-          position: coords,
-          map,
-          title: `${issue.title} (${formatIssueId(issue.id)})`,
-          icon: {
-            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-            fillColor: pinColor,
-            fillOpacity: 1,
-            strokeColor: '#080F0F',
-            strokeWeight: 2,
-            scale: 1.4,
-            anchor: new maps.Point(12, 22),
-          },
-        });
-
-        marker.addListener('click', () => {
-          setSelectedPinIssue(issue);
-          map.panTo(coords);
-        });
-
-        googleMarkersRef.current.push(marker);
+      const icon = L.divIcon({
+        html: iconHtml,
+        className: 'lokify-gis-marker',
+        iconSize: [32, 40],
+        iconAnchor: [16, 40],
       });
-    } else if (engine === 'leaflet' && leafletMapRef.current) {
-      const map = leafletMapRef.current;
 
-      leafletMarkersRef.current.forEach((m) => m.remove());
-      leafletMarkersRef.current = [];
-
-      visibleIssues.forEach((issue) => {
-        const coords = parseCoords(issue.location, issue.latitude, issue.longitude);
-        if (!coords) return;
-
-        const statusColor = getMarkerStatusColor(issue.status);
-        const iconHtml = createLeafletSvgIconHtml(statusColor, issue.category_id, 32);
-
-        const icon = L.divIcon({
-          html: iconHtml,
-          className: 'lokify-gis-marker',
-          iconSize: [32, 40],
-          iconAnchor: [16, 40],
-        });
-
-        const marker = L.marker([coords.lat, coords.lng], { icon, title: issue.title }).addTo(map);
-        marker.on('click', () => {
-          setSelectedPinIssue(issue);
-          map.panTo([coords.lat, coords.lng], { animate: true, duration: 0.5 });
-        });
-
-        leafletMarkersRef.current.push(marker);
+      const marker = L.marker([coords.lat, coords.lng], { icon, title: issue.title }).addTo(map);
+      marker.on('click', () => {
+        setSelectedPinIssue(issue);
+        map.panTo([coords.lat, coords.lng], { animate: true, duration: 0.5 });
       });
-    }
-  }, [visibleIssues, isLoaded, engine]);
 
-  // GIS Controls Handlers
+      leafletMarkersRef.current.push(marker);
+    });
+  }, [visibleIssues, isLoaded]);
+
+  // Floating GIS Controls Handlers
   const handleZoomIn = () => {
     if (leafletMapRef.current) {
       leafletMapRef.current.zoomIn();
-    } else if (googleMapRef.current) {
-      googleMapRef.current.setZoom(googleMapRef.current.getZoom() + 1);
     }
   };
 
   const handleZoomOut = () => {
     if (leafletMapRef.current) {
       leafletMapRef.current.zoomOut();
-    } else if (googleMapRef.current) {
-      googleMapRef.current.setZoom(googleMapRef.current.getZoom() - 1);
     }
   };
 
@@ -515,9 +397,6 @@ export default function CivicMap({
     }
     if (leafletMapRef.current) {
       leafletMapRef.current.setView([target.lat, target.lng], 15, { animate: true });
-    } else if (googleMapRef.current) {
-      googleMapRef.current.panTo(target);
-      googleMapRef.current.setZoom(15);
     }
   };
 
@@ -525,20 +404,17 @@ export default function CivicMap({
     const target = activeCenter;
     if (leafletMapRef.current) {
       leafletMapRef.current.setView([target.lat, target.lng], 14, { animate: true });
-    } else if (googleMapRef.current) {
-      googleMapRef.current.panTo(target);
-      googleMapRef.current.setZoom(14);
     }
   };
 
   return (
     <div className={`relative w-full ${height} overflow-hidden bg-[#080F0F] flex flex-col`}>
       {/* Map DOM Element */}
-      <div ref={mapElement} className="w-full h-full z-0" aria-label="Lokify GIS Map" />
+      <div ref={mapElement} className="w-full h-full absolute inset-0 z-0" aria-label="Lokify GIS Map" />
 
-      {/* Top Horizontal Filter Bar */}
-      <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2 pointer-events-auto">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-[calc(100%-80px)]">
+      {/* Top Horizontal Filter Bar - High z-index [1000] ensures it is ALWAYS in front of map */}
+      <div className="absolute top-3 left-3 right-3 z-[1000] flex items-center justify-between gap-2 pointer-events-auto">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 w-full">
           {FILTER_OPTIONS.map((f) => {
             const isSelected = selectedFilter === f.key;
             const count = filterCounts[f.key] ?? 0;
@@ -546,7 +422,7 @@ export default function CivicMap({
               <button
                 key={f.key}
                 onClick={() => setSelectedFilter(f.key)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-mono font-semibold backdrop-blur-md transition-all whitespace-nowrap border shadow-md active:scale-95 flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-full text-[11px] font-mono font-semibold backdrop-blur-md transition-all whitespace-nowrap border shadow-lg active:scale-95 flex items-center gap-1.5 ${
                   isSelected
                     ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
                     : 'bg-[#192223]/95 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
@@ -564,20 +440,10 @@ export default function CivicMap({
             );
           })}
         </div>
-
-        {/* Engine Switcher in top right */}
-        <button
-          onClick={toggleEngine}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#192223]/95 border border-[#354144] hover:border-[#A3DCE3] text-[11px] font-mono text-[#A3DCE3] shadow-md backdrop-blur-md active:scale-95 transition shrink-0"
-          title={`Switch between Leaflet GIS and Google Maps`}
-        >
-          {engine === 'google' ? <MapIcon size={12} /> : <Globe size={12} />}
-          <span className="font-semibold">{engine === 'google' ? 'Google' : 'GIS'}</span>
-        </button>
       </div>
 
-      {/* Floating Right-Side GIS Control Column */}
-      <div className="absolute right-3 top-14 z-20 flex flex-col items-center gap-2 pointer-events-auto">
+      {/* Floating Right-Side GIS Control Column - High z-index [1000] */}
+      <div className="absolute right-3 top-14 z-[1000] flex flex-col items-center gap-2 pointer-events-auto">
         {/* Compass / Reset View */}
         <button
           onClick={handleResetView}
@@ -637,7 +503,7 @@ export default function CivicMap({
 
       {/* Tile Loading Error Banner */}
       {tileError && (
-        <div className="absolute top-14 left-3 right-16 z-30 bg-[#321616]/95 border border-[#5C2424] rounded-xl p-2.5 text-xs text-[#EF6666] flex items-center justify-between shadow-xl backdrop-blur-md">
+        <div className="absolute top-14 left-3 right-16 z-[1001] bg-[#321616]/95 border border-[#5C2424] rounded-xl p-2.5 text-xs text-[#EF6666] flex items-center justify-between shadow-xl backdrop-blur-md">
           <div className="flex items-center gap-2">
             <AlertTriangle size={15} className="shrink-0" />
             <span>Map tile loading error. Check connection.</span>
@@ -654,16 +520,16 @@ export default function CivicMap({
 
       {/* Empty State Banner if no issues match */}
       {visibleIssues.length === 0 && (
-        <div className="absolute bottom-6 left-6 right-6 z-20 bg-[#192223]/90 backdrop-blur-md border border-[#354144] rounded-2xl p-3 text-center shadow-lg">
+        <div className="absolute bottom-6 left-6 right-6 z-[1000] bg-[#192223]/90 backdrop-blur-md border border-[#354144] rounded-2xl p-3 text-center shadow-lg pointer-events-none">
           <p className="text-xs text-[#A5B1B3] font-medium">
             No issues found for <span className="text-[#A3DCE3] font-bold">"{selectedFilter}"</span>.
           </p>
         </div>
       )}
 
-      {/* Selected Issue Preview Card at bottom */}
+      {/* Selected Issue Preview Card at bottom - High z-index [1001] */}
       {selectedPinIssue && (
-        <div className="absolute bottom-4 left-3 right-3 z-30 bg-[#192223]/95 backdrop-blur-md border border-[#354144] rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute bottom-4 left-3 right-3 z-[1001] bg-[#192223]/95 backdrop-blur-md border border-[#354144] rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold text-[#A3DCE3]">
@@ -726,9 +592,9 @@ export default function CivicMap({
         </div>
       )}
 
-      {/* Map Layer Switcher Bottom Sheet */}
+      {/* Map Layer Switcher Bottom Sheet - Highest z-index [1002] */}
       {isLayerSheetOpen && (
-        <div className="absolute inset-x-0 bottom-0 z-40 bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] rounded-t-3xl p-5 shadow-2xl animate-in slide-in-from-bottom duration-250">
+        <div className="absolute inset-x-0 bottom-0 z-[1002] bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] rounded-t-3xl p-5 shadow-2xl animate-in slide-in-from-bottom duration-250">
           <div className="flex items-center justify-between pb-3 border-b border-[#202B2D] mb-4">
             <div className="flex items-center gap-2">
               <LayersIcon size={18} className="text-[#A3DCE3]" />

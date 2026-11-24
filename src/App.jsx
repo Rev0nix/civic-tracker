@@ -658,7 +658,7 @@ export default function App() {
       )}
 
       {/* Active Tab Screen */}
-      <main className="flex-1 w-full overflow-hidden relative">
+      <main className="flex-1 w-full overflow-hidden relative min-h-0">
         {activeTab === 'feed' && (
           <FeedScreen
             issues={issues}

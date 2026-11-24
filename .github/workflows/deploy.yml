@@ -118,27 +118,26 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.9' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.9' }} – Upgraded Android GIS Map, Dynamic Layer Switcher & Real Tile Rendering"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.0' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.0' }} – Zero-Auth GIS Map, Guaranteed Control Layering & Multi-CDN Fallback"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.9' }} – Android GIS Map Upgrade Release
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.0' }} – Permanent Map Fix & Guaranteed Controls Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Highlights & Fixes in v1.2.9:
-            * **Fixed "API KEY REQUIRED" Map Bug:** Eliminated the dark grey background and repeated watermark by configuring OpenStreetMap standard raster tiles as the default street provider, with Esri World Imagery (Satellite), Esri Hybrid (Satellite with boundary/road labels), and Esri World Topo Map (Terrain).
-            * **Interactive Map Layer Switcher:** Added a professional bottom sheet modal accessible from the GIS toolbar with 4 selectable layers (Standard Map, Satellite Imagery, Hybrid, Terrain), preview badges, and smooth switching.
-            * **Floating GIS Control Panel:** Right-side controls including Compass / Reset Orientation, Map Layers selector, My Location GPS with radar pulse, and Zoom In / Out buttons.
-            * **Comprehensive Issue Category Filters:** Horizontal filter bar featuring all categories (All, Active, Resolved, Potholes, Streetlights, Garbage, Water & Sewage, Drainage, Road Damage) with dynamic live count badges that filter markers in real time.
-            * **Teardrop Issue Markers & Preview Cards:** Status-colored pins with category glyph emblems. Tapping any marker opens an interactive preview card displaying issue ID, category, status, relative reported date, address, and "View Full Issue Details" action.
-            * **Reliable Location State Machine:** Enhanced location header with automatic timeout to prevent the indicator from being stuck on "Locating...", supporting `locating`, `found`, `permission_denied`, and `unavailable` states.
+            ### 🚀 Highlights & Fixes in v1.3.0:
+            * **Complete Removal of Google Maps & Carto Dependency:** Permanently eliminated any invocation of Google Maps SDK or Carto raster tiles across the main map, Report Issue modal, and Issue Detail modal. The app now runs 100% on high-performance Leaflet GIS with OpenStreetMap (multi-subdomain `a/b/c`) and automated fallback to Esri World Street Map, Esri World Imagery (Satellite), Esri Hybrid, and Esri Topographic maps.
+            * **Fixed Disappearing Controls (Z-Index Overhaul):** Elevated all GIS floating controls, layer switchers, preview cards, and category filter bars to `z-[1000]` - `z-[1002]`, ensuring they are never obscured by Leaflet tile panes or map overlays.
+            * **Instant Map Rendering:** Added multiple staggered `invalidateSize()` invocations and mobile flex container safeguards (`min-h-0`) so the map fills the screen instantly when opened with zero layout lag.
+            * **Interactive GIS Controls:** Fully functional Compass / Reset View, Layer Switcher bottom sheet, GPS live location tracking, Zoom In (+), Zoom Out (-), and live category counts across all 9 filters.
+            * **Interactive Pin Selection:** Custom category-emblem pins with status colors that open issue previews with "View Full Issue Details" action.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.9' }}/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.3.0' }}/app-debug.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

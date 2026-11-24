@@ -4,8 +4,8 @@ import { loadGoogleMaps, GOOGLE_MAPS_API_KEY } from '../googleMaps';
 // Default center (Bengaluru, India)
 export const DEFAULT_COORDS: GeoCoords = { lat: 12.9716, lng: 77.5946 };
 
-// Reliable OpenStreetMap Standard tile URL for default high-contrast street map
-export const LOKIFY_DARK_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+// Reliable OpenStreetMap Standard tile URL with multi-subdomain support
+export const LOKIFY_DARK_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const LOKIFY_TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
@@ -26,7 +26,8 @@ export const MAP_LAYERS: Record<string, MapLayerConfig> = {
     id: 'standard',
     name: 'Standard Map',
     subtitle: 'Streets, localities & places',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    subdomains: ['a', 'b', 'c'],
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19,
     badge: 'OSM',
@@ -89,21 +90,22 @@ export function getMarkerStatusColor(status?: string): string {
   }
 }
 
-// Preferred engine stored in localStorage
+// Preferred engine stored in localStorage - always enforce Leaflet Dark GIS
 const ENGINE_STORAGE_KEY = 'lokify_preferred_map_engine';
 
 export function getPreferredMapEngine(): MapEngineMode {
-  if (typeof window === 'undefined') return 'leaflet';
-  const saved = localStorage.getItem(ENGINE_STORAGE_KEY);
-  if (saved === 'leaflet' || saved === 'google') return saved;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(ENGINE_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
   return 'leaflet';
 }
 
 export function setPreferredMapEngine(mode: MapEngineMode): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(ENGINE_STORAGE_KEY, mode);
-    window.dispatchEvent(new CustomEvent('lokify:map_engine_changed', { detail: { engine: mode } }));
-  }
+  // Always keep Leaflet
 }
 
 /**
