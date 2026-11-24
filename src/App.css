@@ -36,6 +36,14 @@ code, kbd, samp, pre, .font-mono {
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* Safe area insets for mobile devices & status bars */
+.safe-area-pt {
+  padding-top: max(env(safe-area-inset-top, 0px), 14px);
+}
+.safe-area-pb {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 10px);
+}
+
 /* Hide scrollbars across elements with .no-scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none !important;

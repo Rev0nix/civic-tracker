@@ -9,7 +9,7 @@ export default function MobileAppHeader({
   onOpenAdminPortal,
 }) {
   return (
-    <header className="sticky top-0 z-40 bg-[#101819]/95 backdrop-blur-xl border-b border-[#253538] px-4 py-2.5 select-none">
+    <header className="shrink-0 w-full z-40 bg-[#101819]/95 backdrop-blur-xl border-b border-[#253538] px-4 pt-3.5 pb-2.5 safe-area-pt select-none">
       <div className="flex items-center justify-between gap-2 max-w-md mx-auto">
         {/* Left: Brand Identity */}
         <div className="flex items-center gap-2.5">

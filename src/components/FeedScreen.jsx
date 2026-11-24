@@ -4,7 +4,6 @@ import {
   Search,
   ThumbsUp,
   Share2,
-  Plus,
   Map as MapIcon,
   List,
   Sparkles,
@@ -26,7 +25,6 @@ export default function FeedScreen({
   addresses = {},
   userLocation,
   onSelectIssue,
-  onOpenReport,
   onUpvote,
   upvotedIssueIds = [],
   onShareIssue,
@@ -76,20 +74,20 @@ export default function FeedScreen({
   }, [issues, activeCategory, activeStatus, searchQuery, addresses]);
 
   return (
-    <div className="h-full w-full overflow-y-auto overscroll-contain bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 no-scrollbar">
-      {/* Mobile App Screen Header */}
-      <header className="mb-4 space-y-3">
+    <div className="h-full w-full flex flex-col bg-[#080F0F] text-[#F0F4F4] overflow-hidden">
+      {/* Pinned Mobile Top Tab Section (Stays fixed at top, never scrolls away!) */}
+      <header className="shrink-0 w-full px-3 pt-2.5 pb-2 bg-[#080F0F] border-b border-[#253538] space-y-2.5 z-20">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-black tracking-tight text-[#F0F4F4] font-mono">
+            <h1 className="text-lg font-black tracking-tight text-[#F0F4F4] font-mono leading-none">
               Lokify Feed
             </h1>
-            <p className="text-[11px] font-mono text-[#758588]">
-              Ward defects & infrastructure updates
+            <p className="text-[10px] font-mono text-[#758588] mt-0.5">
+              Ward defects & municipal infrastructure
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* View Mode Toggle */}
             <div className="flex items-center bg-[#192223] border border-[#253538] p-0.5 rounded-xl">
               <button
@@ -126,41 +124,41 @@ export default function FeedScreen({
               }`}
               aria-label="Toggle search"
             >
-              <Search size={15} />
+              <Search size={14} />
             </button>
           </div>
         </div>
 
         {/* Compact Mobile Metrics Pills */}
-        <div className="grid grid-cols-4 gap-1.5 bg-[#101819] border border-[#253538] p-2 rounded-2xl text-center">
+        <div className="grid grid-cols-4 gap-1.5 bg-[#101819] border border-[#253538] p-1.5 rounded-2xl text-center">
           <div>
-            <span className="text-[9px] font-mono uppercase text-[#758588] block">TOTAL</span>
-            <span className="text-base font-bold font-mono text-[#F0F4F4]">{totalCount}</span>
+            <span className="text-[8px] font-mono uppercase text-[#758588] block">TOTAL</span>
+            <span className="text-sm font-bold font-mono text-[#F0F4F4]">{totalCount}</span>
           </div>
           <div>
-            <span className="text-[9px] font-mono uppercase text-[#A5B1B3] block">OPEN</span>
-            <span className="text-base font-bold font-mono text-[#A5B1B3]">{openCount}</span>
+            <span className="text-[8px] font-mono uppercase text-[#A5B1B3] block">OPEN</span>
+            <span className="text-sm font-bold font-mono text-[#A5B1B3]">{openCount}</span>
           </div>
           <div>
-            <span className="text-[9px] font-mono uppercase text-[#38BDF8] block">ACTIVE</span>
-            <span className="text-base font-bold font-mono text-[#38BDF8]">{inProgressCount}</span>
+            <span className="text-[8px] font-mono uppercase text-[#38BDF8] block">ACTIVE</span>
+            <span className="text-sm font-bold font-mono text-[#38BDF8]">{inProgressCount}</span>
           </div>
           <div>
-            <span className="text-[9px] font-mono uppercase text-[#43C88A] block">FIXED</span>
-            <span className="text-base font-bold font-mono text-[#43C88A]">{resolvedCount}</span>
+            <span className="text-[8px] font-mono uppercase text-[#43C88A] block">FIXED</span>
+            <span className="text-sm font-bold font-mono text-[#43C88A]">{resolvedCount}</span>
           </div>
         </div>
 
         {/* Search Input */}
         {showSearch && (
           <div className="relative animate-in fade-in duration-150">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#758588]" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#758588]" />
             <input
               type="text"
               placeholder="Search reports or LK-ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#192223] border border-[#253538] text-[#F0F4F4] placeholder-[#758588] text-xs pl-8 pr-8 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3] font-mono"
+              className="w-full bg-[#192223] border border-[#253538] text-[#F0F4F4] placeholder-[#758588] text-xs pl-8 pr-8 py-1.5 rounded-xl focus:outline-none focus:border-[#A3DCE3] font-mono"
               autoFocus
             />
             {searchQuery && (
@@ -175,14 +173,14 @@ export default function FeedScreen({
         )}
 
         {/* Category Filter Horizontal Scroll */}
-        <div className="overflow-x-auto no-scrollbar flex items-center gap-1.5 py-1">
+        <div className="overflow-x-auto no-scrollbar flex items-center gap-1.5 py-0.5">
           {CATEGORIES.map((cat) => {
             const isSelected = activeCategory === cat.id;
             return (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-[11px] font-mono transition-all whitespace-nowrap border select-none ${
+                className={`px-3 py-1 rounded-xl text-[11px] font-mono transition-all whitespace-nowrap border select-none ${
                   isSelected
                     ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3] font-bold'
                     : 'bg-[#192223] border-[#253538] text-[#758588]'
@@ -193,44 +191,46 @@ export default function FeedScreen({
             );
           })}
         </div>
+
+        {/* Status Filter Sub-Bar */}
+        <div className="flex items-center justify-between pt-0.5">
+          <div className="flex items-center gap-1.5">
+            {['All', 'Open', 'In Progress', 'Resolved'].map((st) => (
+              <button
+                key={st}
+                onClick={() => setActiveStatus(st)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold transition ${
+                  activeStatus === st
+                    ? 'text-[#F0F4F4] bg-[#202B2D] border border-[#354144]'
+                    : 'text-[#758588] hover:text-[#A5B1B3]'
+                }`}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+
+          <span className="text-[10px] font-mono text-[#758588]">
+            {filteredIssues.length} issue{filteredIssues.length === 1 ? '' : 's'}
+          </span>
+        </div>
       </header>
 
-      {/* Status Filter Sub-Bar */}
-      <div className="flex items-center justify-between mb-6 pb-2 border-b border-[#354144]">
-        <div className="flex items-center gap-2">
-          {['All', 'Open', 'In Progress', 'Resolved'].map((st) => (
-            <button
-              key={st}
-              onClick={() => setActiveStatus(st)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-semibold transition ${
-                activeStatus === st
-                  ? 'text-[#F0F4F4] bg-[#202B2D] border border-[#354144]'
-                  : 'text-[#758588] hover:text-[#A5B1B3]'
-              }`}
-            >
-              {st}
-            </button>
-          ))}
-        </div>
-
-        <span className="text-xs font-mono text-[#758588]">
-          Showing {filteredIssues.length} report{filteredIssues.length === 1 ? '' : 's'}
-        </span>
-      </div>
-
-      {/* Main Content: Map View OR List Feed */}
-      {viewMode === 'map' ? (
-        <div className="mb-8">
-          <CivicMap
-            latitude={userLocation?.lat}
-            longitude={userLocation?.lng}
-            issues={filteredIssues}
-            addresses={addresses}
-            onSelectIssue={onSelectIssue}
-            height="h-[580px]"
-          />
-        </div>
-      ) : (
+      {/* Scrollable Issue List or Map Container */}
+      <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3 py-3 pb-24 no-scrollbar">
+        {/* Main Content: Map View OR List Feed */}
+        {viewMode === 'map' ? (
+          <div className="h-full min-h-[450px]">
+            <CivicMap
+              latitude={userLocation?.lat}
+              longitude={userLocation?.lng}
+              issues={filteredIssues}
+              addresses={addresses}
+              onSelectIssue={onSelectIssue}
+              height="h-full"
+            />
+          </div>
+        ) : (
         <div>
           {filteredIssues.length === 0 ? (
             <div className="bg-[#192223] border border-[#354144] rounded-3xl p-12 text-center max-w-xl mx-auto my-8">
@@ -379,17 +379,6 @@ export default function FeedScreen({
           )}
         </div>
       )}
-
-      {/* Floating Action Button (+ Report issue for mobile) */}
-      <div className="fixed bottom-20 right-5 z-30 md:hidden">
-        <button
-          onClick={onOpenReport}
-          className="flex items-center gap-2 bg-[#A3DCE3] hover:bg-[#88CDD5] text-[#080F0F] px-5 py-3.5 rounded-2xl font-bold text-sm shadow-xl shadow-[#A3DCE3]/20 transition-all duration-200 active:scale-95 border border-[#A3DCE3]"
-          aria-label="Report new issue"
-        >
-          <Plus size={18} strokeWidth={2.6} />
-          <span className="tracking-tight">Report issue</span>
-        </button>
       </div>
     </div>
   );

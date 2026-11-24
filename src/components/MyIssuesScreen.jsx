@@ -60,43 +60,45 @@ export default function MyIssuesScreen({
   };
 
   return (
-    <div className="h-full w-full overflow-y-auto overscroll-contain bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 no-scrollbar">
-      {/* Mobile Header */}
-      <header className="mb-4">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-black tracking-tight text-[#F0F4F4] font-mono">
+    <div className="h-full w-full flex flex-col bg-[#080F0F] text-[#F0F4F4] overflow-hidden">
+      {/* Pinned Mobile Top Tab Section (Stays fixed at top, never scrolls away!) */}
+      <header className="shrink-0 w-full px-3 pt-2.5 pb-2 bg-[#080F0F] border-b border-[#253538] space-y-2 z-20">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-black tracking-tight text-[#F0F4F4] font-mono leading-none">
             My Issues
           </h1>
-          <span className="text-[11px] font-mono bg-[#192223] border border-[#253538] px-2.5 py-1 rounded-full text-[#A3DCE3]">
+          <span className="text-[11px] font-mono bg-[#192223] border border-[#253538] px-2.5 py-0.5 rounded-full text-[#A3DCE3]">
             {myIssues.length} reports
           </span>
         </div>
-        <p className="text-xs text-[#758588]">
+        <p className="text-[10px] font-mono text-[#758588]">
           Track status and municipal resolutions for your submissions
         </p>
+
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+          {['All', 'Open', 'In Progress', 'Resolved'].map((tab) => {
+            const isSelected = activeFilter === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveFilter(tab)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all whitespace-nowrap ${
+                  isSelected
+                    ? 'bg-[#315C60] text-[#A3DCE3] font-semibold border border-[#A3DCE3]'
+                    : 'text-[#758588] hover:text-[#A5B1B3] bg-transparent'
+                }`}
+              >
+                {tab}
+              </button>
+            );
+          })}
+        </div>
       </header>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 mb-6 border-b border-[#354144] pb-3 overflow-x-auto no-scrollbar">
-        {['All', 'Open', 'In Progress', 'Resolved'].map((tab) => {
-          const isSelected = activeFilter === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveFilter(tab)}
-              className={`px-4 py-1.5 rounded-xl text-xs font-mono transition-all whitespace-nowrap ${
-                isSelected
-                  ? 'bg-[#315C60] text-[#A3DCE3] font-semibold border border-[#A3DCE3]'
-                  : 'text-[#758588] hover:text-[#A5B1B3] bg-transparent'
-              }`}
-            >
-              {tab}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Empty State */}
+      {/* Scrollable Issue List Container */}
+      <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3 py-3 pb-24 no-scrollbar">
+        {/* Empty State */}
       {filteredList.length === 0 ? (
         <div className="bg-[#192223] border border-[#354144] rounded-3xl p-12 text-center my-6 flex flex-col items-center max-w-lg mx-auto">
           {/* Decorative Teal Shape */}
@@ -204,6 +206,7 @@ export default function MyIssuesScreen({
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

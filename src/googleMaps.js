@@ -2,7 +2,7 @@
 export const GOOGLE_MAPS_API_KEY =
   import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
   document.querySelector('meta[name="google-maps-api-key"]')?.content ||
-  '016089-E20F62-171E41';
+  'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
 
 export const GOOGLE_MAPS_FALLBACK_KEY = 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
 

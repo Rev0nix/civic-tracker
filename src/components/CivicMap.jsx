@@ -70,9 +70,7 @@ export default function CivicMap({
   const leafletMarkersRef = useRef([]);
   const leafletUserMarkerRef = useRef(null);
 
-  const [mapError, setMapError] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
-  const [showControls, setShowControls] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('All'); // 'All' | 'Active' | 'Resolved'
   const [selectedPinIssue, setSelectedPinIssue] = useState(null);
@@ -100,7 +98,6 @@ export default function CivicMap({
   useEffect(() => {
     const handleAuthError = (e) => {
       console.warn('Google Maps auth error caught. Auto-switching to Leaflet Dark GIS engine:', e.detail);
-      setMapError('Google Maps API key not activated for web. Seamlessly switched to Leaflet Dark GIS engine.');
       setEngine('leaflet');
       setPreferredMapEngine('leaflet');
     };
@@ -134,7 +131,6 @@ export default function CivicMap({
   // Switch engine manually
   const toggleEngine = () => {
     const nextEngine = engine === 'google' ? 'leaflet' : 'google';
-    setMapError('');
     destroyCurrentMap();
     setEngine(nextEngine);
     setPreferredMapEngine(nextEngine);
@@ -178,7 +174,6 @@ export default function CivicMap({
         .catch((err) => {
           if (!active) return;
           console.warn('Google Maps failed to load, falling back to Leaflet:', err);
-          setMapError('Google Maps load issue. Auto-switched to Leaflet Dark GIS.');
           setEngine('leaflet');
           setPreferredMapEngine('leaflet');
         });
@@ -401,100 +396,69 @@ export default function CivicMap({
       {/* Map Container */}
       <div ref={mapElement} className="w-full h-full" aria-label="Lokify Map" />
 
-      {/* Map Error / Auto-switch Toast */}
-      {mapError && (
-        <div className="absolute top-3 left-3 right-16 z-30 p-2.5 bg-[#192223]/95 border border-[#354144] text-[#A3DCE3] text-xs font-mono rounded-2xl shadow-xl flex items-center justify-between gap-2 backdrop-blur-md">
-          <span className="truncate">{mapError}</span>
+      {/* Top Map Floating Bar: Filters on Left, Controls on Right */}
+      <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2 pointer-events-auto">
+        {/* Left: Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          {[
+            { key: 'All', label: `All (${totalCount})` },
+            { key: 'Active', label: `Active (${activeCount})` },
+            { key: 'Resolved', label: `Resolved (${resolvedCount})` },
+          ].map((f) => {
+            const isSelected = selectedFilter === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setSelectedFilter(f.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-mono font-semibold backdrop-blur-md transition-all whitespace-nowrap border shadow-md active:scale-95 ${
+                  isSelected
+                    ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
+                    : 'bg-[#101819]/90 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
+                }`}
+              >
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right: Satellite, Recenter, Engine Toggle */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Satellite Toggle */}
           <button
-            onClick={() => setMapError('')}
-            className="p-1 text-[#758588] hover:text-[#F0F4F4] rounded-lg shrink-0"
+            onClick={handleToggleSatellite}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition border shadow-md backdrop-blur-md active:scale-95 ${
+              isSatellite
+                ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
+                : 'bg-[#101819]/90 text-[#A5B1B3] border-[#354144] hover:text-[#F0F4F4]'
+            }`}
+            title="Toggle Satellite View"
+            aria-label="Toggle Satellite"
           >
-            <X size={14} />
+            <Layers size={14} />
+          </button>
+
+          {/* Recenter */}
+          <button
+            onClick={handleRecenter}
+            className="w-8 h-8 rounded-full bg-[#101819]/90 text-[#A5B1B3] border border-[#354144] hover:text-[#A3DCE3] flex items-center justify-center transition shadow-md backdrop-blur-md active:scale-95"
+            title="Recenter Location"
+            aria-label="Recenter"
+          >
+            <LocateFixed size={14} />
+          </button>
+
+          {/* Engine Switcher */}
+          <button
+            onClick={toggleEngine}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#101819]/90 border border-[#354144] hover:border-[#A3DCE3] text-[11px] font-mono text-[#A3DCE3] shadow-md backdrop-blur-md active:scale-95 transition"
+            title={`Switch to ${engine === 'google' ? 'Leaflet Dark GIS' : 'Google Maps'}`}
+          >
+            {engine === 'google' ? <MapIcon size={12} /> : <Globe size={12} />}
+            <span className="font-semibold">{engine === 'google' ? 'Google' : 'GIS'}</span>
           </button>
         </div>
-      )}
-
-      {/* Unobtrusive Floating Map Action Buttons */}
-      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 pointer-events-auto">
-        <button
-          onClick={handleRecenter}
-          className="w-8 h-8 rounded-full bg-[#101819]/80 backdrop-blur-md border border-[#354144]/80 text-[#A5B1B3] hover:text-[#A3DCE3] flex items-center justify-center shadow-md active:scale-90 transition"
-          title="Recenter location"
-          aria-label="Recenter"
-        >
-          <LocateFixed size={14} />
-        </button>
-        <button
-          onClick={() => setShowControls((prev) => !prev)}
-          className={`w-8 h-8 rounded-full backdrop-blur-md border flex items-center justify-center shadow-md active:scale-90 transition ${
-            showControls
-              ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
-              : 'bg-[#101819]/80 text-[#A5B1B3] border-[#354144]/80 hover:text-[#A3DCE3]'
-          }`}
-          title={showControls ? 'Close map controls' : 'Open map controls'}
-          aria-label="Toggle map controls"
-        >
-          {showControls ? <X size={14} /> : <Layers size={14} />}
-        </button>
       </div>
-
-      {/* Floating Controls Overlay (disappears by default when map appears; opens only when toggled) */}
-      {showControls && (
-        <div className="absolute top-13 left-3 right-3 z-20 p-3 bg-[#101819]/95 backdrop-blur-xl border border-[#354144] rounded-2xl shadow-2xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono font-semibold text-[#A5B1B3] uppercase tracking-wider">
-              Filter Issues
-            </span>
-            {/* Engine Switcher */}
-            <button
-              onClick={toggleEngine}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#192223] border border-[#354144] text-[11px] font-mono text-[#A3DCE3] active:scale-95"
-            >
-              {engine === 'google' ? <MapIcon size={12} /> : <Globe size={12} />}
-              <span>{engine === 'google' ? 'Google Maps' : 'Leaflet GIS'}</span>
-            </button>
-          </div>
-
-          {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            {[
-              { key: 'All', label: `All (${totalCount})` },
-              { key: 'Active', label: `Active (${activeCount})` },
-              { key: 'Resolved', label: `Resolved (${resolvedCount})` },
-            ].map((f) => {
-              const isSelected = selectedFilter === f.key;
-              return (
-                <button
-                  key={f.key}
-                  onClick={() => setSelectedFilter(f.key)}
-                  className={`px-3 py-1 rounded-xl text-xs font-mono font-medium transition ${
-                    isSelected
-                      ? 'bg-[#A3DCE3] text-[#080F0F] font-bold shadow-sm'
-                      : 'bg-[#192223] text-[#A5B1B3] hover:text-[#F0F4F4] border border-[#354144]'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Satellite Layer Toggle */}
-          <div className="flex items-center justify-between pt-1 border-t border-[#253538]">
-            <span className="text-xs text-[#A5B1B3] font-mono">Satellite View</span>
-            <button
-              onClick={handleToggleSatellite}
-              className={`px-3 py-1 rounded-xl text-xs font-mono font-semibold border transition ${
-                isSatellite
-                  ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
-                  : 'bg-[#192223] text-[#A5B1B3] border-[#354144]'
-              }`}
-            >
-              {isSatellite ? 'Satellite ON' : 'Dark GIS'}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Selected Issue Preview Card at bottom */}
       {selectedPinIssue && (

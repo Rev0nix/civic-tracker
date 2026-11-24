@@ -95,9 +95,9 @@ export default function AuthScreen({ onLogin }) {
     setIsLoading(true);
 
     setTimeout(() => {
-      const formattedPhone = phoneDigits ? `+91 ${phoneDigits}` : '+91 9845123456';
-      const userEmail = email.trim() || 'citizen@gmail.com';
-      const userName = name.trim() || userEmail.split('@')[0] || 'Citizen Reporter';
+      const formattedPhone = phoneDigits ? `+91 ${phoneDigits}` : '';
+      const userEmail = email.trim();
+      const userName = name.trim() || userEmail.split('@')[0] || (phoneDigits ? `Citizen-${phoneDigits.slice(-4)}` : 'Citizen');
 
       const citizenUser = {
         id: 'usr_' + Date.now().toString(36),
@@ -109,11 +109,13 @@ export default function AuthScreen({ onLogin }) {
         loginTime: new Date().toISOString(),
       };
 
-      sendSmsNotification({
-        toPhone: citizenUser.phone,
-        message: `Lokify Security: Welcome ${citizenUser.name}! SMS alerts for neighborhood reports are now active.`,
-        eventType: 'LOGIN_WELCOME',
-      });
+      if (citizenUser.phone) {
+        sendSmsNotification({
+          toPhone: citizenUser.phone,
+          message: `Lokify Security: Welcome ${citizenUser.name}! SMS alerts for neighborhood reports are now active.`,
+          eventType: 'LOGIN_WELCOME',
+        });
+      }
 
       setIsLoading(false);
       onLogin(citizenUser);
@@ -125,7 +127,7 @@ export default function AuthScreen({ onLogin }) {
     setErrorMessage('');
 
     if (adminPasscode !== 'admin123' && adminPasscode.length < 8) {
-      setErrorMessage('Security error: Official municipal passcode required (Default: admin123).');
+      setErrorMessage('Security error: Official municipal passcode required.');
       return;
     }
 
@@ -135,8 +137,8 @@ export default function AuthScreen({ onLogin }) {
       const adminUser = {
         id: 'adm_01',
         name: 'Municipal Ward Officer',
-        email: adminIdentifier.trim() || 'ward.engineer@lokify.gov',
-        phone: '+91 8022211100',
+        email: adminIdentifier.trim() || 'officer@lokify.gov',
+        phone: '',
         role: 'admin',
         token: 'admin_tok_' + Date.now().toString(36),
         loginTime: new Date().toISOString(),
@@ -151,20 +153,6 @@ export default function AuthScreen({ onLogin }) {
       setIsLoading(false);
       onLogin(adminUser);
     }, 400);
-  };
-
-  const fillCitizenDemo = () => {
-    setName('Revanth Gowda');
-    setPhone('9845123456');
-    setEmail('revanth.citizen@gmail.com');
-    setPassword('lokifyPass2026');
-    setErrorMessage('');
-  };
-
-  const fillAdminDemo = () => {
-    setAdminIdentifier('ward.engineer@lokify.gov');
-    setAdminPasscode('admin123');
-    setErrorMessage('');
   };
 
   const guestExplore = () => {
@@ -293,7 +281,7 @@ export default function AuthScreen({ onLogin }) {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Revanth Gowda"
+                    placeholder="Enter full name"
                     className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-10 pr-3 py-3 rounded-2xl outline-none font-medium transition"
                   />
                 </div>
@@ -326,7 +314,7 @@ export default function AuthScreen({ onLogin }) {
                   maxLength={10}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                  placeholder="9845123456"
+                  placeholder="Enter 10-digit number"
                   className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-20 pr-3 py-3 rounded-2xl outline-none font-mono transition"
                 />
               </div>
@@ -351,7 +339,7 @@ export default function AuthScreen({ onLogin }) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="citizen@gmail.com"
+                    placeholder="name@example.com"
                     className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-10 pr-3 py-3 rounded-2xl outline-none font-medium transition"
                   />
                 </div>
@@ -444,7 +432,7 @@ export default function AuthScreen({ onLogin }) {
                   type="text"
                   value={adminIdentifier}
                   onChange={(e) => setAdminIdentifier(e.target.value)}
-                  placeholder="ward.engineer@lokify.gov"
+                  placeholder="Enter official email or ID"
                   className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-10 pr-3 py-3 rounded-2xl outline-none font-medium transition"
                 />
               </div>
@@ -460,7 +448,7 @@ export default function AuthScreen({ onLogin }) {
                   type="password"
                   value={adminPasscode}
                   onChange={(e) => setAdminPasscode(e.target.value)}
-                  placeholder="Enter passcode (admin123)"
+                  placeholder="Enter municipal passcode"
                   className="w-full bg-[#192223] border border-[#354144] focus:border-[#A3DCE3] text-[#F0F4F4] text-sm pl-10 pr-3 py-3 rounded-2xl outline-none font-mono transition"
                 />
               </div>
@@ -502,30 +490,6 @@ export default function AuthScreen({ onLogin }) {
           <Compass size={16} className="text-[#43C88A]" />
           <span>Instant Guest Access (Explore App & Map)</span>
         </button>
-
-        {/* 1-Tap Fill Demo Credentials */}
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => {
-              setRole('citizen');
-              fillCitizenDemo();
-            }}
-            className="flex-1 py-1.5 px-2 rounded-xl bg-[#132B2F]/60 border border-[#28616A]/50 text-[10px] font-mono text-[#A3DCE3] text-center hover:bg-[#132B2F] transition"
-          >
-            Fill Demo Citizen
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setRole('admin');
-              fillAdminDemo();
-            }}
-            className="flex-1 py-1.5 px-2 rounded-xl bg-[#192223] border border-[#354144] text-[10px] font-mono text-[#A5B1B3] text-center hover:bg-[#202B2D] transition"
-          >
-            Fill Demo Admin
-          </button>
-        </div>
       </div>
 
       {/* Mobile Footer */}

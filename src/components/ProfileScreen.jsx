@@ -130,16 +130,19 @@ export default function ProfileScreen({
   ];
 
   return (
-    <div className="h-full w-full overflow-y-auto overscroll-contain bg-[#080F0F] text-[#F0F4F4] pb-24 pt-3 px-3 no-scrollbar">
-      {/* Header Title */}
-      <div className="mb-4">
-        <h1 className="text-xl font-black tracking-tight text-[#F0F4F4] font-mono">
+    <div className="h-full w-full flex flex-col bg-[#080F0F] text-[#F0F4F4] overflow-hidden">
+      {/* Pinned Top Tab Header */}
+      <header className="shrink-0 w-full px-3 pt-2.5 pb-2 bg-[#080F0F] border-b border-[#253538] z-20">
+        <h1 className="text-lg font-black tracking-tight text-[#F0F4F4] font-mono leading-none">
           Profile & Settings
         </h1>
-        <p className="text-xs text-[#758588]">
+        <p className="text-[10px] font-mono text-[#758588] mt-0.5">
           Citizen account, ward location & SMS settings
         </p>
-      </div>
+      </header>
+
+      {/* Scrollable Content Container */}
+      <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3 py-3 pb-24 no-scrollbar">
 
       <div className="flex flex-col gap-4">
         {/* Profile, Stats, Municipal Admin, Sign Out */}
@@ -433,6 +436,7 @@ export default function ProfileScreen({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -41,7 +41,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: '016089-E20F62-171E41'
+          VITE_GOOGLE_MAPS_API_KEY: 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc'
+          VITE_GOOGLE_MAPS_MAP_ID: '016089-E20F62-171E41'
 
       - name: Deploy to gh-pages branch (backup)
         uses: peaceiris/actions-gh-pages@v4
@@ -97,7 +98,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: '016089-E20F62-171E41'
+          VITE_GOOGLE_MAPS_API_KEY: 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc'
+          VITE_GOOGLE_MAPS_MAP_ID: '016089-E20F62-171E41'
 
       - name: Sync Capacitor Android Project
         run: npx cap sync android
@@ -116,25 +118,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.7' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.7' }} – Fixed Mobile Layout & Minimized Direct Map"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.8' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.8' }} – Pinned Header Tabs, Restored Map Controls & Clean Auth"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.7' }} – Fixed Phone Layout & Minimized Direct Map Release
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.8' }} – Pinned Header Tabs & Map Controls Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Highlights & Fixes in v1.2.7:
-            * **Fixed Phone App Layouts:** Pinned mobile viewport (`100dvh`) with fixed header, dock-pinned bottom navigation, and decoupled momentum-scrolling screen containers. Eliminated whole-page bouncing and layout displacement on phones.
-            * **Direct Map Opening:** Instant Leaflet GIS dark engine initialization with zero authentication delays or blank screens.
-            * **Minimized Map Chrome & Auto-Disappearing Buttons:** Map fills the screen edge-to-edge; clunky overlay buttons (filter pills, engine toggle, satellite layer) disappear when the map appears for an unobstructed GIS view, with an unobtrusive button to toggle controls when needed.
-            * **Complete Rebranding to Lokify:** Replaced all occurrences of "Civic Tracker" with "Lokify" across app titles, headers, AI assistant, and package configurations.
+            ### 🚀 Highlights & Fixes in v1.2.8:
+            * **Fixed Pinned Top Tabs:** Fixed the layout bug where top tabs and headers scrolled up on mobile. The mobile header, category filter chips, and status sub-bars are permanently pinned with native safe-area top insets (`shrink-0`), allowing issues to scroll smoothly underneath.
+            * **Restored Visible Map Buttons:** All interactive controls are permanently visible across the top of the map: Filter chips (`All`, `Active`, `Resolved`), Satellite layer toggle, Recenter GPS button, and Google / Leaflet GIS engine switcher.
+            * **Activated Google Maps API Key:** Fixed Google Maps API key configuration with genuine user key `AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc` and Map ID `016089-E20F62-171E41`, eliminating "API key is required" warnings.
+            * **Clean Login Experience:** Removed all demo autofill buttons ("Fill Demo Citizen" / "Fill Demo Admin") and removed fake placeholder data across citizen phone/email and ward officer logins.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the Android Debug APK below:
-            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.7' }}/app-debug.apk)**
+            - **[app-debug.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2.8' }}/app-debug.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |
