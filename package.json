@@ -1,7 +1,7 @@
 {
   "name": "lokify",
   "private": true,
-  "version": "1.4.2",
+  "version": "1.4.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,6 +20,7 @@
     "@emailjs/browser": "^5.0.3",
     "@supabase/supabase-js": "^2.118.0",
     "@types/leaflet": "^1.9.22",
+    "firebase": "^13.4.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.60.0",
     "react": "^19.3.1",

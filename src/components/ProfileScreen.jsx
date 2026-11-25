@@ -27,7 +27,6 @@ export default function ProfileScreen({
   myIssuesCount = 0,
   upvotesReceived = 0,
   isAdmin = false,
-  onToggleAdmin,
   onNavigateTab,
   onLogout,
   onCheckUpdate,
@@ -77,18 +76,6 @@ export default function ProfileScreen({
           onClick: () => setShowSmsHistory(true),
         },
         {
-          id: 'admin-mode',
-          label: 'Ward Officer (Admin) Mode',
-          icon: Shield,
-          subtitle: isAdmin
-            ? 'ADMIN MODE ACTIVE · You can control reports and dispatch SMS'
-            : 'CITIZEN MODE · Tap toggle to enter passcode (admin123) and unlock admin',
-          isToggle: true,
-          toggleValue: isAdmin,
-          badge: isAdmin ? 'ADMIN ON' : 'CITIZEN',
-          onClick: onToggleAdmin,
-        },
-        {
           id: 'saved-issues',
           label: 'Saved Issues',
           icon: Bookmark,
@@ -110,8 +97,8 @@ export default function ProfileScreen({
           id: 'software-update',
           label: 'Software Update',
           icon: DownloadCloud,
-          subtitle: 'Version 1.4.2 · Tap to check updates',
-          badge: 'v1.4.2',
+          subtitle: 'Version 1.4.3 · Tap to check updates',
+          badge: 'v1.4.3',
           onClick: onCheckUpdate,
         },
         {
@@ -132,10 +119,10 @@ export default function ProfileScreen({
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.4.2 · Civic Grievance Tracker',
+          subtitle: 'v1.4.3 · Civic Grievance Tracker',
           onClick: () =>
             alert(
-              'Lokify v1.4.2\nCivic Grievance & Municipal Issue Tracker\nClean, Harm-Free Native Android Release'
+              'Lokify v1.4.3\nCivic Grievance & Municipal Issue Tracker\nClean, Harm-Free Native Android Release'
             ),
         },
       ],
@@ -157,8 +144,8 @@ export default function ProfileScreen({
       {/* Scrollable Content Container */}
       <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3.5 py-3 pb-24 no-scrollbar">
         <div className="flex flex-col gap-3.5">
-          {/* Prominent Active Mode Banner (Zero Ambiguity) */}
-          {isAdmin ? (
+          {/* Official Ward Officer Status Card (Shown ONLY when logged in as Officer) */}
+          {isAdmin && (
             <div className="bg-[#1F6FEB]/15 border border-[#388BFD]/40 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm animate-in fade-in duration-150">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-[#1F6FEB] text-white flex items-center justify-center shrink-0 shadow-sm">
@@ -167,42 +154,20 @@ export default function ProfileScreen({
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-[#58A6FF] uppercase tracking-wider block">
-                      Admin Mode Active
+                      Ward Officer Active
                     </span>
                     <span className="w-2 h-2 rounded-full bg-[#58A6FF] animate-pulse" />
                   </div>
                   <p className="text-[11px] text-[#8B949E] mt-0.5 leading-tight">
-                    You have administrative control over report cards & SMS dispatch
+                    Official municipal control over report cards & SMS dispatch active
                   </p>
                 </div>
               </div>
               <button
-                onClick={onToggleAdmin}
+                onClick={onLogout}
                 className="text-[11px] font-semibold text-[#F85149] bg-[#321616] hover:bg-[#481d1d] border border-[#5C2424] px-2.5 py-1.5 rounded-xl transition active:scale-95 shrink-0"
               >
-                Exit Admin
-              </button>
-            </div>
-          ) : (
-            <div className="bg-[#161B22] border border-[#30363D] rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-[#21262D] text-[#3FB950] flex items-center justify-center shrink-0">
-                  <User size={16} />
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-[#F0F6FC] block leading-tight">
-                    Citizen Mode Active
-                  </span>
-                  <p className="text-[11px] text-[#8B949E] leading-tight mt-0.5">
-                    Viewing reports as a citizen
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={onToggleAdmin}
-                className="text-[11px] font-semibold text-[#58A6FF] bg-[#1F6FEB]/10 hover:bg-[#1F6FEB]/20 border border-[#1F6FEB]/30 px-2.5 py-1.5 rounded-xl transition active:scale-95 shrink-0"
-              >
-                Switch to Admin
+                Sign Out
               </button>
             </div>
           )}

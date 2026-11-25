@@ -14,7 +14,6 @@ import AlertsScreen from './components/AlertsScreen';
 import ProfileScreen from './components/ProfileScreen';
 import ReportIssueModal from './components/ReportIssueModal';
 import IssueDetailModal from './components/IssueDetailModal';
-import AdminAuthDialog from './components/AdminAuthDialog';
 import AiAssistantModal from './components/AiAssistantModal';
 import LokAiScreen from './components/LokAiScreen';
 import InAppUpdateModal from './components/InAppUpdateModal';
@@ -114,18 +113,12 @@ export default function App() {
   // Modals & Navigation state
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
-  const [adminMode, setAdminMode] = useState(() => {
-    try {
-      return localStorage.getItem('lokify_admin_mode') === 'true';
-    } catch {
-      return false;
-    }
-  });
-  const isAdmin = currentUser?.role === 'admin' || adminMode;
+
+  // Admin / Officer role is strictly active ONLY when logged in with officer credentials
+  const isAdmin = currentUser?.role === 'admin';
 
   // Splash Screen & Toast
   const [showSplash, setShowSplash] = useState(true);
@@ -134,52 +127,6 @@ export default function App() {
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type });
   }, []);
-
-  const activateAdminMode = useCallback(() => {
-    setAdminMode(true);
-    try {
-      localStorage.setItem('lokify_admin_mode', 'true');
-    } catch {
-      // Ignore
-    }
-    setCurrentUser((prev) => {
-      const updated = {
-        ...prev,
-        role: 'admin',
-        adminActive: true,
-      };
-      try {
-        localStorage.setItem('lokify_auth_session', JSON.stringify(updated));
-      } catch {
-        // Ignore
-      }
-      return updated;
-    });
-    showToast('Ward Officer (Admin) Mode Active', 'success');
-  }, [showToast]);
-
-  const deactivateAdminMode = useCallback(() => {
-    setAdminMode(false);
-    try {
-      localStorage.setItem('lokify_admin_mode', 'false');
-    } catch {
-      // Ignore
-    }
-    setCurrentUser((prev) => {
-      const updated = {
-        ...prev,
-        role: 'citizen',
-        adminActive: false,
-      };
-      try {
-        localStorage.setItem('lokify_auth_session', JSON.stringify(updated));
-      } catch {
-        // Ignore
-      }
-      return updated;
-    });
-    showToast('Switched to Citizen Mode', 'info');
-  }, [showToast]);
 
   // Auto-check for in-app software updates after splash
   useEffect(() => {
@@ -681,6 +628,7 @@ export default function App() {
     if (window.confirm('Sign out of your Lokify session?')) {
       setCurrentUser(null);
       localStorage.removeItem('lokify_auth_session');
+      localStorage.removeItem('lokify_admin_mode');
       showToast('Signed out successfully.', 'info');
     }
   };
@@ -814,7 +762,7 @@ export default function App() {
               onShareIssue={handleShare}
               isAdmin={isAdmin}
               onExportCSV={handleExportCSV}
-              onExitAdmin={deactivateAdminMode}
+              onExitAdmin={isAdmin ? handleLogout : null}
             />
           )}
 
@@ -870,13 +818,6 @@ export default function App() {
               myIssuesCount={myIssues.length}
               upvotesReceived={upvotesReceived}
               isAdmin={isAdmin}
-              onToggleAdmin={() => {
-                if (isAdmin) {
-                  deactivateAdminMode();
-                } else {
-                  setIsAdminModalOpen(true);
-                }
-              }}
               onNavigateTab={(tab) => setActiveTab(tab)}
               onLogout={handleLogout}
               onCheckUpdate={handleManualUpdateCheck}
@@ -926,14 +867,6 @@ export default function App() {
         onDeleteIssue={handleDeleteIssue}
       />
 
-      {/* Municipal Officer Verification Dialog */}
-      <AdminAuthDialog
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-        onAuthenticate={() => {
-          activateAdminMode();
-        }}
-      />
 
       {/* Multilingual Lokify AI Assistant */}
       <AiAssistantModal
