@@ -43,13 +43,12 @@
         </provider>
     </application>
 
-    <!-- Clean, Verified Citizen Sensor & Connectivity Permissions -->
+    <!-- Clean, Verified Citizen Sensor & Connectivity Permissions (No harmful dropper permissions) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
 </manifest>

@@ -20,7 +20,7 @@ import LokAiScreen from './components/LokAiScreen';
 import InAppUpdateModal from './components/InAppUpdateModal';
 import CivicMap from './components/CivicMap';
 import AppLogo from './components/AppLogo';
-import { checkForAppUpdate } from './services/appUpdater';
+import { checkForAppUpdate, CURRENT_APP_VERSION } from './services/appUpdater';
 import { mapToDbCategoryId } from './constants/theme';
 import { Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
 import './App.css';
@@ -118,12 +118,68 @@ export default function App() {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
-  const [adminOverride, setAdminOverride] = useState(false);
-  const isAdmin = currentUser?.role === 'admin' || adminOverride;
+  const [adminMode, setAdminMode] = useState(() => {
+    try {
+      return localStorage.getItem('lokify_admin_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const isAdmin = currentUser?.role === 'admin' || adminMode;
 
   // Splash Screen & Toast
   const [showSplash, setShowSplash] = useState(true);
   const [toast, setToast] = useState(null);
+
+  const showToast = useCallback((message, type = 'info') => {
+    setToast({ message, type });
+  }, []);
+
+  const activateAdminMode = useCallback(() => {
+    setAdminMode(true);
+    try {
+      localStorage.setItem('lokify_admin_mode', 'true');
+    } catch {
+      // Ignore
+    }
+    setCurrentUser((prev) => {
+      const updated = {
+        ...prev,
+        role: 'admin',
+        adminActive: true,
+      };
+      try {
+        localStorage.setItem('lokify_auth_session', JSON.stringify(updated));
+      } catch {
+        // Ignore
+      }
+      return updated;
+    });
+    showToast('Ward Officer (Admin) Mode Active', 'success');
+  }, [showToast]);
+
+  const deactivateAdminMode = useCallback(() => {
+    setAdminMode(false);
+    try {
+      localStorage.setItem('lokify_admin_mode', 'false');
+    } catch {
+      // Ignore
+    }
+    setCurrentUser((prev) => {
+      const updated = {
+        ...prev,
+        role: 'citizen',
+        adminActive: false,
+      };
+      try {
+        localStorage.setItem('lokify_auth_session', JSON.stringify(updated));
+      } catch {
+        // Ignore
+      }
+      return updated;
+    });
+    showToast('Switched to Citizen Mode', 'info');
+  }, [showToast]);
 
   // Auto-check for in-app software updates after splash
   useEffect(() => {
@@ -160,10 +216,6 @@ export default function App() {
     localStorage.setItem('lokify_upvotes', JSON.stringify(upvotedIssueIds));
   }, [upvotedIssueIds]);
 
-  const showToast = useCallback((message, type = 'info') => {
-    setToast({ message, type });
-  }, []);
-
   // Manual In-App Update Trigger
   const handleManualUpdateCheck = useCallback(async () => {
     showToast('Checking for Lokify software updates...', 'info');
@@ -174,7 +226,7 @@ export default function App() {
     } else if (info && info.error) {
       showToast(`Update check failed: ${info.error}. Retrying...`, 'error');
     } else {
-      showToast(`Lokify is up to date (${info?.currentVersion || 'v1.3.8'})!`, 'success');
+      showToast(`Lokify is up to date (v${CURRENT_APP_VERSION})!`, 'success');
     }
   }, [showToast]);
 
@@ -762,10 +814,7 @@ export default function App() {
               onShareIssue={handleShare}
               isAdmin={isAdmin}
               onExportCSV={handleExportCSV}
-              onExitAdmin={() => {
-                setAdminOverride(false);
-                showToast('Exited Ward Officer Mode. Now in Citizen View.', 'info');
-              }}
+              onExitAdmin={deactivateAdminMode}
             />
           )}
 
@@ -823,8 +872,7 @@ export default function App() {
               isAdmin={isAdmin}
               onToggleAdmin={() => {
                 if (isAdmin) {
-                  setAdminOverride(false);
-                  showToast('Exited Ward Officer Mode. Now in Citizen View.', 'info');
+                  deactivateAdminMode();
                 } else {
                   setIsAdminModalOpen(true);
                 }
@@ -882,9 +930,8 @@ export default function App() {
       <AdminAuthDialog
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
-        onAuthenticate={(authStatus) => {
-          setAdminOverride(authStatus);
-          showToast('Ward Officer Mode Active · Tap any report card to control it', 'success');
+        onAuthenticate={() => {
+          activateAdminMode();
         }}
       />
 

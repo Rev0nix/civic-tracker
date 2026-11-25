@@ -4,7 +4,7 @@
 
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
-export const CURRENT_APP_VERSION = '1.4.1';
+export const CURRENT_APP_VERSION = '1.4.2';
 export const GITHUB_REPO = 'Rev0nix/civic-tracker';
 
 // Register native Android plugin proxy via official Capacitor bridge
@@ -150,70 +150,54 @@ export function isNewerVersion(latest, current) {
 }
 
 /**
- * Downloads and installs the APK purely IN-APP without opening any external browser.
- * On Android, utilizes the native LokifyNativeUpdater Kotlin plugin to stream
- * bytes and launch the package installer directly.
- * 
- * @param {object} updateInfo - The update info object returned from checkForAppUpdate
- * @param {function} onProgress - Callback (percent, downloadedBytes, totalBytes)
+ * Downloads and installs the update safely without harmful dropper permissions.
+ * On Android, utilizes the official system DownloadManager.
  */
 export async function downloadAndInstallApkInApp(updateInfo, onProgress) {
   const downloadUrl =
     updateInfo?.downloadUrl ||
-    `https://github.com/${GITHUB_REPO}/releases/latest/download/app-release.apk`;
-  const cleanVersion = (updateInfo?.latestVersion || 'latest').replace(/^v/, '');
+    `https://github.com/${GITHUB_REPO}/releases/download/v${(updateInfo?.latestVersion || '1.4.2').replace(/^v/, '')}/app-release.apk`;
+  const cleanVersion = (updateInfo?.latestVersion || '1.4.2').replace(/^v/, '');
 
-  // 1. Android Native Capacitor Engine (Strictly In-App)
+  // 1. Android Native Platform via DownloadManager
   if (Capacitor.isNativePlatform()) {
-    let listenerHandle = null;
     try {
-      if (typeof LokifyNativeUpdater.addListener === 'function') {
-        listenerHandle = await LokifyNativeUpdater.addListener('downloadProgress', (data) => {
-          if (onProgress && typeof onProgress === 'function') {
-            onProgress(data.progress || 0, data.downloadedBytes || 0, data.totalBytes || 0);
-          }
-        });
-      }
+      if (onProgress) onProgress(30, 0, 0);
 
       const res = await LokifyNativeUpdater.downloadAndInstall({
         url: downloadUrl,
         version: cleanVersion,
       });
 
+      if (onProgress) onProgress(100, 0, 0);
+
       return {
         success: true,
         inApp: true,
-        message: 'Package installer launched in-app',
+        message: 'Update queued in notification shade. Pull down and tap to install!',
         res,
       };
     } catch (nativeErr) {
-      console.error('Lokify native in-app installer failed:', nativeErr);
-      throw nativeErr;
-    } finally {
-      if (listenerHandle && typeof listenerHandle.remove === 'function') {
-        listenerHandle.remove();
-      }
+      console.warn('Native download manager error, trying direct intent:', nativeErr);
+      window.open(downloadUrl, '_system');
+      if (onProgress) onProgress(100, 0, 0);
+      return {
+        success: true,
+        inApp: false,
+        message: 'Download started via system',
+      };
     }
   }
 
-  // 2. Web / Browser fallback (Streams in-app, never navigates away or launches external tabs)
+  // 2. Web fallback
   try {
-    if (onProgress) onProgress(20, 0, 0);
-
-    const stepInterval = setInterval(() => {
-      if (onProgress) {
-        onProgress((prev) => (prev >= 90 ? 90 : (prev || 20) + 20));
-      }
-    }, 250);
-
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    clearInterval(stepInterval);
+    if (onProgress) onProgress(50, 0, 0);
+    window.open(downloadUrl, '_blank');
     if (onProgress) onProgress(100, 0, 0);
-
     return {
       success: true,
-      inApp: true,
-      message: 'In-app update ready',
+      inApp: false,
+      message: 'Download started',
     };
   } catch (err) {
     return {

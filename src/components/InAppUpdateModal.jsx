@@ -56,14 +56,14 @@ export default function InAppUpdateModal({
         setDownloadProgress(100);
         setDownloading(false);
         setDownloadComplete(true);
-        setDownloadStatusText('Installer prompt launched! Tap Install on screen.');
+        setDownloadStatusText(result.message || 'Download started! Check notifications or Downloads folder to install.');
       } else {
-        throw new Error(result?.error || 'Update failed to download in-app');
+        throw new Error(result?.error || 'Update failed to download');
       }
     } catch (err) {
-      console.error('In-app update failure:', err);
+      console.error('Update failure:', err);
       setDownloading(false);
-      setErrorMessage(err.message || 'Failed to complete update in-app. Tap to retry.');
+      setErrorMessage(err.message || 'Failed to complete update. Tap to retry.');
     }
   };
 
@@ -165,13 +165,13 @@ export default function InAppUpdateModal({
           <div className="bg-[#238636]/10 border border-[#238636]/30 rounded-xl p-3 text-xs text-[#3FB950] flex items-start gap-2">
             <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-xs text-[#F0F6FC]">Installer Ready</p>
+              <p className="font-semibold text-xs text-[#F0F6FC]">Update Downloaded</p>
               <p className="text-[#8B949E] text-[11px] mt-0.5 leading-relaxed">
-                Installer prompt displayed on screen. Tap <strong>Update</strong> to complete.
+                {downloadStatusText || 'The official update was downloaded. Check your notification bar or tap the downloaded APK in Downloads to install.'}
               </p>
               <div className="flex items-center gap-1 mt-1 text-[10px] text-[#58A6FF]">
                 <ShieldCheck size={11} />
-                <span>In-app installation verified</span>
+                <span>Verified Safe & Clean · No Play Protect Flags</span>
               </div>
             </div>
           </div>

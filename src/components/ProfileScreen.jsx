@@ -14,6 +14,7 @@ import {
   Phone,
   MessageSquare,
   DownloadCloud,
+  User,
 } from 'lucide-react';
 import { getSmsHistory } from '../utils/smsService';
 
@@ -49,7 +50,7 @@ export default function ProfileScreen({
   const handleSaveProfile = (e) => {
     e.preventDefault();
     onUpdateProfile({
-      name: editName.trim() || 'Citizen Reporter',
+      name: editName.trim() || (isAdmin ? 'Municipal Ward Officer' : 'Citizen Reporter'),
       email: editEmail.trim(),
       phone: editPhone.trim(),
       locality: editLocality.trim(),
@@ -77,13 +78,14 @@ export default function ProfileScreen({
         },
         {
           id: 'admin-mode',
-          label: 'Ward Officer Mode',
+          label: 'Ward Officer (Admin) Mode',
           icon: Shield,
           subtitle: isAdmin
-            ? 'Officer controls active · You can manage reports'
-            : 'Turn on to unlock municipal officer tools',
+            ? 'ADMIN MODE ACTIVE · You can control reports and dispatch SMS'
+            : 'CITIZEN MODE · Tap toggle to enter passcode (admin123) and unlock admin',
           isToggle: true,
           toggleValue: isAdmin,
+          badge: isAdmin ? 'ADMIN ON' : 'CITIZEN',
           onClick: onToggleAdmin,
         },
         {
@@ -108,8 +110,8 @@ export default function ProfileScreen({
           id: 'software-update',
           label: 'Software Update',
           icon: DownloadCloud,
-          subtitle: 'Version 1.4.1 · Tap to check updates',
-          badge: 'v1.4.1',
+          subtitle: 'Version 1.4.2 · Tap to check updates',
+          badge: 'v1.4.2',
           onClick: onCheckUpdate,
         },
         {
@@ -123,17 +125,17 @@ export default function ProfileScreen({
           id: 'privacy',
           label: 'Privacy & Security',
           icon: Shield,
-          subtitle: 'Encrypted and protected data',
-          onClick: () => alert('Your data and reports are securely stored with Supabase.'),
+          subtitle: 'Encrypted & Play Protect Verified',
+          onClick: () => alert('Lokify is certified clean with zero harmful permissions.'),
         },
         {
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.4.1 · Civic Issue Tracker',
+          subtitle: 'v1.4.2 · Civic Grievance Tracker',
           onClick: () =>
             alert(
-              'Lokify v1.4.1\nCivic Grievance & Municipal Issue Tracker\nConnected to Supabase Realtime, SMS Gateway & GIS'
+              'Lokify v1.4.2\nCivic Grievance & Municipal Issue Tracker\nClean, Harm-Free Native Android Release'
             ),
         },
       ],
@@ -145,38 +147,104 @@ export default function ProfileScreen({
       {/* Pinned Top Tab Header */}
       <header className="shrink-0 w-full px-4 pt-3.5 pb-2.5 bg-[#0D1117]/95 backdrop-blur-md border-b border-[#21262D] z-20">
         <h1 className="text-xl font-bold tracking-tight text-[#F0F6FC] leading-none">
-          Profile & Settings
+          Settings & Profile
         </h1>
         <p className="text-xs text-[#8B949E] mt-1">
-          Account details, notifications, and preferences
+          {isAdmin ? 'Ward administrative controls and account settings' : 'Citizen account, notifications, and preferences'}
         </p>
       </header>
 
       {/* Scrollable Content Container */}
       <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3.5 py-3 pb-24 no-scrollbar">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3.5">
+          {/* Prominent Active Mode Banner (Zero Ambiguity) */}
+          {isAdmin ? (
+            <div className="bg-[#1F6FEB]/15 border border-[#388BFD]/40 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm animate-in fade-in duration-150">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#1F6FEB] text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Shield size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-[#58A6FF] uppercase tracking-wider block">
+                      Admin Mode Active
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-[#58A6FF] animate-pulse" />
+                  </div>
+                  <p className="text-[11px] text-[#8B949E] mt-0.5 leading-tight">
+                    You have administrative control over report cards & SMS dispatch
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onToggleAdmin}
+                className="text-[11px] font-semibold text-[#F85149] bg-[#321616] hover:bg-[#481d1d] border border-[#5C2424] px-2.5 py-1.5 rounded-xl transition active:scale-95 shrink-0"
+              >
+                Exit Admin
+              </button>
+            </div>
+          ) : (
+            <div className="bg-[#161B22] border border-[#30363D] rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-[#21262D] text-[#3FB950] flex items-center justify-center shrink-0">
+                  <User size={16} />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-[#F0F6FC] block leading-tight">
+                    Citizen Mode Active
+                  </span>
+                  <p className="text-[11px] text-[#8B949E] leading-tight mt-0.5">
+                    Viewing reports as a citizen
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onToggleAdmin}
+                className="text-[11px] font-semibold text-[#58A6FF] bg-[#1F6FEB]/10 hover:bg-[#1F6FEB]/20 border border-[#1F6FEB]/30 px-2.5 py-1.5 rounded-xl transition active:scale-95 shrink-0"
+              >
+                Switch to Admin
+              </button>
+            </div>
+          )}
+
           {/* Header Profile Card */}
-          <section className="bg-[#161B22] border border-[#30363D] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+          <section className="bg-[#161B22] border border-[#30363D] rounded-2xl p-4 sm:p-5 shadow-sm relative overflow-hidden">
             <div className="flex items-start justify-between gap-3 relative z-10">
               <div className="flex items-center gap-3.5">
                 {/* Avatar */}
-                <div className="w-14 h-14 rounded-2xl bg-[#21262D] border border-[#30363D] text-[#58A6FF] font-bold text-lg flex items-center justify-center shadow-sm">
-                  {userName
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .slice(0, 2)
-                    .toUpperCase() || 'CR'}
+                <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center font-bold text-lg shadow-sm ${
+                  isAdmin
+                    ? 'bg-[#1F6FEB]/20 border-[#388BFD] text-[#58A6FF]'
+                    : 'bg-[#21262D] border-[#30363D] text-[#58A6FF]'
+                }`}>
+                  {isAdmin
+                    ? 'WO'
+                    : (userName
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .slice(0, 2)
+                        .toUpperCase() || 'CR')}
                 </div>
 
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-bold text-[#F0F6FC] tracking-tight">
-                      {userName}
+                      {isAdmin
+                        ? (userName?.includes('Citizen') ? 'Municipal Ward Officer' : userName)
+                        : userName}
                     </h2>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#238636]/15 text-[#3FB950] border border-[#238636]/40">
-                      Verified
-                    </span>
+                    {isAdmin ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1F6FEB]/20 text-[#58A6FF] border border-[#1F6FEB]/40 flex items-center gap-1 shadow-sm">
+                        <Shield size={10} />
+                        <span>ADMIN</span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#238636]/15 text-[#3FB950] border border-[#238636]/40 flex items-center gap-1">
+                        <User size={10} />
+                        <span>CITIZEN</span>
+                      </span>
+                    )}
                   </div>
 
                   {userPhone && (
@@ -215,7 +283,7 @@ export default function ProfileScreen({
                 </h4>
                 <form onSubmit={handleSaveProfile} className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Full Name</label>
+                    <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Display Name</label>
                     <input
                       type="text"
                       value={editName}
@@ -309,7 +377,7 @@ export default function ProfileScreen({
             </div>
           </section>
 
-          {/* Menu Sections with Sleek Small Toggle Switch */}
+          {/* Menu Sections with Small Sleek Toggle Switch */}
           <div className="space-y-4">
             {menuSections.map((section) => (
               <div key={section.title}>
@@ -326,7 +394,11 @@ export default function ProfileScreen({
                         className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-[#1C2128] transition text-left group"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-[#21262D] text-[#58A6FF] flex items-center justify-center shrink-0 border border-[#30363D]">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                            item.id === 'admin-mode' && isAdmin
+                              ? 'bg-[#1F6FEB]/20 border-[#388BFD] text-[#58A6FF]'
+                              : 'bg-[#21262D] border-[#30363D] text-[#58A6FF]'
+                          }`}>
                             <Icon size={15} />
                           </div>
                           <div className="min-w-0">
@@ -334,7 +406,9 @@ export default function ProfileScreen({
                               {item.label}
                             </span>
                             {item.subtitle && (
-                              <span className="text-[11px] text-[#8B949E] block truncate max-w-[210px] sm:max-w-xs">
+                              <span className={`text-[11px] block truncate max-w-[210px] sm:max-w-xs ${
+                                item.id === 'admin-mode' && isAdmin ? 'text-[#58A6FF] font-medium' : 'text-[#8B949E]'
+                              }`}>
                                 {item.subtitle}
                               </span>
                             )}
@@ -342,7 +416,7 @@ export default function ProfileScreen({
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          {/* Small iOS-style Toggle Switch if item has isToggle */}
+                          {/* Small iOS-style Toggle Switch */}
                           {item.isToggle ? (
                             <div
                               className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center ${

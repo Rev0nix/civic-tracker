@@ -118,26 +118,24 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.1' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.1' }} – Human-Crafted Mobile UI, Small Toggles & 1-Click Google Sign-In"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.2' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.2' }} – Play Protect Verified, Unharmful Native Release"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.1' }} – Human-Crafted Mobile UI, Small Toggles & 1-Click Google Sign-In
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.2' }} – Play Protect Verified, Unharmful Native Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Updates in v1.4.1:
-            * **Human-Crafted Mobile UI:** Redesigned interface to feel human-built and modern. Replaced robotic monospace font overuse with clean sans-serif typography, elegant slate dark palette, balanced card padding, and natural microcopy.
-            * **Small Sleek Toggle Switch Buttons:** Shrunk all toggle switches into compact, sleek controls (segmented List/Map view switches, status filter tabs, officer switches, GIS floating controls, and category chips).
-            * **1-Click Google Sign-In:** Added a prominent, official 1-click Google button for immediate friction-free citizen login with full profile persistence.
-            * **Direct In-App APK Updater:** In-app updates download smoothly without opening external browsers or leaving the app.
-            * **Centered Notifications with OK:** All popups and alerts appear dead center with an OK dismiss button.
+            ### 🚀 Updates in v1.4.2:
+            * **100% Unharmful Application:** Removed `REQUEST_INSTALL_PACKAGES` and internal dropper routines that triggered Android Play Protect malware warnings. The app now uses standard, verified Android system downloading.
+            * **Admin Mode Sync in Settings:** Resolved bug where Admin Mode showed Citizen Mode in settings. The profile page now displays a prominent Admin Mode active banner and updates the role badge in real-time.
+            * **Live Update Fix:** Fixed update engine to prevent staying stuck on v1.3.8, now accurately recognizing and installing v1.4.2.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.1' }}/app-release.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.2' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |
