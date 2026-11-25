@@ -83,53 +83,57 @@ export default function FeedScreen({
   }, [issues, activeCategory, activeStatus, searchQuery, addresses]);
 
   return (
-    <div className="h-full w-full flex flex-col bg-[#080F0F] text-[#F0F4F4] overflow-hidden">
-      {/* Pinned Mobile Top Tab Section (Stays fixed at top, never scrolls away!) */}
-      <header className="shrink-0 w-full px-3 pt-2.5 pb-2 bg-[#080F0F] border-b border-[#253538] space-y-2.5 z-20">
+    <div className="h-full w-full flex flex-col bg-[#0D1117] text-[#E6EDF3] overflow-hidden font-sans">
+      {/* Pinned Top Navigation & Filters */}
+      <header className="shrink-0 w-full px-3.5 pt-3 pb-2.5 bg-[#0D1117]/95 backdrop-blur-md border-b border-[#30363D] space-y-2.5 z-20">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-black tracking-tight text-[#F0F4F4] font-mono leading-none">
-              Lokify Feed
+            <h1 className="text-lg font-bold tracking-tight text-white leading-tight">
+              Community Feed
             </h1>
-            <p className="text-[10px] font-mono text-[#758588] mt-0.5">
-              Ward defects & municipal infrastructure
+            <p className="text-[11px] text-slate-400 font-normal">
+              Reports and updates near your neighborhood
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-[#192223] border border-[#253538] p-0.5 rounded-xl">
+          <div className="flex items-center gap-2">
+            {/* Small Sleek View Mode Switch */}
+            <div className="inline-flex items-center bg-[#161B22] border border-[#30363D] p-0.5 rounded-lg shadow-sm">
               <button
+                type="button"
                 onClick={() => setViewMode('list')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition ${
                   viewMode === 'list'
-                    ? 'bg-[#315C60] text-[#A3DCE3]'
-                    : 'text-[#758588]'
+                    ? 'bg-teal-500/20 text-teal-300 font-semibold shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
+                title="List View"
               >
-                <List size={13} />
+                <List size={12} />
                 <span>List</span>
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode('map')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition ${
                   viewMode === 'map'
-                    ? 'bg-[#315C60] text-[#A3DCE3]'
-                    : 'text-[#758588]'
+                    ? 'bg-teal-500/20 text-teal-300 font-semibold shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
+                title="Map View"
               >
-                <MapIcon size={13} />
+                <MapIcon size={12} />
                 <span>Map</span>
               </button>
             </div>
 
-            {/* Search Trigger */}
+            {/* Compact Search Trigger */}
             <button
               onClick={() => setShowSearch(!showSearch)}
-              className={`p-1.5 rounded-xl border transition ${
+              className={`p-1.5 rounded-lg border transition ${
                 showSearch || searchQuery
-                  ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3]'
-                  : 'bg-[#192223] border-[#253538] text-[#758588]'
+                  ? 'bg-teal-500/20 border-teal-500/60 text-teal-300'
+                  : 'bg-[#161B22] border-[#30363D] text-slate-400 hover:text-slate-200'
               }`}
               aria-label="Toggle search"
             >
@@ -138,22 +142,22 @@ export default function FeedScreen({
           </div>
         </div>
 
-        {/* Exclusive Official Ward Officer Admin Mode Banner */}
+        {/* Official Ward Officer Banner (if Admin) */}
         {isAdmin && (
-          <div className="bg-[#132B2F] border border-[#28616A] rounded-2xl p-2.5 px-3 flex items-center justify-between gap-2 shadow-lg animate-in fade-in duration-200">
+          <div className="bg-teal-950/40 border border-teal-700/50 rounded-xl p-2.5 px-3 flex items-center justify-between gap-2 shadow-sm animate-in fade-in duration-150">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-[#28616A]/50 text-[#A3DCE3] flex items-center justify-center shrink-0">
-                <ShieldCheck size={16} />
+              <div className="w-6 h-6 rounded-md bg-teal-800/40 text-teal-300 flex items-center justify-center shrink-0">
+                <ShieldCheck size={14} />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono font-bold text-[#A3DCE3] uppercase tracking-wider block">
-                    WARD OFFICER ADMIN ACTIVE
+                  <span className="text-[11px] font-bold text-teal-300 uppercase tracking-wide block">
+                    Ward Officer View
                   </span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#43C88A] animate-ping" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                 </div>
-                <p className="text-[11px] text-[#F0F4F4] truncate font-medium">
-                  Tap any report card below to control status & SMS
+                <p className="text-[11px] text-slate-300 truncate">
+                  Tap any report card to manage status & dispatch SMS
                 </p>
               </div>
             </div>
@@ -162,8 +166,7 @@ export default function FeedScreen({
               {onExportCSV && (
                 <button
                   onClick={onExportCSV}
-                  className="flex items-center gap-1 bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#A3DCE3] text-[#A3DCE3] text-[10px] font-mono font-semibold px-2 py-1 rounded-lg transition active:scale-95"
-                  title="Export municipal data as CSV"
+                  className="flex items-center gap-1 bg-[#161B22] hover:bg-[#21262D] border border-[#30363D] text-teal-300 text-[11px] font-medium px-2 py-0.5 rounded-lg transition"
                 >
                   <Download size={11} />
                   <span>CSV</span>
@@ -172,7 +175,7 @@ export default function FeedScreen({
               {onExitAdmin && (
                 <button
                   onClick={onExitAdmin}
-                  className="text-[10px] font-mono text-[#EF6666] hover:underline px-1.5 py-1"
+                  className="text-[11px] text-rose-400 hover:underline px-1 py-0.5"
                 >
                   Exit
                 </button>
@@ -181,42 +184,42 @@ export default function FeedScreen({
           </div>
         )}
 
-        {/* Compact Mobile Metrics Pills */}
-        <div className="grid grid-cols-4 gap-1.5 bg-[#101819] border border-[#253538] p-1.5 rounded-2xl text-center">
+        {/* Small Metrics Counter */}
+        <div className="grid grid-cols-4 gap-1.5 bg-[#161B22] border border-[#30363D] p-1.5 rounded-xl text-center">
           <div>
-            <span className="text-[8px] font-mono uppercase text-[#758588] block">TOTAL</span>
-            <span className="text-sm font-bold font-mono text-[#F0F4F4]">{totalCount}</span>
+            <span className="text-[9px] uppercase text-slate-400 block font-medium">TOTAL</span>
+            <span className="text-xs font-bold text-white">{totalCount}</span>
           </div>
           <div>
-            <span className="text-[8px] font-mono uppercase text-[#A5B1B3] block">OPEN</span>
-            <span className="text-sm font-bold font-mono text-[#A5B1B3]">{openCount}</span>
+            <span className="text-[9px] uppercase text-slate-400 block font-medium">OPEN</span>
+            <span className="text-xs font-bold text-rose-400">{openCount}</span>
           </div>
           <div>
-            <span className="text-[8px] font-mono uppercase text-[#38BDF8] block">ACTIVE</span>
-            <span className="text-sm font-bold font-mono text-[#38BDF8]">{inProgressCount}</span>
+            <span className="text-[9px] uppercase text-slate-400 block font-medium">ACTIVE</span>
+            <span className="text-xs font-bold text-amber-400">{inProgressCount}</span>
           </div>
           <div>
-            <span className="text-[8px] font-mono uppercase text-[#43C88A] block">FIXED</span>
-            <span className="text-sm font-bold font-mono text-[#43C88A]">{resolvedCount}</span>
+            <span className="text-[9px] uppercase text-slate-400 block font-medium">FIXED</span>
+            <span className="text-xs font-bold text-emerald-400">{resolvedCount}</span>
           </div>
         </div>
 
-        {/* Search Input */}
+        {/* Expandable Search Input */}
         {showSearch && (
           <div className="relative animate-in fade-in duration-150">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#758588]" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder="Search reports or LK-ID..."
+              placeholder="Search reports by title or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#192223] border border-[#253538] text-[#F0F4F4] placeholder-[#758588] text-xs pl-8 pr-8 py-1.5 rounded-xl focus:outline-none focus:border-[#A3DCE3] font-mono"
+              className="w-full bg-[#161B22] border border-[#30363D] text-white placeholder-slate-500 text-xs pl-8 pr-8 py-1.5 rounded-lg focus:outline-none focus:border-teal-400 font-normal"
               autoFocus
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#758588]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 hover:text-white"
               >
                 Clear
               </button>
@@ -224,7 +227,7 @@ export default function FeedScreen({
           </div>
         )}
 
-        {/* Category Filter Horizontal Scroll */}
+        {/* Small Category Pill Selector */}
         <div className="overflow-x-auto no-scrollbar flex items-center gap-1.5 py-0.5">
           {CATEGORIES.map((cat) => {
             const isSelected = activeCategory === cat.id;
@@ -232,10 +235,10 @@ export default function FeedScreen({
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-3 py-1 rounded-xl text-[11px] font-mono transition-all whitespace-nowrap border select-none ${
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition whitespace-nowrap border ${
                   isSelected
-                    ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3] font-bold'
-                    : 'bg-[#192223] border-[#253538] text-[#758588]'
+                    ? 'bg-teal-500/20 border-teal-500/60 text-teal-300 font-semibold'
+                    : 'bg-[#161B22] border-[#30363D] text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {cat.label}
@@ -244,17 +247,17 @@ export default function FeedScreen({
           })}
         </div>
 
-        {/* Status Filter Sub-Bar */}
+        {/* Small Status Switch Buttons */}
         <div className="flex items-center justify-between pt-0.5">
-          <div className="flex items-center gap-1.5">
+          <div className="inline-flex items-center gap-1 p-0.5 bg-[#161B22] border border-[#30363D] rounded-lg">
             {['All', 'Open', 'In Progress', 'Resolved'].map((st) => (
               <button
                 key={st}
                 onClick={() => setActiveStatus(st)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold transition ${
+                className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition ${
                   activeStatus === st
-                    ? 'text-[#F0F4F4] bg-[#202B2D] border border-[#354144]'
-                    : 'text-[#758588] hover:text-[#A5B1B3]'
+                    ? 'bg-[#21262D] text-white shadow-xs font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {st}
@@ -262,17 +265,16 @@ export default function FeedScreen({
             ))}
           </div>
 
-          <span className="text-[10px] font-mono text-[#758588]">
-            {filteredIssues.length} issue{filteredIssues.length === 1 ? '' : 's'}
+          <span className="text-[11px] text-slate-400 font-normal">
+            {filteredIssues.length} {filteredIssues.length === 1 ? 'report' : 'reports'}
           </span>
         </div>
       </header>
 
       {/* Scrollable Issue List or Map Container */}
-      <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3 py-3 pb-24 no-scrollbar">
-        {/* Main Content: Map View OR List Feed */}
+      <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3.5 py-3 pb-24 no-scrollbar">
         {viewMode === 'map' ? (
-          <div className="h-full min-h-[450px]">
+          <div className="h-full min-h-[450px] rounded-xl overflow-hidden border border-[#30363D]">
             <CivicMap
               latitude={userLocation?.lat}
               longitude={userLocation?.lng}
@@ -286,13 +288,13 @@ export default function FeedScreen({
         ) : (
           <div>
             {filteredIssues.length === 0 ? (
-              <div className="bg-[#192223] border border-[#354144] rounded-3xl p-12 text-center max-w-xl mx-auto my-8">
-                <div className="w-14 h-14 rounded-2xl bg-[#202B2D] border border-[#354144] text-[#A3DCE3] flex items-center justify-center mx-auto mb-4">
-                  <Sparkles size={24} />
+              <div className="bg-[#161B22] border border-[#30363D] rounded-2xl p-10 text-center max-w-sm mx-auto my-8">
+                <div className="w-12 h-12 rounded-xl bg-[#21262D] text-teal-400 flex items-center justify-center mx-auto mb-3">
+                  <Sparkles size={20} />
                 </div>
-                <h3 className="text-lg font-bold text-[#F0F4F4] mb-1">No reports matching filters</h3>
-                <p className="text-xs text-[#758588] max-w-xs mx-auto mb-6 leading-relaxed">
-                  There are no municipal reports matching the current category or status filter in this locality.
+                <h3 className="text-sm font-semibold text-white mb-1">No reports found</h3>
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                  No issues match the selected category or status filter in this locality.
                 </p>
                 <button
                   onClick={() => {
@@ -300,13 +302,13 @@ export default function FeedScreen({
                     setActiveStatus('All');
                     setSearchQuery('');
                   }}
-                  className="bg-[#202B2D] hover:bg-[#28616A] text-[#A3DCE3] border border-[#354144] text-xs font-mono font-semibold px-4 py-2 rounded-xl transition"
+                  className="bg-[#21262D] hover:bg-[#30363D] text-teal-300 border border-[#30363D] text-xs font-medium px-3.5 py-1.5 rounded-lg transition"
                 >
-                  Reset Filters
+                  Reset filters
                 </button>
               </div>
             ) : (
-              /* Single Column Pure Mobile Feed of Report Cards */
+              /* Single Column Clean Human Feed of Report Cards */
               <div className="flex flex-col gap-3">
                 {filteredIssues.map((issue) => {
                   const statusCfg = STATUS_CONFIG[issue.status] || STATUS_CONFIG.Open;
@@ -323,23 +325,23 @@ export default function FeedScreen({
                     <article
                       key={issue.id}
                       onClick={() => onSelectIssue(issue)}
-                      className="bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#28616A] rounded-3xl overflow-hidden transition-all duration-200 cursor-pointer shadow-lg hover:shadow-2xl group flex flex-col justify-between"
+                      className="bg-[#161B22] hover:bg-[#1C2128] border border-[#30363D] hover:border-slate-600 rounded-2xl overflow-hidden transition-all duration-150 cursor-pointer shadow-sm hover:shadow-md group flex flex-col justify-between"
                     >
                       <div>
-                        {/* Card Media Preview */}
-                        <div className="relative w-full h-52 bg-[#101819] overflow-hidden">
+                        {/* Card Image Thumbnail */}
+                        <div className="relative w-full h-48 bg-[#0D1117] overflow-hidden">
                           <img
                             src={imageSrc}
                             alt={issue.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
                             loading="lazy"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#192223] via-transparent to-black/30" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#161B22] via-transparent to-black/20" />
 
-                          {/* Status Badge Over Image */}
-                          <div className="absolute top-4 left-4 flex items-center gap-1.5">
+                          {/* Friendly Status Badge */}
+                          <div className="absolute top-3 left-3 flex items-center gap-1.5">
                             <span
-                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold backdrop-blur-md border shadow-md"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium backdrop-blur-md border shadow-sm"
                               style={{
                                 color: statusCfg.color,
                                 backgroundColor: `${statusCfg.bg}EE`,
@@ -347,7 +349,7 @@ export default function FeedScreen({
                               }}
                             >
                               <span
-                                className="w-2 h-2 rounded-full"
+                                className="w-1.5 h-1.5 rounded-full"
                                 style={{ backgroundColor: statusCfg.dot }}
                               />
                               {statusCfg.label}
@@ -355,12 +357,12 @@ export default function FeedScreen({
 
                             {issue.priority && (
                               <span
-                                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border backdrop-blur-md ${
+                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full border backdrop-blur-md ${
                                   issue.priority === 'High'
-                                    ? 'bg-[#321616]/90 border-[#5C2424] text-[#EF6666]'
+                                    ? 'bg-rose-950/80 border-rose-800 text-rose-300'
                                     : issue.priority === 'Medium'
-                                    ? 'bg-[#2A2315]/90 border-[#5C4824] text-[#E9B85C]'
-                                    : 'bg-[#112C20]/90 border-[#1D5C3F] text-[#43C88A]'
+                                    ? 'bg-amber-950/80 border-amber-800 text-amber-300'
+                                    : 'bg-emerald-950/80 border-emerald-800 text-emerald-300'
                                 }`}
                               >
                                 {issue.priority}
@@ -368,23 +370,23 @@ export default function FeedScreen({
                             )}
                           </div>
 
-                          {/* Locality Chip */}
-                          <div className="absolute top-4 right-4">
-                            <span className="inline-flex items-center gap-1 bg-[#080F0F]/80 backdrop-blur-md text-[#F0F4F4] text-[11px] font-mono px-2.5 py-1 rounded-full border border-[#354144]">
-                              <MapPin size={11} className="text-[#A3DCE3]" />
-                              <span className="truncate max-w-[130px]">{localityName}</span>
+                          {/* Locality Pill */}
+                          <div className="absolute top-3 right-3">
+                            <span className="inline-flex items-center gap-1 bg-[#0D1117]/85 backdrop-blur-md text-slate-200 text-[11px] px-2.5 py-1 rounded-full border border-[#30363D]">
+                              <MapPin size={11} className="text-teal-400" />
+                              <span className="truncate max-w-[130px] font-medium">{localityName}</span>
                             </span>
                           </div>
 
                           {/* Officer Management Banner Tag (if Admin) */}
                           {isAdmin && (
-                            <div className="absolute bottom-3 left-4 right-4">
-                              <div className="bg-[#132B2F]/90 backdrop-blur-md border border-[#28616A] text-[#A3DCE3] text-[11px] font-mono px-3 py-1.5 rounded-xl flex items-center justify-between shadow-lg">
-                                <span className="flex items-center gap-1.5 font-bold">
+                            <div className="absolute bottom-2.5 left-3 right-3">
+                              <div className="bg-teal-950/90 backdrop-blur-md border border-teal-700/60 text-teal-300 text-[11px] px-2.5 py-1.5 rounded-lg flex items-center justify-between shadow-md">
+                                <span className="flex items-center gap-1.5 font-medium">
                                   <ShieldCheck size={13} />
-                                  <span>Tap to control report</span>
+                                  <span>Tap card to manage report</span>
                                 </span>
-                                <span className="text-[10px] text-[#A5B1B3]">
+                                <span className="text-[10px] text-slate-300">
                                   {issue.user_phone ? issue.user_phone : 'SMS Ready'}
                                 </span>
                               </div>
@@ -393,36 +395,36 @@ export default function FeedScreen({
                         </div>
 
                         {/* Card Body */}
-                        <div className="p-5">
-                          {/* Technical Meta Line */}
-                          <div className="flex items-center gap-2 text-xs font-mono text-[#758588] mb-2">
-                            <span className="text-[#A3DCE3] font-bold">{formattedId}</span>
+                        <div className="p-4">
+                          {/* Metadata */}
+                          <div className="flex items-center gap-2 text-xs text-slate-400 mb-1.5">
+                            <span className="text-teal-400 font-semibold font-mono text-[11px]">{formattedId}</span>
                             <span>·</span>
-                            <span className="text-[#A5B1B3]">{categoryLabel}</span>
+                            <span className="text-slate-300 font-medium">{categoryLabel}</span>
                             <span>·</span>
                             <span>{relativeTime}</span>
                           </div>
 
                           {/* Title */}
-                          <h3 className="text-lg font-bold text-[#F0F4F4] group-hover:text-[#A3DCE3] transition-colors leading-snug mb-2">
+                          <h3 className="text-base font-bold text-white group-hover:text-teal-300 transition-colors leading-snug mb-1.5">
                             {issue.title}
                           </h3>
 
-                          {/* Brief description preview */}
+                          {/* Description */}
                           {issue.description && (
-                            <p className="text-xs text-[#A5B1B3] line-clamp-2 leading-relaxed mb-3">
+                            <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed mb-2 font-normal">
                               {issue.description}
                             </p>
                           )}
 
                           {/* Citizen info snippet for officer */}
                           {isAdmin && (issue.user_phone || issue.user_email) && (
-                            <div className="flex items-center gap-3 text-[11px] font-mono text-[#758588] pt-2 border-t border-[#354144]/40">
+                            <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-2 border-t border-[#30363D]">
                               {issue.user_email && (
-                                <span className="truncate max-w-[180px]">By: {issue.user_email}</span>
+                                <span className="truncate max-w-[170px]">By: {issue.user_email}</span>
                               )}
                               {issue.user_phone && (
-                                <span className="flex items-center gap-1 text-[#A3DCE3]">
+                                <span className="flex items-center gap-1 text-teal-300">
                                   <Phone size={10} />
                                   <span>{issue.user_phone}</span>
                                 </span>
@@ -432,39 +434,39 @@ export default function FeedScreen({
                         </div>
                       </div>
 
-                      {/* Bottom Action Bar of Card */}
+                      {/* Card Bottom Bar */}
                       <div
-                        className="p-5 pt-3 border-t border-[#354144]/60 flex items-center justify-between"
+                        className="px-4 py-2.5 border-t border-[#30363D] flex items-center justify-between bg-[#161B22]/50"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {/* Upvote Button */}
                         <button
                           onClick={() => onUpvote(issue.id, issue.upvotes)}
-                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold transition active:scale-95 border ${
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition active:scale-95 border ${
                             isUpvoted
-                              ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3]'
-                              : 'bg-[#202B2D] border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4] hover:border-[#758588]'
+                              ? 'bg-teal-500/20 border-teal-500/60 text-teal-300 font-semibold'
+                              : 'bg-[#21262D] border-[#30363D] text-slate-400 hover:text-white hover:border-slate-500'
                           }`}
                         >
                           <ThumbsUp size={13} className={isUpvoted ? 'fill-current' : ''} />
                           <span>{issue.upvotes || 0}</span>
                         </button>
 
-                        {/* Share Button & Details indicator */}
+                        {/* Action buttons */}
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => onShareIssue(issue)}
-                            className="p-2 rounded-full bg-[#202B2D] border border-[#354144] text-[#A5B1B3] hover:text-[#A3DCE3] transition active:scale-95"
-                            title="Share Issue"
+                            className="p-1.5 rounded-full bg-[#21262D] border border-[#30363D] text-slate-400 hover:text-teal-300 transition active:scale-95"
+                            title="Share Report"
                           >
-                            <Share2 size={14} />
+                            <Share2 size={13} />
                           </button>
 
                           <button
                             onClick={() => onSelectIssue(issue)}
-                            className="flex items-center gap-1 text-xs font-mono font-medium text-[#A3DCE3] hover:underline px-2 py-1"
+                            className="flex items-center gap-1 text-xs font-medium text-teal-400 hover:underline px-1.5 py-0.5"
                           >
-                            <span>{isAdmin ? 'Manage' : 'Timeline'}</span>
+                            <span>{isAdmin ? 'Manage' : 'View Details'}</span>
                             <ArrowUpRight size={13} />
                           </button>
                         </div>

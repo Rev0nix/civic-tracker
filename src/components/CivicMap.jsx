@@ -355,62 +355,62 @@ export default function CivicMap({
       {/* Map DOM Element */}
       <div ref={mapElement} className="w-full h-full absolute inset-0 z-0" aria-label="Lokify GIS Map" />
 
-      {/* Floating Right-Side GIS Control Column - High z-index [1000] */}
-      <div className="absolute right-3.5 top-3.5 z-[1000] flex flex-col items-center gap-2 pointer-events-auto">
-        {/* Compass / Reset View */}
+      {/* Floating Right-Side Controls Column - Compact & Sleek */}
+      <div className="absolute right-3 top-3 z-[1000] flex flex-col items-center gap-1.5 pointer-events-auto">
+        {/* Reset View */}
         <button
           onClick={handleResetView}
-          className="w-10 h-10 rounded-2xl bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95"
-          title="Reset Orientation / Center"
+          className="w-8 h-8 rounded-xl bg-[#161B22]/95 hover:bg-[#21262D] text-[#C9D1D9] hover:text-[#F0F6FC] border border-[#30363D] shadow-md backdrop-blur-md flex items-center justify-center transition active:scale-95"
+          title="Reset Orientation"
           aria-label="Reset View"
         >
-          <Compass size={18} className="transform hover:rotate-45 transition-transform" />
+          <Compass size={15} className="transform hover:rotate-45 transition-transform" />
         </button>
 
         {/* Map Layers */}
         <button
           onClick={() => setIsLayerSheetOpen(true)}
-          className={`w-10 h-10 rounded-2xl border shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95 ${
+          className={`w-8 h-8 rounded-xl border shadow-md backdrop-blur-md flex items-center justify-center transition active:scale-95 ${
             isLayerSheetOpen || activeLayerId !== 'standard'
-              ? 'bg-[#A3DCE3] text-[#080F0F] border-[#A3DCE3]'
-              : 'bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border-[#354144]'
+              ? 'bg-[#1F6FEB] text-white border-[#388BFD]'
+              : 'bg-[#161B22]/95 hover:bg-[#21262D] text-[#C9D1D9] hover:text-[#F0F6FC] border-[#30363D]'
           }`}
           title="Map Layers"
           aria-label="Map Layers"
         >
-          <Layers size={18} />
+          <Layers size={15} />
         </button>
 
         {/* My Location */}
         <button
           onClick={handleRecenter}
-          className="w-10 h-10 rounded-2xl bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95"
+          className="w-8 h-8 rounded-xl bg-[#161B22]/95 hover:bg-[#21262D] text-[#C9D1D9] hover:text-[#F0F6FC] border border-[#30363D] shadow-md backdrop-blur-md flex items-center justify-center transition active:scale-95"
           title="My Location"
           aria-label="My Location"
         >
-          <LocateFixed size={18} />
+          <LocateFixed size={15} />
         </button>
 
-        <div className="h-px w-6 bg-[#354144] my-0.5" />
+        <div className="h-px w-5 bg-[#30363D] my-0.5" />
 
         {/* Zoom In */}
         <button
           onClick={handleZoomIn}
-          className="w-10 h-10 rounded-2xl bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95"
+          className="w-8 h-8 rounded-xl bg-[#161B22]/95 hover:bg-[#21262D] text-[#C9D1D9] hover:text-[#F0F6FC] border border-[#30363D] shadow-md backdrop-blur-md flex items-center justify-center transition active:scale-95"
           title="Zoom In"
           aria-label="Zoom In"
         >
-          <Plus size={18} />
+          <Plus size={15} />
         </button>
 
         {/* Zoom Out */}
         <button
           onClick={handleZoomOut}
-          className="w-10 h-10 rounded-2xl bg-[#192223]/95 hover:bg-[#202B2D] text-[#A3DCE3] border border-[#354144] shadow-xl backdrop-blur-md flex items-center justify-center transition active:scale-95"
+          className="w-8 h-8 rounded-xl bg-[#161B22]/95 hover:bg-[#21262D] text-[#C9D1D9] hover:text-[#F0F6FC] border border-[#30363D] shadow-md backdrop-blur-md flex items-center justify-center transition active:scale-95"
           title="Zoom Out"
           aria-label="Zoom Out"
         >
-          <Minus size={18} />
+          <Minus size={15} />
         </button>
       </div>
 
@@ -431,34 +431,34 @@ export default function CivicMap({
         </div>
       )}
 
-      {/* Selected Issue Preview Card at bottom - High z-index [1001] */}
+      {/* Selected Issue Preview Card at bottom */}
       {selectedPinIssue && (
-        <div className="absolute bottom-4 left-3 right-3 z-[1001] bg-[#192223]/95 backdrop-blur-md border border-[#354144] rounded-2xl p-4 shadow-2xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute bottom-4 left-3 right-3 z-[1001] bg-[#161B22]/95 backdrop-blur-md border border-[#30363D] rounded-2xl p-4 shadow-xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-150">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-[#A3DCE3]">
+              <span className="text-xs font-mono font-medium text-[#8B949E]">
                 {formatIssueId(selectedPinIssue.id)}
               </span>
-              <span className="text-xs text-[#758588]">·</span>
-              <span className="text-xs font-medium text-[#A5B1B3]">
+              <span className="text-xs text-[#8B949E]">·</span>
+              <span className="text-xs font-medium text-[#C9D1D9]">
                 {getCategoryName(selectedPinIssue.category_id)}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               <span
-                className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border"
+                className="text-[10px] font-medium px-2 py-0.5 rounded-full border"
                 style={{
-                  color: STATUS_CONFIG[selectedPinIssue.status]?.color || '#A5B1B3',
-                  backgroundColor: STATUS_CONFIG[selectedPinIssue.status]?.bg || '#192223',
-                  borderColor: STATUS_CONFIG[selectedPinIssue.status]?.border || '#354144',
+                  color: STATUS_CONFIG[selectedPinIssue.status]?.color || '#C9D1D9',
+                  backgroundColor: STATUS_CONFIG[selectedPinIssue.status]?.bg || '#161B22',
+                  borderColor: STATUS_CONFIG[selectedPinIssue.status]?.border || '#30363D',
                 }}
               >
                 {selectedPinIssue.status}
               </span>
               <button
                 onClick={() => setSelectedPinIssue(null)}
-                className="p-1 text-[#758588] hover:text-[#F0F4F4] rounded-lg hover:bg-[#202B2D] transition"
+                className="p-1 text-[#8B949E] hover:text-[#F0F6FC] rounded-lg hover:bg-[#21262D] transition"
               >
                 <X size={15} />
               </button>
@@ -466,19 +466,19 @@ export default function CivicMap({
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-[#F0F4F4] leading-snug">
+            <h4 className="text-sm font-semibold text-[#F0F6FC] leading-snug">
               {selectedPinIssue.title}
             </h4>
-            <div className="flex items-center gap-3 mt-1 text-[11px] text-[#A5B1B3]">
+            <div className="flex items-center gap-3 mt-1 text-[11px] text-[#8B949E]">
               <span className="flex items-center gap-1 truncate">
-                <MapPin size={12} className="text-[#A3DCE3] shrink-0" />
+                <MapPin size={12} className="text-[#58A6FF] shrink-0" />
                 <span className="truncate">
                   {addresses[selectedPinIssue.id] ||
                     extractLocality(null, selectedPinIssue.latitude, selectedPinIssue.longitude)}
                 </span>
               </span>
               {selectedPinIssue.created_at && (
-                <span className="flex items-center gap-1 shrink-0 text-[#758588]">
+                <span className="flex items-center gap-1 shrink-0 text-[#8B949E]">
                   <Clock size={11} />
                   <span>{getRelativeTime(selectedPinIssue.created_at)}</span>
                 </span>
@@ -488,7 +488,7 @@ export default function CivicMap({
 
           <button
             onClick={() => onSelectIssue && onSelectIssue(selectedPinIssue)}
-            className="w-full mt-1 bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] text-xs font-bold py-2.5 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm"
+            className="w-full mt-1 bg-[#1F6FEB] hover:bg-[#388BFD] text-white text-xs font-semibold py-2.5 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm"
           >
             <span>View Full Issue Details</span>
             <ArrowUpRight size={15} />
@@ -496,7 +496,7 @@ export default function CivicMap({
         </div>
       )}
 
-      {/* Map Layer Switcher Backdrop & Bottom Sheet - Highest z-index [1002] */}
+      {/* Map Layer Switcher Backdrop & Bottom Sheet */}
       {isLayerSheetOpen && (
         <>
           <div
@@ -504,70 +504,70 @@ export default function CivicMap({
             onClick={() => setIsLayerSheetOpen(false)}
             aria-label="Close Layer Selector"
           />
-          <div className="absolute inset-x-0 bottom-0 z-[1002] bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] rounded-t-3xl p-5 shadow-2xl animate-in slide-in-from-bottom duration-250">
-          <div className="flex items-center justify-between pb-3 border-b border-[#202B2D] mb-4">
-            <div className="flex items-center gap-2">
-              <LayersIcon size={18} className="text-[#A3DCE3]" />
-              <h3 className="text-sm font-bold text-[#F0F4F4]">Select Map Layer</h3>
+          <div className="absolute inset-x-0 bottom-0 z-[1002] bg-[#161B22]/95 backdrop-blur-xl border-t border-[#30363D] rounded-t-2xl p-5 shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-[#30363D] mb-4">
+              <div className="flex items-center gap-2">
+                <LayersIcon size={16} className="text-[#58A6FF]" />
+                <h3 className="text-sm font-bold text-[#F0F6FC]">Select Map Layer</h3>
+              </div>
+              <button
+                onClick={() => setIsLayerSheetOpen(false)}
+                className="w-7 h-7 rounded-lg bg-[#21262D] text-[#8B949E] hover:text-[#F0F6FC] flex items-center justify-center transition"
+              >
+                <X size={15} />
+              </button>
             </div>
-            <button
-              onClick={() => setIsLayerSheetOpen(false)}
-              className="w-8 h-8 rounded-full bg-[#192223] text-[#A5B1B3] hover:text-[#F0F4F4] flex items-center justify-center"
-            >
-              <X size={16} />
-            </button>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-2">
-            {Object.values(MAP_LAYERS).map((layer) => {
-              const isSelected = activeLayerId === layer.id;
-              return (
-                <button
-                  key={layer.id}
-                  onClick={() => {
-                    switchLayer(layer.id);
-                    setIsLayerSheetOpen(false);
-                  }}
-                  className={`p-3 rounded-2xl border text-left transition-all active:scale-[0.98] flex flex-col justify-between h-28 relative overflow-hidden ${
-                    isSelected
-                      ? 'bg-[#192223] border-[#A3DCE3] shadow-[0_0_15px_rgba(163,220,227,0.15)] ring-1 ring-[#A3DCE3]'
-                      : 'bg-[#192223]/60 border-[#354144] hover:border-[#758588]'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-1 w-full">
-                    <span
-                      className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
-                        isSelected ? 'bg-[#A3DCE3] text-[#080F0F]' : 'bg-[#202B2D] text-[#A5B1B3]'
-                      }`}
-                    >
-                      {layer.badge}
-                    </span>
-                    {isSelected && (
-                      <div className="w-5 h-5 rounded-full bg-[#A3DCE3] text-[#080F0F] flex items-center justify-center">
-                        <Check size={12} strokeWidth={3} />
-                      </div>
-                    )}
-                  </div>
+            <div className="grid grid-cols-2 gap-2.5 mb-2">
+              {Object.values(MAP_LAYERS).map((layer) => {
+                const isSelected = activeLayerId === layer.id;
+                return (
+                  <button
+                    key={layer.id}
+                    onClick={() => {
+                      switchLayer(layer.id);
+                      setIsLayerSheetOpen(false);
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all active:scale-[0.98] flex flex-col justify-between h-24 relative overflow-hidden ${
+                      isSelected
+                        ? 'bg-[#21262D] border-[#58A6FF] shadow-sm'
+                        : 'bg-[#0D1117]/60 border-[#30363D] hover:border-[#444C56]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-1 w-full">
+                      <span
+                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
+                          isSelected ? 'bg-[#1F6FEB] text-white' : 'bg-[#21262D] text-[#8B949E]'
+                        }`}
+                      >
+                        {layer.badge}
+                      </span>
+                      {isSelected && (
+                        <div className="w-4 h-4 rounded-full bg-[#1F6FEB] text-white flex items-center justify-center">
+                          <Check size={11} strokeWidth={3} />
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="mt-2">
-                    <h4
-                      className={`text-xs font-bold leading-tight ${
-                        isSelected ? 'text-[#A3DCE3]' : 'text-[#F0F4F4]'
-                      }`}
-                    >
-                      {layer.name}
-                    </h4>
-                    <p className="text-[10px] text-[#758588] line-clamp-2 mt-0.5">
-                      {layer.subtitle}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
+                    <div className="mt-1">
+                      <h4
+                        className={`text-xs font-semibold leading-tight ${
+                          isSelected ? 'text-[#58A6FF]' : 'text-[#F0F6FC]'
+                        }`}
+                      >
+                        {layer.name}
+                      </h4>
+                      <p className="text-[10px] text-[#8B949E] line-clamp-1 mt-0.5">
+                        {layer.subtitle}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </>
-    )}
+        </>
+      )}
     </div>
   );
 }

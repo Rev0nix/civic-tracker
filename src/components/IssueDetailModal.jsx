@@ -9,12 +9,12 @@ import {
   ShieldCheck,
   ExternalLink,
   Phone,
-  Mail,
   Trash2,
   Clock,
   AlertTriangle,
   RotateCcw,
   Send,
+  RefreshCw,
 } from 'lucide-react';
 import {
   STATUS_CONFIG,
@@ -29,7 +29,6 @@ import {
   LOKIFY_DARK_TILE_URL,
   createLeafletSvgIconHtml,
 } from '../services/mapEngine';
-import AppLogo from './AppLogo';
 
 export default function IssueDetailModal({
   issue,
@@ -84,10 +83,10 @@ export default function IssueDetailModal({
           });
           L.tileLayer(LOKIFY_DARK_TILE_URL, { maxZoom: 19 }).addTo(lmap);
           const icon = L.divIcon({
-            html: createLeafletSvgIconHtml(issue.status === 'Resolved' ? '#43C88A' : '#EF6666', 30),
+            html: createLeafletSvgIconHtml(issue.status === 'Resolved' ? '#3FB950' : '#F85149', 28),
             className: 'custom-leaflet-marker',
-            iconSize: [30, 30],
-            iconAnchor: [15, 30],
+            iconSize: [28, 28],
+            iconAnchor: [14, 28],
           });
           L.marker([coords.lat, coords.lng], { icon }).addTo(lmap);
         } catch (e) {
@@ -119,15 +118,14 @@ export default function IssueDetailModal({
 
   // Vertical timeline milestones calculation
   const timelineSteps = [
-    { key: 'Open', label: 'Open', timestamp: 'Report logged & time-stamped' },
-    { key: 'Acknowledged', label: 'Acknowledged', timestamp: 'Verified by ward monitoring cell' },
-    { key: 'Assigned', label: 'Assigned', timestamp: 'Dispatched to zonal maintenance contractor' },
-    { key: 'In Progress', label: 'In Progress', timestamp: 'On-site remediation underway' },
-    { key: 'Resolved', label: 'Resolved', timestamp: 'Work completed & signed off' },
+    { key: 'Open', label: 'Reported', timestamp: 'Report logged with verified GPS & photo' },
+    { key: 'Acknowledged', label: 'Acknowledged', timestamp: 'Verified by local ward monitoring cell' },
+    { key: 'In Progress', label: 'In Progress', timestamp: 'Dispatched to zonal field team' },
+    { key: 'Resolved', label: 'Resolved', timestamp: 'Remediation completed and verified' },
   ];
 
   const getStepState = (stepKey) => {
-    const order = ['Open', 'Acknowledged', 'Assigned', 'In Progress', 'Resolved'];
+    const order = ['Open', 'Acknowledged', 'In Progress', 'Resolved'];
     const currentStatus = issue.status === 'Submitted' ? 'Open' : issue.status;
     const currentIdx = order.indexOf(currentStatus);
     const stepIdx = order.indexOf(stepKey);
@@ -156,44 +154,44 @@ export default function IssueDetailModal({
   const cleanPhone = citizenPhone.replace(/\s+/g, '');
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#080F0F]/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-[#0D1117]/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
       <div
-        className="bg-[#101819] border border-[#354144] rounded-t-3xl sm:rounded-3xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl relative flex flex-col"
+        className="bg-[#161B22] border border-[#30363D] rounded-t-2xl sm:rounded-2xl w-full max-w-xl max-h-[95vh] overflow-y-auto shadow-2xl relative flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Navigation Top Header */}
-        <div className="sticky top-0 z-20 bg-[#101819]/90 backdrop-blur-md px-5 py-3.5 border-b border-[#354144] flex items-center justify-between">
+        <div className="sticky top-0 z-20 bg-[#161B22]/95 backdrop-blur-md px-4 py-3 border-b border-[#30363D] flex items-center justify-between">
           <button
             onClick={onClose}
-            className="flex items-center gap-2 text-xs font-mono font-semibold text-[#A5B1B3] hover:text-[#F0F4F4] transition active:scale-95"
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#8B949E] hover:text-[#F0F6FC] transition active:scale-95"
           >
             <ArrowLeft size={16} />
             <span>Back</span>
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-[#A3DCE3]">
+            <span className="text-xs font-mono font-medium text-[#8B949E]">
               {formattedId}
             </span>
             {isAdmin && (
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#132B2F] text-[#A3DCE3] border border-[#28616A] flex items-center gap-1">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#1F6FEB]/15 text-[#58A6FF] border border-[#1F6FEB]/30 flex items-center gap-1">
                 <ShieldCheck size={11} />
-                <span>OFFICER REVIEW</span>
+                <span>Officer View</span>
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => onShare && onShare(issue)}
-              className="p-2 rounded-xl bg-[#192223] border border-[#354144] text-[#A5B1B3] hover:text-[#A3DCE3] transition active:scale-95"
+              className="p-1.5 rounded-lg bg-[#21262D] border border-[#30363D] text-[#8B949E] hover:text-[#F0F6FC] transition active:scale-95"
               title="Share"
             >
-              <Share2 size={16} />
+              <Share2 size={15} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-[#192223] border border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4] transition active:scale-95"
+              className="p-1.5 rounded-lg bg-[#21262D] border border-[#30363D] text-[#8B949E] hover:text-[#F0F6FC] transition active:scale-95"
             >
               &times;
             </button>
@@ -201,18 +199,18 @@ export default function IssueDetailModal({
         </div>
 
         {/* Hero Media Preview */}
-        <div className="relative w-full h-64 sm:h-72 bg-[#080F0F] shrink-0 overflow-hidden">
+        <div className="relative w-full h-60 sm:h-64 bg-[#0D1117] shrink-0 overflow-hidden">
           <img
             src={imageSrc}
             alt={issue.title}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#101819] via-transparent to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#161B22] via-transparent to-black/30" />
 
           {/* Status Badge Over Image */}
-          <div className="absolute bottom-4 left-5 flex items-center gap-2">
+          <div className="absolute bottom-3 left-4 flex items-center gap-2">
             <span
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold backdrop-blur-md border shadow-lg"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-md border shadow-md"
               style={{
                 color: statusCfg.color,
                 backgroundColor: `${statusCfg.bg}EE`,
@@ -228,12 +226,12 @@ export default function IssueDetailModal({
 
             {issue.priority && (
               <span
-                className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-full border backdrop-blur-md ${
+                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border backdrop-blur-md ${
                   issue.priority === 'High'
-                    ? 'bg-[#321616]/90 border-[#5C2424] text-[#EF6666]'
+                    ? 'bg-[#321616]/90 border-[#5C2424] text-[#F85149]'
                     : issue.priority === 'Medium'
-                    ? 'bg-[#2A2315]/90 border-[#5C4824] text-[#E9B85C]'
-                    : 'bg-[#112C20]/90 border-[#1D5C3F] text-[#43C88A]'
+                    ? 'bg-[#2A2315]/90 border-[#5C4824] text-[#D29922]'
+                    : 'bg-[#112C20]/90 border-[#1D5C3F] text-[#3FB950]'
                 }`}
               >
                 {issue.priority} Priority
@@ -243,47 +241,45 @@ export default function IssueDetailModal({
         </div>
 
         {/* Detail Content Container */}
-        <div className="p-5 sm:p-7 space-y-6 flex-1">
+        <div className="p-4 sm:p-5 space-y-4 flex-1">
           {/* Main Title & Meta */}
           <div>
-            <div className="flex items-center gap-2 text-xs font-mono text-[#758588] mb-2">
-              <span className="text-[#A3DCE3] font-bold">{formattedId}</span>
-              <span>·</span>
-              <span className="text-[#A5B1B3]">{categoryLabel}</span>
+            <div className="flex items-center gap-2 text-xs text-[#8B949E] mb-1.5">
+              <span className="font-medium text-[#C9D1D9]">{categoryLabel}</span>
               <span>·</span>
               <span>{relativeTime}</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F0F4F4] leading-snug">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#F0F6FC] leading-snug">
               {issue.title}
             </h1>
           </div>
 
           {/* ============================================================== */}
-          {/* EXCLUSIVE ADMIN CONTROLS: ONLY ADMIN CAN CONTROL THIS REPORT!   */}
+          {/* WARD OFFICER CONTROLS (Only visible in officer mode)          */}
           {/* ============================================================== */}
           {isAdmin && (
-            <section className="bg-gradient-to-b from-[#132B2F]/80 to-[#101819] border-2 border-[#28616A] rounded-3xl p-5 shadow-2xl relative overflow-hidden animate-in fade-in duration-200">
-              <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-[#28616A]/60">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#28616A]/40 border border-[#A3DCE3] text-[#A3DCE3] flex items-center justify-center">
-                    <ShieldCheck size={18} />
+            <section className="bg-[#0D1117] border border-[#30363D] rounded-xl p-4 shadow-sm relative overflow-hidden">
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#30363D]">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#1F6FEB]/15 text-[#58A6FF] flex items-center justify-center">
+                    <ShieldCheck size={16} />
                   </div>
                   <div>
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#A3DCE3] block">
-                      OFFICIAL WARD OFFICER CONTROLS
-                    </span>
-                    <h3 className="text-sm font-bold text-[#F0F4F4]">
-                      Control Report & Dispatch Citizen SMS
+                    <h3 className="text-xs font-semibold text-[#F0F6FC]">
+                      Officer Actions
                     </h3>
+                    <p className="text-[11px] text-[#8B949E]">
+                      Update status & notify citizen via SMS
+                    </p>
                   </div>
                 </div>
 
                 {onDeleteIssue && (
                   <button
                     onClick={() => onDeleteIssue(issue.id)}
-                    className="flex items-center gap-1 bg-[#321616] hover:bg-[#481d1d] text-[#EF6666] border border-[#5C2424] px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition active:scale-95"
-                    title="Delete Report"
+                    className="flex items-center gap-1 text-[#F85149] hover:bg-[#321616] px-2.5 py-1 rounded-lg text-xs font-medium transition active:scale-95"
+                    title="Delete report"
                   >
                     <Trash2 size={13} />
                     <span>Delete</span>
@@ -291,37 +287,59 @@ export default function IssueDetailModal({
                 )}
               </div>
 
-              {/* Instant Status Control Buttons */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-mono text-[#A5B1B3] block">
-                  Select Status to update database & dispatch instant SMS:
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {/* Submitted / Open */}
+              {/* Small Sleek Status Switch Buttons */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-[#8B949E]">
+                    Tap status to update:
+                  </span>
+                  {statusUpdating && (
+                    <span className="text-[11px] text-[#58A6FF] flex items-center gap-1">
+                      <RefreshCw size={10} className="animate-spin" />
+                      Updating...
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {/* Open / New */}
                   <button
                     onClick={() => handleAdminStatusChange('Submitted')}
                     disabled={statusUpdating}
-                    className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center justify-center gap-1.5 transition active:scale-95 ${
+                    className={`py-2 px-2.5 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition active:scale-95 ${
                       issue.status === 'Submitted' || issue.status === 'Open'
-                        ? 'bg-[#2A2315] border-[#E9B85C] text-[#E9B85C] ring-2 ring-[#E9B85C]/30 shadow-lg'
-                        : 'bg-[#192223] border-[#354144] text-[#758588] hover:text-[#F0F4F4] hover:border-[#758588]'
+                        ? 'bg-[#2A2315] border-[#D29922] text-[#D29922] shadow-sm font-semibold'
+                        : 'bg-[#161B22] border-[#30363D] text-[#8B949E] hover:text-[#F0F6FC]'
                     }`}
                   >
-                    <Clock size={16} />
-                    <span>Open / New</span>
+                    <Clock size={13} />
+                    <span>Open</span>
+                  </button>
+
+                  {/* Acknowledged */}
+                  <button
+                    onClick={() => handleAdminStatusChange('Acknowledged')}
+                    disabled={statusUpdating}
+                    className={`py-2 px-2.5 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                      issue.status === 'Acknowledged'
+                        ? 'bg-[#1F6FEB]/15 border-[#58A6FF] text-[#58A6FF] shadow-sm font-semibold'
+                        : 'bg-[#161B22] border-[#30363D] text-[#8B949E] hover:text-[#F0F6FC]'
+                    }`}
+                  >
+                    <RotateCcw size={13} />
+                    <span>Acknowledged</span>
                   </button>
 
                   {/* In Progress */}
                   <button
                     onClick={() => handleAdminStatusChange('In Progress')}
                     disabled={statusUpdating}
-                    className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center justify-center gap-1.5 transition active:scale-95 ${
+                    className={`py-2 px-2.5 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition active:scale-95 ${
                       issue.status === 'In Progress'
-                        ? 'bg-[#122A36] border-[#38BDF8] text-[#38BDF8] ring-2 ring-[#38BDF8]/30 shadow-lg'
-                        : 'bg-[#192223] border-[#354144] text-[#758588] hover:text-[#F0F4F4] hover:border-[#758588]'
+                        ? 'bg-[#1F6FEB]/20 border-[#388BFD] text-[#58A6FF] shadow-sm font-semibold'
+                        : 'bg-[#161B22] border-[#30363D] text-[#8B949E] hover:text-[#F0F6FC]'
                     }`}
                   >
-                    <AlertTriangle size={16} />
+                    <AlertTriangle size={13} />
                     <span>In Progress</span>
                   </button>
 
@@ -329,53 +347,39 @@ export default function IssueDetailModal({
                   <button
                     onClick={() => handleAdminStatusChange('Resolved')}
                     disabled={statusUpdating}
-                    className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center justify-center gap-1.5 transition active:scale-95 ${
+                    className={`py-2 px-2.5 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition active:scale-95 ${
                       issue.status === 'Resolved'
-                        ? 'bg-[#112C20] border-[#43C88A] text-[#43C88A] ring-2 ring-[#43C88A]/30 shadow-lg'
-                        : 'bg-[#192223] border-[#354144] text-[#758588] hover:text-[#F0F4F4] hover:border-[#758588]'
+                        ? 'bg-[#238636]/20 border-[#3FB950] text-[#3FB950] shadow-sm font-semibold'
+                        : 'bg-[#161B22] border-[#30363D] text-[#8B949E] hover:text-[#F0F6FC]'
                     }`}
                   >
-                    <CheckCircle2 size={16} />
-                    <span>Mark Resolved</span>
-                  </button>
-
-                  {/* Reopened / Follow-up */}
-                  <button
-                    onClick={() => handleAdminStatusChange('Acknowledged')}
-                    disabled={statusUpdating}
-                    className={`p-3 rounded-2xl border text-xs font-mono font-bold flex flex-col items-center justify-center gap-1.5 transition active:scale-95 ${
-                      issue.status === 'Acknowledged'
-                        ? 'bg-[#201C2B] border-[#A78BFA] text-[#A78BFA] ring-2 ring-[#A78BFA]/30 shadow-lg'
-                        : 'bg-[#192223] border-[#354144] text-[#758588] hover:text-[#F0F4F4] hover:border-[#758588]'
-                    }`}
-                  >
-                    <RotateCcw size={16} />
-                    <span>Acknowledged</span>
+                    <CheckCircle2 size={13} />
+                    <span>Resolved</span>
                   </button>
                 </div>
               </div>
 
-              {/* Citizen Direct Outreach Toolbar */}
-              <div className="mt-4 pt-3.5 border-t border-[#28616A]/50 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
-                <div className="flex items-center gap-2 text-[#A5B1B3]">
-                  <span>Citizen Contact:</span>
-                  <span className="text-[#A3DCE3] font-bold">{citizenPhone}</span>
+              {/* Citizen Direct Contact Strip */}
+              <div className="mt-3 pt-2.5 border-t border-[#30363D] flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-[#8B949E]">
+                  <span>Citizen:</span>
+                  <span className="text-[#F0F6FC] font-medium">{citizenPhone}</span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <a
                     href={`tel:${cleanPhone}`}
-                    className="flex items-center gap-1 bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#A3DCE3] text-[#A3DCE3] px-3 py-1.5 rounded-xl transition"
+                    className="flex items-center gap-1 bg-[#161B22] hover:bg-[#21262D] border border-[#30363D] text-[#58A6FF] px-2.5 py-1 rounded-lg transition"
                   >
-                    <Phone size={12} />
+                    <Phone size={11} />
                     <span>Call</span>
                   </a>
                   <a
                     href={`sms:${cleanPhone}?body=Regarding Lokify Report ${formattedId} (${issue.title}): `}
-                    className="flex items-center gap-1 bg-[#192223] hover:bg-[#202B2D] border border-[#354144] hover:border-[#A3DCE3] text-[#A3DCE3] px-3 py-1.5 rounded-xl transition"
+                    className="flex items-center gap-1 bg-[#161B22] hover:bg-[#21262D] border border-[#30363D] text-[#58A6FF] px-2.5 py-1 rounded-lg transition"
                   >
-                    <Send size={12} />
-                    <span>Direct SMS</span>
+                    <Send size={11} />
+                    <span>SMS</span>
                   </a>
                 </div>
               </div>
@@ -383,12 +387,12 @@ export default function IssueDetailModal({
           )}
 
           {/* Status Timeline */}
-          <section className="bg-[#192223] border border-[#354144] rounded-3xl p-5">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] mb-4">
-              STATUS TIMELINE
+          <section className="bg-[#161B22] border border-[#30363D] rounded-xl p-4">
+            <h3 className="text-xs font-semibold text-[#8B949E] mb-3">
+              Progress Timeline
             </h3>
 
-            <div className="space-y-4 relative pl-2">
+            <div className="space-y-3.5 relative pl-1">
               {timelineSteps.map((step, idx) => {
                 const state = getStepState(step.key);
                 if (step.key === 'Resolved' && !isResolved && state !== 'active') {
@@ -399,24 +403,24 @@ export default function IssueDetailModal({
                 const isActive = state === 'active';
 
                 return (
-                  <div key={step.key} className="flex items-start gap-3.5 relative">
+                  <div key={step.key} className="flex items-start gap-3 relative">
                     {/* Connecting Line */}
                     {idx < timelineSteps.length - 1 && (
                       <div
-                        className={`absolute left-3.5 top-7 bottom-0 w-0.5 -translate-x-1/2 ${
-                          isCompleted ? 'bg-[#A3DCE3]' : 'bg-[#354144]'
+                        className={`absolute left-3 top-6 bottom-0 w-0.5 -translate-x-1/2 ${
+                          isCompleted ? 'bg-[#58A6FF]' : 'bg-[#30363D]'
                         }`}
                       />
                     )}
 
-                    {/* Step Icon */}
+                    {/* Step Dot */}
                     <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 text-xs font-mono transition-all ${
+                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 text-[11px] font-medium transition-all ${
                         isActive
-                          ? 'bg-[#A3DCE3] text-[#080F0F] ring-4 ring-[#A3DCE3]/20 font-bold'
+                          ? 'bg-[#1F6FEB] text-white ring-3 ring-[#1F6FEB]/20 font-bold'
                           : isCompleted
-                          ? 'bg-[#132B2F] border border-[#28616A] text-[#A3DCE3]'
-                          : 'bg-[#101819] border border-[#354144] text-[#758588]'
+                          ? 'bg-[#21262D] border border-[#58A6FF] text-[#58A6FF]'
+                          : 'bg-[#0D1117] border border-[#30363D] text-[#8B949E]'
                       }`}
                     >
                       {isCompleted ? '✓' : idx + 1}
@@ -426,23 +430,23 @@ export default function IssueDetailModal({
                     <div className="flex-1 min-w-0 pt-0.5">
                       <div className="flex items-center justify-between">
                         <span
-                          className={`text-xs font-mono font-bold ${
+                          className={`text-xs font-semibold ${
                             isActive
-                              ? 'text-[#A3DCE3]'
+                              ? 'text-[#58A6FF]'
                               : isCompleted
-                              ? 'text-[#F0F4F4]'
-                              : 'text-[#758588]'
+                              ? 'text-[#F0F6FC]'
+                              : 'text-[#8B949E]'
                           }`}
                         >
                           {step.label}
                         </span>
                         {isActive && (
-                          <span className="text-[10px] font-mono text-[#A3DCE3] bg-[#132B2F] border border-[#28616A] px-2 py-0.5 rounded-full">
-                            Current Stage
+                          <span className="text-[10px] text-[#58A6FF] bg-[#1F6FEB]/15 border border-[#1F6FEB]/30 px-2 py-0.5 rounded-full font-medium">
+                            Current
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#A5B1B3] mt-0.5 leading-relaxed">
+                      <p className="text-[11px] text-[#8B949E] mt-0.5 leading-relaxed">
                         {step.timestamp}
                       </p>
                     </div>
@@ -453,28 +457,28 @@ export default function IssueDetailModal({
           </section>
 
           {/* Location Section */}
-          <section className="bg-[#192223] border border-[#354144] rounded-3xl p-5">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] mb-3">
-              LOCATION & MAP PIN
+          <section className="bg-[#161B22] border border-[#30363D] rounded-xl p-4">
+            <h3 className="text-xs font-semibold text-[#8B949E] mb-2.5">
+              Location & Map
             </h3>
 
-            {/* Embedded Mini Google Map */}
+            {/* Embedded Mini Leaflet Map */}
             {coords && (
-              <div className="relative w-full h-44 rounded-2xl overflow-hidden border border-[#354144] bg-[#080F0F] mb-3 shadow-inner">
+              <div className="relative w-full h-36 rounded-xl overflow-hidden border border-[#30363D] bg-[#0D1117] mb-3">
                 <div ref={previewMapRef} className="w-full h-full" />
               </div>
             )}
 
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-9 h-9 rounded-2xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] flex items-center justify-center shrink-0">
-                <MapPin size={18} />
+            <div className="flex items-start gap-2.5 mb-2.5">
+              <div className="w-7 h-7 rounded-lg bg-[#21262D] text-[#58A6FF] flex items-center justify-center shrink-0 mt-0.5">
+                <MapPin size={15} />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-bold text-[#F0F4F4] block truncate">
+                <span className="text-sm font-semibold text-[#F0F6FC] block truncate">
                   {localityName}
                 </span>
-                <p className="text-xs text-[#A5B1B3] mt-1 leading-relaxed">
-                  {addressText || (coords ? `Lat ${coords.lat.toFixed(5)}, Lng ${coords.lng.toFixed(5)}` : 'Coordinates recorded')}
+                <p className="text-xs text-[#8B949E] mt-0.5 leading-relaxed">
+                  {addressText || (coords ? `Coordinates: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : 'Location pinned')}
                 </p>
               </div>
             </div>
@@ -484,82 +488,42 @@ export default function IssueDetailModal({
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-[#A3DCE3] hover:underline bg-[#101819] border border-[#354144] px-3.5 py-2 rounded-xl transition"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[#58A6FF] hover:underline bg-[#0D1117] border border-[#30363D] px-3 py-1.5 rounded-lg transition"
               >
                 <span>Open in Google Maps</span>
-                <ExternalLink size={13} />
+                <ExternalLink size={12} />
               </a>
             )}
           </section>
 
-          {/* About Section */}
-          <section className="bg-[#192223] border border-[#354144] rounded-3xl p-5">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] mb-2">
-              ABOUT
+          {/* Description Section */}
+          <section className="bg-[#161B22] border border-[#30363D] rounded-xl p-4">
+            <h3 className="text-xs font-semibold text-[#8B949E] mb-1.5">
+              Details
             </h3>
-            <p className="text-xs sm:text-sm text-[#F0F4F4] leading-relaxed whitespace-pre-wrap font-medium">
-              {issue.description || 'No detailed written description was provided for this issue.'}
+            <p className="text-xs text-[#F0F6FC] leading-relaxed whitespace-pre-wrap">
+              {issue.description || 'No additional description was provided.'}
             </p>
-          </section>
-
-          {/* Reported By & Verification */}
-          <section className="bg-[#192223] border border-[#354144] rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <AppLogo size="sm" />
-              <div>
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#758588] block">
-                  REPORTED BY
-                </span>
-                <span className="text-sm font-semibold text-[#F0F4F4]">
-                  {issue.user_email ? issue.user_email.split('@')[0] : 'Citizen Reporter'}
-                </span>
-                <div className="flex items-center gap-3 text-[11px] font-mono text-[#A5B1B3] mt-0.5">
-                  {issue.user_email && (
-                    <span className="flex items-center gap-1">
-                      <Mail size={11} className="text-[#A3DCE3]" />
-                      <span>{issue.user_email}</span>
-                    </span>
-                  )}
-                  {issue.user_phone && (
-                    <span className="flex items-center gap-1">
-                      <Phone size={11} className="text-[#A3DCE3]" />
-                      <span>{issue.user_phone}</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[11px] font-mono text-[#A3DCE3] bg-[#132B2F] border border-[#28616A] px-2.5 py-1 rounded-full">
-                <Phone size={11} />
-                <span>SMS Alert Active</span>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] font-mono text-[#43C88A] bg-[#112C20] border border-[#1D5C3F] px-2.5 py-1 rounded-full">
-                <ShieldCheck size={13} />
-                <span>Verified</span>
-              </div>
-            </div>
           </section>
 
           {/* Citizen Resolution Confirmation (if resolved) */}
           {isResolved && (
-            <section className="bg-[#112C20] border border-[#1D5C3F] rounded-3xl p-5">
-              <div className="flex items-start gap-3 mb-3">
-                <CheckCircle2 size={18} className="text-[#43C88A] shrink-0 mt-0.5" />
+            <section className="bg-[#238636]/10 border border-[#238636]/30 rounded-xl p-4">
+              <div className="flex items-start gap-2.5 mb-2.5">
+                <CheckCircle2 size={16} className="text-[#3FB950] shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-bold text-[#F0F4F4]">
-                    Authority marked this fixed
+                  <h4 className="text-xs font-bold text-[#F0F6FC]">
+                    Marked resolved by municipal team
                   </h4>
-                  <p className="text-xs text-[#A5B1B3] mt-0.5 leading-relaxed">
-                    Have you been to the site recently? Confirm whether the issue is resolved properly.
+                  <p className="text-[11px] text-[#8B949E] mt-0.5 leading-relaxed">
+                    Have you verified the site recently? Let the community know if it's fixed.
                   </p>
                 </div>
               </div>
 
               {confirmedStatus ? (
-                <div className="text-xs font-mono text-[#43C88A] bg-[#080F0F]/60 p-2.5 rounded-xl text-center">
-                  Thank you! Your community feedback was registered.
+                <div className="text-xs text-[#3FB950] bg-[#0D1117] p-2 rounded-lg text-center font-medium">
+                  Thank you! Your feedback has been recorded.
                 </div>
               ) : (
                 <div className="flex items-center gap-2 pt-1">
@@ -568,7 +532,7 @@ export default function IssueDetailModal({
                       setConfirmedStatus('confirmed');
                       onConfirmFixed && onConfirmFixed(issue.id, true);
                     }}
-                    className="flex-1 bg-[#43C88A] hover:bg-[#38b279] text-[#080F0F] font-bold text-xs py-2.5 px-3 rounded-xl transition active:scale-95"
+                    className="flex-1 bg-[#238636] hover:bg-[#2ea043] text-white font-medium text-xs py-2 px-3 rounded-lg transition active:scale-95"
                   >
                     Confirm Fixed 👍
                   </button>
@@ -577,7 +541,7 @@ export default function IssueDetailModal({
                       setConfirmedStatus('disputed');
                       onConfirmFixed && onConfirmFixed(issue.id, false);
                     }}
-                    className="flex-1 bg-[#192223] hover:bg-[#202B2D] text-[#EF6666] border border-[#5C2424] font-bold text-xs py-2.5 px-3 rounded-xl transition active:scale-95"
+                    className="flex-1 bg-[#21262D] hover:bg-[#30363D] text-[#F85149] font-medium text-xs py-2 px-3 rounded-lg transition active:scale-95"
                   >
                     Still Broken ⚠️
                   </button>
@@ -588,40 +552,40 @@ export default function IssueDetailModal({
         </div>
 
         {/* Bottom Action Bar */}
-        <div className="sticky bottom-0 z-20 bg-[#101819]/95 backdrop-blur-md px-5 py-4 border-t border-[#354144] flex items-center justify-between gap-3">
+        <div className="sticky bottom-0 z-20 bg-[#161B22]/95 backdrop-blur-md px-4 py-3 border-t border-[#30363D] flex items-center justify-between gap-2.5">
           {/* Upvote Button */}
           <button
             onClick={() => onUpvote(issue.id, issue.upvotes)}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-mono font-bold transition active:scale-95 border ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium transition active:scale-95 border ${
               isUpvoted
-                ? 'bg-[#315C60] border-[#A3DCE3] text-[#A3DCE3]'
-                : 'bg-[#192223] border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4]'
+                ? 'bg-[#1F6FEB]/20 border-[#58A6FF] text-[#58A6FF] font-semibold'
+                : 'bg-[#21262D] border-[#30363D] text-[#C9D1D9] hover:text-[#F0F6FC]'
             }`}
           >
-            <ThumbsUp size={15} className={isUpvoted ? 'fill-current' : ''} />
+            <ThumbsUp size={14} className={isUpvoted ? 'fill-current' : ''} />
             <span>Upvote ({issue.upvotes || 0})</span>
           </button>
 
           {/* Follow Button */}
           <button
             onClick={() => setIsFollowed(!isFollowed)}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-mono font-bold transition active:scale-95 border ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium transition active:scale-95 border ${
               isFollowed
-                ? 'bg-[#202B2D] border-[#A3DCE3] text-[#A3DCE3]'
-                : 'bg-[#192223] border-[#354144] text-[#A5B1B3] hover:text-[#F0F4F4]'
+                ? 'bg-[#21262D] border-[#58A6FF] text-[#58A6FF] font-semibold'
+                : 'bg-[#21262D] border-[#30363D] text-[#C9D1D9] hover:text-[#F0F6FC]'
             }`}
           >
-            <Bookmark size={15} className={isFollowed ? 'fill-current' : ''} />
+            <Bookmark size={14} className={isFollowed ? 'fill-current' : ''} />
             <span>{isFollowed ? 'Following' : 'Follow'}</span>
           </button>
 
           {/* Share */}
           <button
             onClick={() => onShare && onShare(issue)}
-            className="p-3 rounded-2xl bg-[#192223] border border-[#354144] text-[#A5B1B3] hover:text-[#A3DCE3] transition active:scale-95"
-            title="Share Issue"
+            className="p-2.5 rounded-xl bg-[#21262D] border border-[#30363D] text-[#8B949E] hover:text-[#F0F6FC] transition active:scale-95"
+            title="Share"
           >
-            <Share2 size={16} />
+            <Share2 size={15} />
           </button>
         </div>
       </div>

@@ -26,7 +26,7 @@ export default function InAppUpdateModal({
   const handleStartInAppUpdate = async () => {
     setDownloading(true);
     setDownloadProgress(10);
-    setDownloadStatusText('Connecting to in-app update service...');
+    setDownloadStatusText('Connecting to update server...');
     setErrorMessage('');
 
     try {
@@ -35,19 +35,19 @@ export default function InAppUpdateModal({
         (progress, downloadedBytes, totalBytes) => {
           setDownloadProgress(progress);
           if (progress < 40) {
-            setDownloadStatusText('Downloading APK package in-app...');
+            setDownloadStatusText('Downloading package in-app...');
           } else if (progress < 90) {
             if (totalBytes > 0 && downloadedBytes > 0) {
               const dlMb = (downloadedBytes / (1024 * 1024)).toFixed(1);
               const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
               setDownloadStatusText(`Receiving package: ${dlMb} MB / ${totalMb} MB...`);
             } else {
-              setDownloadStatusText('Streaming update package in-app...');
+              setDownloadStatusText('Downloading update...');
             }
           } else if (progress < 100) {
             setDownloadStatusText('Verifying package integrity...');
           } else {
-            setDownloadStatusText('Launching Android Package Installer on screen...');
+            setDownloadStatusText('Launching installer on screen...');
           }
         }
       );
@@ -68,25 +68,25 @@ export default function InAppUpdateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#080F0F]/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-[#0D1117]/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
       <div
-        className="bg-[#101819] border border-[#354144] rounded-3xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-4 relative animate-in zoom-in-95 duration-200 select-none"
+        className="bg-[#161B22] border border-[#30363D] rounded-2xl w-full max-w-sm p-5 shadow-2xl flex flex-col gap-3.5 relative animate-in zoom-in-95 duration-150 select-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#28616A] to-[#A3DCE3] text-[#080F0F] flex items-center justify-center shadow-lg shadow-[#A3DCE3]/20">
-              <DownloadCloud size={24} />
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-[#1F6FEB]/15 text-[#58A6FF] flex items-center justify-center">
+              <DownloadCloud size={20} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-[#F0F4F4]">Software Update</h3>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#112C20] text-[#43C88A] border border-[#1D5C3F]">
-                  IN-APP
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-bold text-[#F0F6FC]">Software Update</h3>
+                <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-[#238636]/15 text-[#3FB950] border border-[#238636]/30">
+                  In-App
                 </span>
               </div>
-              <p className="text-xs text-[#A5B1B3] mt-0.5 font-mono">
+              <p className="text-xs text-[#8B949E] mt-0.5">
                 Lokify {updateInfo.latestVersion}
               </p>
             </div>
@@ -94,67 +94,67 @@ export default function InAppUpdateModal({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-[#192223] text-[#758588] hover:text-[#F0F4F4] transition"
+            className="p-1 rounded-lg text-[#8B949E] hover:text-[#F0F6FC] hover:bg-[#21262D] transition"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Version Difference Banner */}
-        <div className="bg-[#192223] border border-[#354144] rounded-2xl p-3.5 flex items-center justify-between text-xs font-mono">
+        <div className="bg-[#0D1117] border border-[#30363D] rounded-xl p-3 flex items-center justify-between text-xs">
           <div>
-            <span className="text-[#758588] block text-[10px] uppercase">Current</span>
-            <span className="text-[#F0F4F4] font-bold">{updateInfo.currentVersion}</span>
+            <span className="text-[#8B949E] block text-[10px]">Current</span>
+            <span className="text-[#F0F6FC] font-semibold">{updateInfo.currentVersion}</span>
           </div>
-          <div className="text-[#A3DCE3] font-bold text-sm">➔</div>
+          <div className="text-[#58A6FF] font-bold text-sm">➔</div>
           <div>
-            <span className="text-[#758588] block text-[10px] uppercase">New Release</span>
-            <span className="text-[#43C88A] font-bold">{updateInfo.latestVersion}</span>
+            <span className="text-[#8B949E] block text-[10px]">New Release</span>
+            <span className="text-[#3FB950] font-semibold">{updateInfo.latestVersion}</span>
           </div>
           <div className="text-right">
-            <span className="text-[#758588] block text-[10px] uppercase">Package</span>
-            <span className="text-[#A3DCE3]">{updateInfo.fileSize || '4.5 MB'}</span>
+            <span className="text-[#8B949E] block text-[10px]">Size</span>
+            <span className="text-[#58A6FF] font-medium">{updateInfo.fileSize || '4.5 MB'}</span>
           </div>
         </div>
 
-        {/* Release Notes Preview */}
-        <div className="bg-[#080F0F]/60 border border-[#253538] rounded-2xl p-3.5 max-h-36 overflow-y-auto no-scrollbar">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#A3DCE3] mb-1.5">
-            <Sparkles size={13} />
-            <span>What's New in this Release</span>
+        {/* Release Notes */}
+        <div className="bg-[#0D1117] border border-[#30363D] rounded-xl p-3 max-h-32 overflow-y-auto no-scrollbar">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#58A6FF] mb-1">
+            <Sparkles size={12} />
+            <span>What's New</span>
           </div>
-          <p className="text-xs text-[#A5B1B3] leading-relaxed whitespace-pre-line font-sans">
+          <p className="text-xs text-[#8B949E] leading-relaxed whitespace-pre-line">
             {updateInfo.releaseNotes}
           </p>
         </div>
 
         {/* Progress Bar (when downloading) */}
         {downloading && (
-          <div className="space-y-2 bg-[#192223] border border-[#354144] rounded-2xl p-3.5 animate-in fade-in duration-150">
-            <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-[#A3DCE3] flex items-center gap-1.5 truncate">
-                <Loader2 size={12} className="animate-spin text-[#A3DCE3] shrink-0" />
-                <span>{downloadStatusText || 'Downloading update in-app...'}</span>
+          <div className="space-y-1.5 bg-[#0D1117] border border-[#30363D] rounded-xl p-3 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[#58A6FF] flex items-center gap-1.5 truncate text-[11px]">
+                <Loader2 size={11} className="animate-spin text-[#58A6FF] shrink-0" />
+                <span>{downloadStatusText || 'Downloading update...'}</span>
               </span>
-              <span className="text-[#F0F4F4] font-bold shrink-0 ml-2">{downloadProgress}%</span>
+              <span className="text-[#F0F6FC] font-bold shrink-0 ml-2 text-xs">{downloadProgress}%</span>
             </div>
-            <div className="w-full h-2.5 rounded-full bg-[#101819] overflow-hidden p-0.5 border border-[#354144]">
+            <div className="w-full h-2 rounded-full bg-[#161B22] overflow-hidden p-0.5 border border-[#30363D]">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#28616A] via-[#A3DCE3] to-[#43C88A] transition-all duration-200"
+                className="h-full rounded-full bg-[#1F6FEB] transition-all duration-200"
                 style={{ width: `${downloadProgress}%` }}
               />
             </div>
-            <p className="text-[10px] font-mono text-[#758588] text-center">
-              Direct In-App download · Stays inside Lokify
+            <p className="text-[10px] text-[#8B949E] text-center">
+              Direct in-app download · No external browser
             </p>
           </div>
         )}
 
-        {/* Error message if download fails */}
+        {/* Error message */}
         {errorMessage && (
-          <div className="bg-[#321616] border border-[#5C2424] rounded-2xl p-3 text-xs text-[#EF6666] flex items-start gap-2.5 animate-in fade-in duration-200">
-            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-            <div className="flex-1 font-mono text-[11px] leading-relaxed">
+          <div className="bg-[#321616] border border-[#5C2424] rounded-xl p-2.5 text-xs text-[#F85149] flex items-start gap-2">
+            <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+            <div className="flex-1 text-[11px] leading-relaxed">
               {errorMessage}
             </div>
           </div>
@@ -162,16 +162,16 @@ export default function InAppUpdateModal({
 
         {/* Success Guidance Banner */}
         {downloadComplete && (
-          <div className="bg-[#112C20] border border-[#1D5C3F] rounded-2xl p-3.5 text-xs text-[#43C88A] flex items-start gap-2.5 animate-in fade-in duration-200">
-            <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
+          <div className="bg-[#238636]/10 border border-[#238636]/30 rounded-xl p-3 text-xs text-[#3FB950] flex items-start gap-2">
+            <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-sm">Package Ready to Install!</p>
-              <p className="text-[#A5B1B3] text-[11px] mt-1 leading-relaxed font-sans">
-                The package installer was launched directly on screen. Tap <strong>Update</strong> to complete.
+              <p className="font-semibold text-xs text-[#F0F6FC]">Installer Ready</p>
+              <p className="text-[#8B949E] text-[11px] mt-0.5 leading-relaxed">
+                Installer prompt displayed on screen. Tap <strong>Update</strong> to complete.
               </p>
-              <div className="flex items-center gap-1.5 mt-2 text-[10px] text-[#A3DCE3] font-mono">
-                <ShieldCheck size={12} />
-                <span>100% In-App · No Browser Redirection</span>
+              <div className="flex items-center gap-1 mt-1 text-[10px] text-[#58A6FF]">
+                <ShieldCheck size={11} />
+                <span>In-app installation verified</span>
               </div>
             </div>
           </div>
@@ -183,25 +183,25 @@ export default function InAppUpdateModal({
             <button
               onClick={handleStartInAppUpdate}
               disabled={downloading}
-              className="w-full bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] text-xs font-bold py-3.5 px-4 rounded-2xl transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-[#A3DCE3]/20 disabled:opacity-50"
+              className="w-full bg-[#1F6FEB] hover:bg-[#388BFD] text-white text-xs font-semibold py-3 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
             >
-              <DownloadCloud size={16} />
-              <span>{downloading ? 'Downloading In-App...' : 'Update Lokify Now (In-App)'}</span>
+              <DownloadCloud size={15} />
+              <span>{downloading ? 'Downloading...' : 'Update Now (In-App)'}</span>
             </button>
           ) : (
             <button
               onClick={onClose}
-              className="w-full bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] font-bold text-xs py-3 px-4 rounded-2xl transition active:scale-[0.98] flex items-center justify-center gap-2"
+              className="w-full bg-[#1F6FEB] hover:bg-[#388BFD] text-white font-semibold text-xs py-2.5 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <span>OK</span>
             </button>
           )}
 
           {!downloadComplete && (
-            <div className="flex items-center justify-center pt-1">
+            <div className="flex items-center justify-center">
               <button
                 onClick={onClose}
-                className="text-xs text-[#758588] hover:text-[#A5B1B3] font-mono py-1.5 transition"
+                className="text-xs text-[#8B949E] hover:text-[#C9D1D9] py-1 transition"
               >
                 Maybe Later
               </button>

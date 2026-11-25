@@ -21,7 +21,7 @@ export default function ProfileScreen({
   userEmail,
   userPhone = '',
   userName = 'Citizen Reporter',
-  userLocality = 'Near Ward Office',
+  userLocality = 'Bengaluru',
   issues = [],
   myIssuesCount = 0,
   upvotesReceived = 0,
@@ -59,7 +59,7 @@ export default function ProfileScreen({
 
   const menuSections = [
     {
-      title: 'ACCOUNT & ACTIVITY',
+      title: 'Activity & Alerts',
       items: [
         {
           id: 'my-reports',
@@ -70,69 +70,70 @@ export default function ProfileScreen({
         },
         {
           id: 'sms-logs',
-          label: 'SMS Alert Dispatch Logs',
+          label: 'SMS Dispatch Logs',
           icon: MessageSquare,
-          subtitle: `${smsLogs.length} messages delivered`,
+          subtitle: `${smsLogs.length} updates sent to your phone`,
           onClick: () => setShowSmsHistory(true),
         },
         {
           id: 'admin-mode',
-          label: 'Municipal Officer Controls',
+          label: 'Ward Officer Mode',
           icon: Shield,
           subtitle: isAdmin
-            ? 'Active · Report card management & SMS enabled'
-            : 'Passcode required · Unlock officer controls',
-          badge: isAdmin ? 'OFFICER' : 'CITIZEN',
+            ? 'Officer controls active · You can manage reports'
+            : 'Turn on to unlock municipal officer tools',
+          isToggle: true,
+          toggleValue: isAdmin,
           onClick: onToggleAdmin,
         },
         {
           id: 'saved-issues',
-          label: 'Saved & Followed Issues',
+          label: 'Saved Issues',
           icon: Bookmark,
-          onClick: () => alert('Showing your followed issues in this session.'),
+          onClick: () => alert('Showing your saved issues in this session.'),
         },
         {
           id: 'notifications',
-          label: 'Notification Settings',
+          label: 'Notifications',
           icon: Bell,
-          subtitle: 'SMS & Email alerts active',
+          subtitle: `SMS alerts routed to ${userPhone || 'your registered number'}`,
           onClick: () => alert(`SMS notifications are routed to ${userPhone || 'your registered number'}.`),
         },
       ],
     },
     {
-      title: 'PREFERENCES & SYSTEM',
+      title: 'Preferences & App',
       items: [
         {
           id: 'software-update',
           label: 'Software Update',
           icon: DownloadCloud,
-          subtitle: 'Version 1.3.8 · Tap to check in-app updates',
-          badge: 'v1.3.8',
+          subtitle: 'Version 1.4.1 · Tap to check updates',
+          badge: 'v1.4.1',
           onClick: onCheckUpdate,
         },
         {
           id: 'location-settings',
-          label: 'Location Settings',
+          label: 'Location Accuracy',
           icon: Compass,
-          subtitle: 'High-accuracy GPS enabled',
-          onClick: () => alert('Current Mode: High Accuracy GPS via device geolocation sensor.'),
+          subtitle: 'High accuracy device GPS enabled',
+          onClick: () => alert('Location mode: High Accuracy GPS via device geolocation sensor.'),
         },
         {
           id: 'privacy',
           label: 'Privacy & Security',
           icon: Shield,
-          subtitle: 'Protected with 8+ character password',
-          onClick: () => alert('Your credentials and reports are encrypted and protected.'),
+          subtitle: 'Encrypted and protected data',
+          onClick: () => alert('Your data and reports are securely stored with Supabase.'),
         },
         {
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.3.8 · Production Mobile',
+          subtitle: 'v1.4.1 · Civic Issue Tracker',
           onClick: () =>
             alert(
-              'Lokify v1.3.8\nSmart Municipal Grievance & Issue Tracking Platform\nConnected to Supabase Realtime, SMS Gateway & Leaflet GIS'
+              'Lokify v1.4.1\nCivic Grievance & Municipal Issue Tracker\nConnected to Supabase Realtime, SMS Gateway & GIS'
             ),
         },
       ],
@@ -140,61 +141,58 @@ export default function ProfileScreen({
   ];
 
   return (
-    <div className="h-full w-full flex flex-col bg-[#080F0F] text-[#F0F4F4] overflow-hidden">
+    <div className="h-full w-full flex flex-col bg-[#0D1117] text-[#F0F6FC] overflow-hidden">
       {/* Pinned Top Tab Header */}
-      <header className="shrink-0 w-full px-3 pt-2.5 pb-2 bg-[#080F0F] border-b border-[#253538] z-20">
-        <h1 className="text-lg font-black tracking-tight text-[#F0F4F4] font-mono leading-none">
+      <header className="shrink-0 w-full px-4 pt-3.5 pb-2.5 bg-[#0D1117]/95 backdrop-blur-md border-b border-[#21262D] z-20">
+        <h1 className="text-xl font-bold tracking-tight text-[#F0F6FC] leading-none">
           Profile & Settings
         </h1>
-        <p className="text-[10px] font-mono text-[#758588] mt-0.5">
-          Citizen account, ward location & SMS settings
+        <p className="text-xs text-[#8B949E] mt-1">
+          Account details, notifications, and preferences
         </p>
       </header>
 
       {/* Scrollable Content Container */}
-      <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3 py-3 pb-24 no-scrollbar">
-
-      <div className="flex flex-col gap-4">
-        {/* Profile, Stats, Municipal Admin, Sign Out */}
-        <div className="space-y-4">
+      <div className="flex-1 w-full overflow-y-auto overscroll-contain px-3.5 py-3 pb-24 no-scrollbar">
+        <div className="flex flex-col gap-4">
           {/* Header Profile Card */}
-          <section className="bg-[#192223] border border-[#354144] rounded-3xl p-6 sm:p-7 relative overflow-hidden shadow-xl">
-            <div className="flex items-start justify-between gap-4 relative z-10">
-              <div className="flex items-center gap-4">
+          <section className="bg-[#161B22] border border-[#30363D] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <div className="flex items-start justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-3.5">
                 {/* Avatar */}
-                <div className="w-16 h-16 rounded-3xl bg-[#132B2F] border border-[#28616A] text-[#A3DCE3] font-mono font-extrabold text-xl flex items-center justify-center shadow-lg shadow-[#132B2F]/50">
+                <div className="w-14 h-14 rounded-2xl bg-[#21262D] border border-[#30363D] text-[#58A6FF] font-bold text-lg flex items-center justify-center shadow-sm">
                   {userName
                     .split(' ')
                     .map((n) => n[0])
                     .join('')
                     .slice(0, 2)
-                    .toUpperCase() || 'LK'}
+                    .toUpperCase() || 'CR'}
                 </div>
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl sm:text-2xl font-black text-[#F0F4F4] tracking-tight">
+                    <h2 className="text-base font-bold text-[#F0F6FC] tracking-tight">
                       {userName}
                     </h2>
-                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#112C20] text-[#43C88A] border border-[#1D5C3F]">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#238636]/15 text-[#3FB950] border border-[#238636]/40">
                       Verified
                     </span>
                   </div>
 
                   {userPhone && (
-                    <p className="text-xs font-mono text-[#A3DCE3] mt-1 flex items-center gap-1.5">
-                      <Phone size={12} />
+                    <p className="text-xs text-[#8B949E] mt-1 flex items-center gap-1.5">
+                      <Phone size={12} className="text-[#58A6FF]" />
                       <span>{userPhone}</span>
                     </p>
                   )}
 
-                  <p className="text-xs font-mono text-[#A5B1B3] mt-0.5 flex items-center gap-1.5">
-                    <Mail size={12} className="text-[#A3DCE3]" />
-                    <span className="truncate max-w-[180px] sm:max-w-xs">{userEmail || 'No email attached'}</span>
+                  <p className="text-xs text-[#8B949E] mt-0.5 flex items-center gap-1.5">
+                    <Mail size={12} className="text-[#58A6FF]" />
+                    <span className="truncate max-w-[190px]">{userEmail || 'No email linked'}</span>
                   </p>
 
-                  <p className="text-xs font-mono text-[#758588] mt-0.5 flex items-center gap-1.5">
-                    <MapPin size={12} className="text-[#A3DCE3]" />
+                  <p className="text-xs text-[#8B949E] mt-0.5 flex items-center gap-1.5">
+                    <MapPin size={12} className="text-[#58A6FF]" />
                     <span>{userLocality}</span>
                   </p>
                 </div>
@@ -202,67 +200,67 @@ export default function ProfileScreen({
 
               <button
                 onClick={() => setIsEditing(true)}
-                className="p-2.5 rounded-2xl bg-[#202B2D] border border-[#354144] text-[#A5B1B3] hover:text-[#A3DCE3] transition active:scale-95"
-                title="Edit Profile"
+                className="p-2 rounded-xl bg-[#21262D] border border-[#30363D] text-[#8B949E] hover:text-[#F0F6FC] transition active:scale-95"
+                title="Edit profile"
               >
-                <Edit3 size={16} />
+                <Edit3 size={15} />
               </button>
             </div>
 
-            {/* Edit Profile Form */}
+            {/* Inline Edit Form */}
             {isEditing && (
-              <div className="mt-5 pt-5 border-t border-[#354144] animate-in fade-in duration-200">
-                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A3DCE3] mb-3">
-                  EDIT CITIZEN CREDENTIALS
+              <div className="mt-4 pt-4 border-t border-[#30363D] animate-in fade-in duration-150">
+                <h4 className="text-xs font-semibold text-[#F0F6FC] mb-3">
+                  Edit Profile
                 </h4>
                 <form onSubmit={handleSaveProfile} className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-mono text-[#758588] block mb-1">Full Name</label>
+                    <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Full Name</label>
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3]"
+                      className="w-full bg-[#0D1117] border border-[#30363D] text-xs text-[#F0F6FC] px-3 py-2 rounded-xl focus:outline-none focus:border-[#58A6FF]"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-mono text-[#758588] block mb-1">Phone Number (SMS)</label>
+                    <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Phone Number (SMS)</label>
                     <input
                       type="tel"
                       value={editPhone}
                       onChange={(e) => setEditPhone(e.target.value)}
-                      className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3] font-mono"
+                      className="w-full bg-[#0D1117] border border-[#30363D] text-xs text-[#F0F6FC] px-3 py-2 rounded-xl focus:outline-none focus:border-[#58A6FF]"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-mono text-[#758588] block mb-1">Email Address</label>
+                    <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Email</label>
                     <input
                       type="email"
                       value={editEmail}
                       onChange={(e) => setEditEmail(e.target.value)}
-                      className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3]"
+                      className="w-full bg-[#0D1117] border border-[#30363D] text-xs text-[#F0F6FC] px-3 py-2 rounded-xl focus:outline-none focus:border-[#58A6FF]"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-mono text-[#758588] block mb-1">Locality / Ward</label>
+                    <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Locality / Ward</label>
                     <input
                       type="text"
                       value={editLocality}
                       onChange={(e) => setEditLocality(e.target.value)}
-                      className="w-full bg-[#101819] border border-[#354144] text-xs text-[#F0F4F4] px-3 py-2 rounded-xl focus:outline-none focus:border-[#A3DCE3]"
+                      className="w-full bg-[#0D1117] border border-[#30363D] text-xs text-[#F0F6FC] px-3 py-2 rounded-xl focus:outline-none focus:border-[#58A6FF]"
                     />
                   </div>
                   <div className="flex gap-2 pt-1">
                     <button
                       type="submit"
-                      className="bg-[#A3DCE3] text-[#080F0F] font-bold text-xs px-4 py-2 rounded-xl"
+                      className="bg-[#1F6FEB] hover:bg-[#388BFD] text-white font-medium text-xs px-4 py-2 rounded-xl transition active:scale-95"
                     >
                       Save Changes
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsEditing(false)}
-                      className="bg-[#202B2D] text-[#A5B1B3] text-xs px-3 py-2 rounded-xl"
+                      className="bg-[#21262D] text-[#8B949E] hover:text-[#C9D1D9] text-xs px-3 py-2 rounded-xl transition active:scale-95"
                     >
                       Cancel
                     </button>
@@ -272,156 +270,164 @@ export default function ProfileScreen({
             )}
           </section>
 
-          {/* Statistics 4-Grid */}
-          <section className="grid grid-cols-2 gap-3">
-            <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#758588] block">
+          {/* Quick Stats Grid */}
+          <section className="grid grid-cols-2 gap-2.5">
+            <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-3.5 text-center">
+              <span className="text-[11px] font-medium text-[#8B949E] block">
                 Total Reports
               </span>
-              <span className="text-2xl font-black text-[#F0F4F4] mt-1 block">
+              <span className="text-xl font-bold text-[#F0F6FC] mt-0.5 block">
                 {myIssuesCount}
               </span>
             </div>
 
-            <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#43C88A] block">
+            <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-3.5 text-center">
+              <span className="text-[11px] font-medium text-[#3FB950] block">
                 Resolved
               </span>
-              <span className="text-2xl font-black text-[#43C88A] mt-1 block">
+              <span className="text-xl font-bold text-[#3FB950] mt-0.5 block">
                 {resolvedCount}
               </span>
             </div>
 
-            <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#38BDF8] block">
-                Active
+            <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-3.5 text-center">
+              <span className="text-[11px] font-medium text-[#58A6FF] block">
+                In Progress
               </span>
-              <span className="text-2xl font-black text-[#38BDF8] mt-1 block">
+              <span className="text-xl font-bold text-[#58A6FF] mt-0.5 block">
                 {Math.max(0, activeCount)}
               </span>
             </div>
 
-            <div className="bg-[#192223] border border-[#354144] rounded-2xl p-4 text-center">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#A3DCE3] block">
-                Upvotes
+            <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-3.5 text-center">
+              <span className="text-[11px] font-medium text-[#D29922] block">
+                Support Received
               </span>
-              <span className="text-2xl font-black text-[#A3DCE3] mt-1 block">
+              <span className="text-xl font-bold text-[#F0F6FC] mt-0.5 block">
                 👍 {upvotesReceived}
               </span>
             </div>
           </section>
 
+          {/* Menu Sections with Sleek Small Toggle Switch */}
+          <div className="space-y-4">
+            {menuSections.map((section) => (
+              <div key={section.title}>
+                <h3 className="text-xs font-semibold text-[#8B949E] mb-2 px-1">
+                  {section.title}
+                </h3>
+                <div className="bg-[#161B22] border border-[#30363D] rounded-2xl overflow-hidden divide-y divide-[#30363D]/60 shadow-sm">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={item.onClick}
+                        className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-[#1C2128] transition text-left group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-[#21262D] text-[#58A6FF] flex items-center justify-center shrink-0 border border-[#30363D]">
+                            <Icon size={15} />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium text-[#F0F6FC] group-hover:text-[#58A6FF] transition-colors block">
+                              {item.label}
+                            </span>
+                            {item.subtitle && (
+                              <span className="text-[11px] text-[#8B949E] block truncate max-w-[210px] sm:max-w-xs">
+                                {item.subtitle}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {/* Small iOS-style Toggle Switch if item has isToggle */}
+                          {item.isToggle ? (
+                            <div
+                              className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center ${
+                                item.toggleValue ? 'bg-[#238636]' : 'bg-[#30363D]'
+                              }`}
+                            >
+                              <div
+                                className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out ${
+                                  item.toggleValue ? 'translate-x-4' : 'translate-x-0'
+                                }`}
+                              />
+                            </div>
+                          ) : item.badge ? (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#21262D] text-[#58A6FF] border border-[#30363D]">
+                              {item.badge}
+                            </span>
+                          ) : (
+                            <ChevronRight size={15} className="text-[#8B949E] group-hover:text-[#F0F6FC] transition-transform group-hover:translate-x-0.5" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Sign Out Button */}
           <div className="pt-2">
             <button
               onClick={onLogout}
-              className="w-full flex items-center justify-center gap-2 bg-[#192223] hover:bg-[#321616] text-[#EF6666] border border-[#354144] hover:border-[#5C2424] py-3.5 rounded-2xl font-mono text-xs font-semibold transition active:scale-98"
+              className="w-full flex items-center justify-center gap-2 bg-[#161B22] hover:bg-[#21262D] text-[#F85149] border border-[#30363D] hover:border-[#F85149]/40 py-3 rounded-xl text-xs font-semibold transition active:scale-95"
             >
-              <LogOut size={16} />
-              <span>Sign Out of Lokify</span>
+              <LogOut size={15} />
+              <span>Sign out</span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Settings Sections */}
-        <div className="space-y-4">
-          {menuSections.map((section) => (
-            <div key={section.title}>
-              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#758588] mb-3 px-2">
-                {section.title}
-              </h3>
-              <div className="bg-[#192223] border border-[#354144] rounded-3xl overflow-hidden divide-y divide-[#354144]/60">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={item.onClick}
-                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-[#202B2D] transition text-left group"
-                    >
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="w-8 h-8 rounded-xl bg-[#202B2D] text-[#A3DCE3] flex items-center justify-center shrink-0 border border-[#354144]">
-                          <Icon size={16} />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-sm font-semibold text-[#F0F4F4] group-hover:text-[#A3DCE3] transition-colors block">
-                            {item.label}
-                          </span>
-                          {item.subtitle && (
-                            <span className="text-[11px] text-[#758588] font-mono block">
-                              {item.subtitle}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {item.badge && (
-                          <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-[#132B2F] text-[#A3DCE3] border border-[#28616A]">
-                            {item.badge}
-                          </span>
-                        )}
-                        <ChevronRight size={16} className="text-[#758588] group-hover:text-[#F0F4F4]" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* SMS Logs Modal */}
-      {showSmsHistory && (
-        <div
-          className="fixed inset-0 z-50 bg-[#080F0F]/85 backdrop-blur-md flex items-center justify-center p-4"
-          onClick={() => setShowSmsHistory(false)}
-        >
+        {/* SMS Logs Modal */}
+        {showSmsHistory && (
           <div
-            className="bg-[#101819] border border-[#354144] rounded-3xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 bg-[#0D1117]/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
+            onClick={() => setShowSmsHistory(false)}
           >
-            <div className="flex items-center justify-between pb-4 border-b border-[#354144] mb-4">
-              <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#A3DCE3] block">
-                  CARRIER LOGS
-                </span>
-                <h3 className="text-lg font-bold text-[#F0F4F4]">SMS Dispatch History</h3>
-              </div>
-              <button
-                onClick={() => setShowSmsHistory(false)}
-                className="p-1.5 rounded-xl bg-[#192223] text-[#A5B1B3] hover:text-[#F0F4F4]"
-              >
-                &times;
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {smsLogs.length === 0 ? (
-                <div className="text-center py-8 text-xs font-mono text-[#758588]">
-                  No SMS dispatches recorded yet.
+            <div
+              className="bg-[#161B22] border border-[#30363D] rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-[#30363D] mb-4">
+                <div>
+                  <h3 className="text-base font-bold text-[#F0F6FC]">SMS History</h3>
+                  <p className="text-xs text-[#8B949E]">Updates dispatched to your phone</p>
                 </div>
-              ) : (
-                smsLogs.map((log) => (
-                  <div key={log.id} className="bg-[#192223] border border-[#354144] p-3.5 rounded-2xl text-xs">
-                    <div className="flex items-center justify-between mb-1 font-mono text-[11px]">
-                      <span className="text-[#A3DCE3] font-bold">To: {log.toPhone}</span>
-                      <span className="text-[#758588]">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                    <p className="text-[#F0F4F4] font-mono leading-relaxed bg-[#080F0F] p-2.5 rounded-xl border border-[#354144]/60">
-                      {log.message}
-                    </p>
-                    <span className="text-[10px] font-mono text-[#43C88A] block mt-1">
-                      Status: {log.status} · Gateway: {log.carrier}
-                    </span>
+                <button
+                  onClick={() => setShowSmsHistory(false)}
+                  className="p-1 rounded-lg text-[#8B949E] hover:text-[#F0F6FC] hover:bg-[#21262D] transition"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {smsLogs.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-[#8B949E]">
+                    No SMS notifications sent yet.
                   </div>
-                ))
-              )}
+                ) : (
+                  smsLogs.map((log) => (
+                    <div key={log.id} className="bg-[#0D1117] border border-[#30363D] p-3 rounded-xl text-xs">
+                      <div className="flex items-center justify-between mb-1 text-[11px]">
+                        <span className="text-[#58A6FF] font-medium">To: {log.toPhone}</span>
+                        <span className="text-[#8B949E]">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="text-[#F0F6FC] leading-relaxed mt-1">
+                        {log.message}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

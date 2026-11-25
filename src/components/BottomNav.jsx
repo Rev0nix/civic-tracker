@@ -3,21 +3,21 @@ import { Home, MapPin, Plus, Bot, User } from 'lucide-react';
 export default function BottomNav({ activeTab, onTabChange, onOpenReport }) {
   return (
     <nav
-      className="shrink-0 w-full z-40 bg-[#101819]/95 backdrop-blur-xl border-t border-[#354144] px-3 py-1.5 select-none relative"
+      className="shrink-0 w-full z-40 bg-[#0D1117]/95 backdrop-blur-md border-t border-[#21262D] px-3 py-1.5 select-none relative"
       aria-label="Mobile Navigation"
     >
       <div className="max-w-md mx-auto flex items-center justify-between">
         {/* Tab 1: Feed */}
         <button
           onClick={() => onTabChange('feed')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
             activeTab === 'feed'
-              ? 'text-[#A3DCE3]'
-              : 'text-[#758588] hover:text-[#A5B1B3] active:scale-95'
+              ? 'text-[#58A6FF]'
+              : 'text-[#8B949E] hover:text-[#C9D1D9] active:scale-95'
           }`}
         >
-          <Home size={22} strokeWidth={activeTab === 'feed' ? 2.5 : 1.8} />
-          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'feed' ? 'font-bold text-[#A3DCE3]' : ''}`}>
+          <Home size={20} strokeWidth={activeTab === 'feed' ? 2.4 : 1.8} />
+          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'feed' ? 'font-bold text-[#58A6FF]' : ''}`}>
             Feed
           </span>
         </button>
@@ -25,14 +25,14 @@ export default function BottomNav({ activeTab, onTabChange, onOpenReport }) {
         {/* Tab 2: Map */}
         <button
           onClick={() => onTabChange('map')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
             activeTab === 'map'
-              ? 'text-[#A3DCE3]'
-              : 'text-[#758588] hover:text-[#A5B1B3] active:scale-95'
+              ? 'text-[#58A6FF]'
+              : 'text-[#8B949E] hover:text-[#C9D1D9] active:scale-95'
           }`}
         >
-          <MapPin size={22} strokeWidth={activeTab === 'map' ? 2.5 : 1.8} />
-          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'map' ? 'font-bold text-[#A3DCE3]' : ''}`}>
+          <MapPin size={20} strokeWidth={activeTab === 'map' ? 2.4 : 1.8} />
+          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'map' ? 'font-bold text-[#58A6FF]' : ''}`}>
             Map
           </span>
         </button>
@@ -40,27 +40,27 @@ export default function BottomNav({ activeTab, onTabChange, onOpenReport }) {
         {/* Center Floating Action Button: Report Issue */}
         <button
           onClick={onOpenReport}
-          className="relative -top-3 w-13 h-13 rounded-full bg-gradient-to-tr from-[#28616A] via-[#A3DCE3] to-[#43C88A] text-[#080F0F] flex items-center justify-center shadow-lg shadow-[#A3DCE3]/30 active:scale-90 transition-transform border-2 border-[#080F0F]"
-          title="Report Municipal Issue"
-          aria-label="Report Issue"
+          className="relative -top-2.5 w-11 h-11 rounded-full bg-[#1F6FEB] hover:bg-[#388BFD] text-white flex items-center justify-center shadow-lg shadow-[#1F6FEB]/30 active:scale-90 transition-transform border-2 border-[#0D1117]"
+          title="Report an Issue"
+          aria-label="Report an Issue"
         >
-          <Plus size={26} strokeWidth={3} />
+          <Plus size={22} strokeWidth={2.8} />
         </button>
 
         {/* Tab 3: Dedicated Lok AI Page */}
         <button
           onClick={() => onTabChange('lok-ai')}
-          className={`relative flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
+          className={`relative flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
             activeTab === 'lok-ai'
-              ? 'text-[#A3DCE3]'
-              : 'text-[#758588] hover:text-[#A5B1B3] active:scale-95'
+              ? 'text-[#58A6FF]'
+              : 'text-[#8B949E] hover:text-[#C9D1D9] active:scale-95'
           }`}
         >
           <div className="relative">
-            <Bot size={22} strokeWidth={activeTab === 'lok-ai' ? 2.5 : 1.8} />
-            <span className="w-1.5 h-1.5 rounded-full bg-[#43C88A] absolute -top-0.5 -right-1" />
+            <Bot size={20} strokeWidth={activeTab === 'lok-ai' ? 2.4 : 1.8} />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#3FB950] absolute -top-0.5 -right-0.5" />
           </div>
-          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'lok-ai' ? 'font-bold text-[#A3DCE3]' : ''}`}>
+          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'lok-ai' ? 'font-bold text-[#58A6FF]' : ''}`}>
             Lok AI
           </span>
         </button>
@@ -68,14 +68,14 @@ export default function BottomNav({ activeTab, onTabChange, onOpenReport }) {
         {/* Tab 4: Profile */}
         <button
           onClick={() => onTabChange('profile')}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
             activeTab === 'profile'
-              ? 'text-[#A3DCE3]'
-              : 'text-[#758588] hover:text-[#A5B1B3] active:scale-95'
+              ? 'text-[#58A6FF]'
+              : 'text-[#8B949E] hover:text-[#C9D1D9] active:scale-95'
           }`}
         >
-          <User size={22} strokeWidth={activeTab === 'profile' ? 2.5 : 1.8} />
-          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'profile' ? 'font-bold text-[#A3DCE3]' : ''}`}>
+          <User size={20} strokeWidth={activeTab === 'profile' ? 2.4 : 1.8} />
+          <span className={`text-[10px] mt-0.5 font-medium ${activeTab === 'profile' ? 'font-bold text-[#58A6FF]' : ''}`}>
             Profile
           </span>
         </button>

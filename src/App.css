@@ -1,16 +1,16 @@
 /* Lokify Android Application Design System Styles */
 :root {
-  --bg-main: #080f0f;
-  --bg-secondary: #101819;
-  --bg-card: #192223;
-  --bg-elevated: #202b2d;
-  --primary-teal: #a3dce3;
-  --secondary-teal: #28616a;
-  --active-teal: #315c60;
-  --text-primary: #f0f4f4;
-  --text-secondary: #a5b1b3;
-  --text-muted: #758588;
-  --border-subtle: #354144;
+  --bg-main: #0D1117;
+  --bg-secondary: #161B22;
+  --bg-card: #161B22;
+  --bg-elevated: #21262D;
+  --primary-teal: #58A6FF;
+  --secondary-teal: #1F6FEB;
+  --active-teal: #1F6FEB;
+  --text-primary: #F0F6FC;
+  --text-secondary: #C9D1D9;
+  --text-muted: #8B949E;
+  --border-subtle: #30363D;
 }
 
 html, body, #root {
@@ -21,8 +21,8 @@ html, body, #root {
   padding: 0;
   overflow: hidden;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #080f0f;
-  color: #f0f4f4;
+  background-color: #0D1117;
+  color: #F0F6FC;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-font-smoothing: antialiased;

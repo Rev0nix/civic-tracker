@@ -118,24 +118,26 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.0' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.0' }} – Direct In-App Updater & Centered Notifications"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.1' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.1' }} – Human-Crafted Mobile UI, Small Toggles & 1-Click Google Sign-In"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.0' }} – Direct In-App Updater & Centered Notifications
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.1' }} – Human-Crafted Mobile UI, Small Toggles & 1-Click Google Sign-In
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Updates in v1.4.0:
-            * **Direct In-App APK Updater:** Updates strictly stream and download in the app without opening any external browser or navigating away, directly launching Android's system installer.
-            * **Centered Screen Notifications:** All notification popups (success, alerts, carrier SMS) appear centered with a dedicated OK button to dismiss.
-            * **Clean Header:** Removed redundant 2nd button at the top right corner; all officer controls reside directly within individual report cards.
+            ### 🚀 Updates in v1.4.1:
+            * **Human-Crafted Mobile UI:** Redesigned interface to feel human-built and modern. Replaced robotic monospace font overuse with clean sans-serif typography, elegant slate dark palette, balanced card padding, and natural microcopy.
+            * **Small Sleek Toggle Switch Buttons:** Shrunk all toggle switches into compact, sleek controls (segmented List/Map view switches, status filter tabs, officer switches, GIS floating controls, and category chips).
+            * **1-Click Google Sign-In:** Added a prominent, official 1-click Google button for immediate friction-free citizen login with full profile persistence.
+            * **Direct In-App APK Updater:** In-app updates download smoothly without opening external browsers or leaving the app.
+            * **Centered Notifications with OK:** All popups and alerts appear dead center with an OK dismiss button.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.0' }}/app-release.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.1' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

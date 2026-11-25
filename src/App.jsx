@@ -676,7 +676,7 @@ export default function App() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] max-w-md mx-auto bg-[#080F0F] text-[#F0F4F4] font-sans flex flex-col overflow-hidden border-x border-[#1a2528]/40 select-none">
+    <div className="fixed inset-0 w-full h-[100dvh] max-w-md mx-auto bg-[#0D1117] text-[#F0F6FC] font-sans flex flex-col overflow-hidden border-x border-[#21262D] select-none">
       {/* Live Carrier SMS Heads-Up Notification Banner */}
       <SmsBanner />
 
@@ -696,48 +696,48 @@ export default function App() {
       {/* Centered Screen Modal Notification Popup with OK Button */}
       {toast && (
         <div
-          className="fixed inset-0 z-50 bg-[#080F0F]/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 select-none"
+          className="fixed inset-0 z-50 bg-[#0D1117]/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150 select-none"
           onClick={() => setToast(null)}
         >
           <div
-            className={`border rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center flex flex-col items-center gap-3 animate-in zoom-in-95 duration-200 ${
+            className={`border rounded-2xl p-5 max-w-sm w-full shadow-2xl text-center flex flex-col items-center gap-2.5 animate-in zoom-in-95 duration-150 bg-[#161B22] ${
               toast.type === 'success'
-                ? 'bg-[#101819] border-[#1D5C3F]'
+                ? 'border-[#238636]/40'
                 : toast.type === 'error'
-                ? 'bg-[#101819] border-[#5C2424]'
-                : 'bg-[#101819] border-[#28616A]'
+                ? 'border-[#5C2424]'
+                : 'border-[#30363D]'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${
+              className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
                 toast.type === 'success'
-                  ? 'bg-[#112C20] text-[#43C88A] border border-[#1D5C3F]'
+                  ? 'bg-[#238636]/15 text-[#3FB950] border border-[#238636]/30'
                   : toast.type === 'error'
-                  ? 'bg-[#321616] text-[#EF6666] border border-[#5C2424]'
-                  : 'bg-[#132B2F] text-[#A3DCE3] border border-[#28616A]'
+                  ? 'bg-[#321616] text-[#F85149] border border-[#5C2424]'
+                  : 'bg-[#1F6FEB]/15 text-[#58A6FF] border border-[#1F6FEB]/30'
               }`}
             >
               {toast.type === 'success' ? (
-                <CheckCircle2 size={26} />
+                <CheckCircle2 size={24} />
               ) : toast.type === 'error' ? (
-                <AlertTriangle size={26} />
+                <AlertTriangle size={24} />
               ) : (
-                <Bell size={26} />
+                <Bell size={24} />
               )}
             </div>
 
-            <h3 className="text-sm font-bold font-mono text-[#F0F4F4]">
-              {toast.type === 'success' ? 'Success Notification' : toast.type === 'error' ? 'Notice / Alert' : 'Notification'}
+            <h3 className="text-sm font-semibold text-[#F0F6FC]">
+              {toast.type === 'success' ? 'Success' : toast.type === 'error' ? 'Notice' : 'Notification'}
             </h3>
 
-            <p className="text-xs font-mono text-[#A5B1B3] leading-relaxed">
+            <p className="text-xs text-[#8B949E] leading-relaxed">
               {toast.message}
             </p>
 
             <button
               onClick={() => setToast(null)}
-              className="w-full mt-2 bg-[#A3DCE3] hover:bg-[#85CBD3] text-[#080F0F] font-bold text-xs py-3.5 rounded-2xl transition active:scale-95 font-mono shadow-lg shadow-[#A3DCE3]/20"
+              className="w-full mt-2 bg-[#1F6FEB] hover:bg-[#388BFD] text-white font-semibold text-xs py-2.5 rounded-xl transition active:scale-95 shadow-sm"
             >
               OK
             </button>

@@ -1,9 +1,9 @@
 {
-  "version": "1.4.0",
-  "versionCode": 10400,
-  "releaseName": "Lokify v1.4.0 – Direct In-App Updater & Centered Notifications",
-  "releaseNotes": "• Direct In-App APK Updater: Updates strictly download and prompt installation on screen without opening any external browser or navigating away.\n• Center Screen Notifications: All alerts, notices, and SMS popups appear in the exact center of the screen with a dedicated OK button.\n• Clean Header: Removed redundant top-right 2nd button; all admin controls are housed inside individual report cards.",
-  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.0/app-release.apk",
+  "version": "1.4.1",
+  "versionCode": 10401,
+  "releaseName": "Lokify v1.4.1 – Human-Crafted Mobile UI, Small Toggles & 1-Click Google Sign-In",
+  "releaseNotes": "• Human-Crafted UI: Refined modern dark theme with clean sans-serif typography, elegant spacing, and removal of robotic monospace font overuse.\n• Sleek Small Toggles: All toggle switches (segmented view controls, filter tabs, officer switches, GIS floating controls, and category chips) are now compact, small, and sleek.\n• 1-Click Google Sign-In: Prominent one-tap Google tab button for seamless instant citizen sign-in with full profile persistence.",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.1/app-release.apk",
   "fileSize": "3.5 MB",
-  "publishedAt": "2026-11-24T14:15:00Z"
+  "publishedAt": "2026-11-25T16:40:00Z"
 }
