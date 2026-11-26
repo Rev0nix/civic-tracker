@@ -1,10 +1,13 @@
 package com.rev0nix.civictrack
 
+import android.app.Activity
 import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.getcapacitor.JSObject
@@ -22,7 +25,7 @@ import kotlin.concurrent.thread
 /**
  * Clean, safe native Android updater for Lokify.
  * Directly streams Lokify.apk in a background thread, writes to verified external files storage,
- * and automatically triggers the system package installer.
+ * and automatically triggers the Android system package installer.
  */
 @CapacitorPlugin(name = "LokifyNativeUpdater")
 class LokifyNativeUpdaterPlugin : Plugin() {
@@ -113,33 +116,7 @@ class LokifyNativeUpdaterPlugin : Plugin() {
 
                 // Launch package installer on UI thread
                 activity.runOnUiThread {
-                    try {
-                        val contentUri = FileProvider.getUriForFile(
-                            activity,
-                            "${activity.packageName}.fileprovider",
-                            destFile
-                        )
-
-                        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(contentUri, "application/vnd.android.package-archive")
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                        activity.startActivity(installIntent)
-
-                        call.resolve(JSObject().apply {
-                            put("success", true)
-                            put("downloaded", true)
-                            put("message", "Lokify.apk downloaded! Package installer launched.")
-                        })
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to launch package installer", e)
-                        call.resolve(JSObject().apply {
-                            put("success", true)
-                            put("downloaded", true)
-                            put("message", "Lokify.apk downloaded. Tap Install to proceed.")
-                        })
-                    }
+                    launchInstallerForFile(activity, destFile, call)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Direct download failed, falling back to system intent: ${e.message}", e)
@@ -169,27 +146,24 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             return
         }
 
+        val destDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: activity.cacheDir
+        val destFile = File(destDir, APK_FILENAME)
+
+        if (destFile.exists() && destFile.length() > 0) {
+            launchInstallerForFile(activity, destFile, call)
+            return
+        }
+
+        // Try public Downloads folder
+        val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val publicFile = File(publicDir, APK_FILENAME)
+        if (publicFile.exists() && publicFile.length() > 0) {
+            launchInstallerForFile(activity, publicFile, call)
+            return
+        }
+
+        // Fallback: Open system Downloads app
         try {
-            val destDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: activity.cacheDir
-            val destFile = File(destDir, APK_FILENAME)
-
-            if (destFile.exists() && destFile.length() > 0) {
-                val contentUri = FileProvider.getUriForFile(
-                    activity,
-                    "${activity.packageName}.fileprovider",
-                    destFile
-                )
-                val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(contentUri, "application/vnd.android.package-archive")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                activity.startActivity(installIntent)
-                call.resolve(JSObject().apply { put("success", true) })
-                return
-            }
-
-            // Fallback: Open system Downloads app
             val viewDownloads = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -197,6 +171,84 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             call.resolve(JSObject().apply { put("success", true) })
         } catch (e: Exception) {
             call.reject("Could not launch installer: ${e.message}")
+        }
+    }
+
+    private fun launchInstallerForFile(activity: Activity, apkFile: File, call: PluginCall?) {
+        try {
+            if (!apkFile.exists() || apkFile.length() == 0L) {
+                call?.reject("APK file is missing or empty")
+                return
+            }
+
+            // Copy to public downloads as backup
+            try {
+                val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val publicFile = File(publicDir, APK_FILENAME)
+                apkFile.copyTo(publicFile, overwrite = true)
+            } catch (_: Exception) {}
+
+            // Check unknown sources installation permission on Android 8+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!activity.packageManager.canRequestPackageInstalls()) {
+                    Log.i(TAG, "Lokify requires install unknown apps permission, directing user to settings")
+                    val manageIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                        data = Uri.parse("package:${activity.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    activity.startActivity(manageIntent)
+                    call?.resolve(JSObject().apply {
+                        put("success", true)
+                        put("needPermission", true)
+                        put("message", "Please allow Lokify to install updates, then return and tap Install.")
+                    })
+                    return
+                }
+            }
+
+            val contentUri = FileProvider.getUriForFile(
+                activity,
+                "${activity.packageName}.fileprovider",
+                apkFile
+            )
+
+            Log.i(TAG, "Launching PackageInstaller for contentUri: $contentUri")
+
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(contentUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
+            }
+
+            // Grant permission to all resolver activities
+            val resolveInfoList = activity.packageManager.queryIntentActivities(installIntent, 0)
+            for (resolveInfo in resolveInfoList) {
+                val pkg = resolveInfo.activityInfo.packageName
+                activity.grantUriPermission(pkg, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            activity.startActivity(installIntent)
+
+            call?.resolve(JSObject().apply {
+                put("success", true)
+                put("installed", true)
+                put("message", "Package installer launched on screen!")
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch installer intent", e)
+            try {
+                val viewDownloads = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                activity.startActivity(viewDownloads)
+                call?.resolve(JSObject().apply {
+                    put("success", true)
+                    put("message", "Opened Downloads folder. Tap Lokify.apk to install.")
+                })
+            } catch (fallbackErr: Exception) {
+                call?.reject("Could not launch package installer: ${e.message}")
+            }
         }
     }
 }

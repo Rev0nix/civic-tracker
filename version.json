@@ -1,9 +1,9 @@
 {
-  "version": "1.4.6",
-  "versionCode": 10406,
-  "releaseName": "Lokify v1.4.6 – Native Android Google Sign-In, Zero Guest Mode & Direct In-App APK Updater",
-  "releaseNotes": "• Native Android Google Account Chooser: Shows user's real Google accounts on the device (like Amazon, Swiggy) with 1-tap sign in.\n• Removed Guest Citizen Mode: Clean, secure login experience for citizens and municipal officers.\n• Removed All Mock Accounts: Only authentic user Google accounts on the phone.\n• Direct In-App Streaming Updater: Streams Lokify.apk in the background and launches package installer automatically.",
-  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.6/Lokify.apk",
-  "fileSize": "3.6 MB",
-  "publishedAt": "2026-11-26T14:35:00Z"
+  "version": "1.4.7",
+  "versionCode": 10407,
+  "releaseName": "Lokify v1.4.7 – Android Package Installer Authorization & Direct Lokify.apk Installation",
+  "releaseNotes": "• Android Package Installer Authorization: Added REQUEST_INSTALL_PACKAGES permission and automatic permission settings handler so downloaded updates install directly.\n• Direct Lokify.apk Installation: Automatically grants URI permissions to system PackageInstaller and launches the install prompt.\n• Native Android Google Account Chooser: Real device Google accounts picker (Amazon-style).\n• Clean Production: Zero guest mode, zero mock accounts.",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.7/Lokify.apk",
+  "fileSize": "4.1 MB",
+  "publishedAt": "2026-11-26T14:50:00Z"
 }

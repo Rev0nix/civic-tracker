@@ -80,8 +80,8 @@ export default function ProfileScreen({
           id: 'software-update',
           label: 'Software Update',
           icon: DownloadCloud,
-          subtitle: 'Version 1.4.6 · Tap to check updates',
-          badge: 'v1.4.6',
+          subtitle: 'Version 1.4.7 · Tap to check updates',
+          badge: 'v1.4.7',
           onClick: onCheckUpdate,
         },
         {
@@ -102,10 +102,10 @@ export default function ProfileScreen({
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.4.6 · Civic Grievance Tracker',
+          subtitle: 'v1.4.7 · Civic Grievance Tracker',
           onClick: () =>
             alert(
-              'Lokify v1.4.6\nCivic Grievance & Municipal Issue Redressal Platform\nClean, Harm-Free Native Android Release'
+              'Lokify v1.4.7\nCivic Grievance & Municipal Issue Redressal Platform\nClean, Harm-Free Native Android Release'
             ),
         },
       ],
