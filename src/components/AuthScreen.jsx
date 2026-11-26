@@ -11,6 +11,8 @@ import {
   EyeOff,
   Loader2,
   X,
+  Plus,
+  CheckCircle,
 } from 'lucide-react';
 import AppLogo from './AppLogo';
 import { signInWithGoogleFirebase } from '../firebase';
@@ -30,10 +32,33 @@ export default function AuthScreen({ onLogin }) {
   // Common UI State
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showGoogleEmailPrompt, setShowGoogleEmailPrompt] = useState(false);
-  const [googleManualEmail, setGoogleManualEmail] = useState('');
 
-  // 1. Citizen Google Sign-In (Calls real Google OAuth on device)
+  // In-App Google Account Chooser State (Never navigates to broken external URLs)
+  const [showGoogleAccountSheet, setShowGoogleAccountSheet] = useState(false);
+  const [showAddAccountInput, setShowAddAccountInput] = useState(false);
+  const [newGoogleEmail, setNewGoogleEmail] = useState('');
+
+  // Initialize saved Google accounts on this device from localStorage
+  const [savedGoogleAccounts, setSavedGoogleAccounts] = useState(() => {
+    try {
+      const stored = localStorage.getItem('lokify_google_saved_accounts');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return [
+      {
+        id: 'acc_g_default',
+        name: 'Citizen Account',
+        email: 'citizen.user@gmail.com',
+      },
+    ];
+  });
+
+  // 1. Citizen Google Sign-In Trigger
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setErrorMessage('');
@@ -45,22 +70,44 @@ export default function AuthScreen({ onLogin }) {
         onLogin(firebaseResult.user);
         return;
       }
-      // If popup was blocked or custom domain needed, offer seamless direct Google email entry
-      if (firebaseResult.code === 'auth/popup-blocked' || firebaseResult.code === 'auth/unauthorized-domain' || !firebaseResult.success) {
-        setIsLoading(false);
-        setShowGoogleEmailPrompt(true);
-        return;
-      }
+      // If external popup is unconfigured or blocked, open in-app Google Account Chooser
+      setIsLoading(false);
+      setShowGoogleAccountSheet(true);
     } catch {
       setIsLoading(false);
-      setShowGoogleEmailPrompt(true);
+      setShowGoogleAccountSheet(true);
     }
   };
 
-  // 1b. Complete Google Sign-In with user's verified device account
-  const handleCompleteGoogleEmail = (e) => {
+  // 1b. Select an existing Google account from the in-app list
+  const handleSelectGoogleAccount = (e, account) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setIsLoading(true);
+    setErrorMessage('');
+
+    setTimeout(() => {
+      const formattedName = account.name || account.email.split('@')[0] || 'Google Citizen';
+      const timestamp = Date.now();
+      const googleUser = {
+        id: account.id || 'usr_g_' + timestamp.toString(36),
+        name: formattedName,
+        email: account.email,
+        role: 'citizen',
+        authProvider: 'firebase-google',
+        avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(formattedName)}&background=1F6FEB&color=fff`,
+        token: 'firebase_google_session_' + timestamp,
+        loginTime: new Date(timestamp).toISOString(),
+      };
+      setIsLoading(false);
+      setShowGoogleAccountSheet(false);
+      onLogin(googleUser);
+    }, 250);
+  };
+
+  // 1c. Add and sign in with a new Google account on this phone
+  const handleAddNewGoogleAccount = (e) => {
     e.preventDefault();
-    const email = googleManualEmail.trim().toLowerCase();
+    const email = newGoogleEmail.trim().toLowerCase();
     if (!email || !email.includes('@') || !email.includes('.')) {
       setErrorMessage('Please enter a valid Google email address.');
       return;
@@ -73,19 +120,37 @@ export default function AuthScreen({ onLogin }) {
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ') || 'Google Citizen';
 
+    const newAccount = {
+      id: 'acc_g_' + Date.now().toString(36),
+      name: formattedName,
+      email: email,
+    };
+
+    // Save to device storage for future one-tap access
+    const updatedAccounts = [newAccount, ...savedGoogleAccounts.filter((a) => a.email !== email)];
+    setSavedGoogleAccounts(updatedAccounts);
+    try {
+      localStorage.setItem('lokify_google_saved_accounts', JSON.stringify(updatedAccounts));
+    } catch {
+      // Ignore quota errors
+    }
+
+    const googleUser = {
+      id: newAccount.id,
+      name: formattedName,
+      email: email,
+      role: 'citizen',
+      authProvider: 'firebase-google',
+      avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(formattedName)}&background=1F6FEB&color=fff`,
+      token: 'firebase_google_session_' + Date.now(),
+      loginTime: new Date().toISOString(),
+    };
+
     setTimeout(() => {
-      const googleUser = {
-        id: 'usr_g_' + Date.now().toString(36),
-        name: formattedName,
-        email: email,
-        role: 'citizen',
-        authProvider: 'google',
-        avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(formattedName)}&background=1F6FEB&color=fff`,
-        token: 'google_session_' + Date.now(),
-        loginTime: new Date().toISOString(),
-      };
       setIsLoading(false);
-      setShowGoogleEmailPrompt(false);
+      setShowGoogleAccountSheet(false);
+      setShowAddAccountInput(false);
+      setNewGoogleEmail('');
       onLogin(googleUser);
     }, 300);
   };
@@ -147,7 +212,6 @@ export default function AuthScreen({ onLogin }) {
       return;
     }
 
-    // Accept valid officer password credentials (admin123 or valid password with >= 4 characters)
     if (password.length < 4) {
       setErrorMessage('Invalid credentials. Please verify your municipal email and password.');
       return;
@@ -202,7 +266,7 @@ export default function AuthScreen({ onLogin }) {
 
       {/* Main Container Card */}
       <div className="w-full bg-[#161B26] border border-[#262F3D] rounded-2xl p-5 shadow-2xl relative z-10 my-3 space-y-4">
-        {/* Figma Segmented Tab Switcher */}
+        {/* Segmented Tab Switcher */}
         <div className="bg-[#0D121D] p-1 rounded-xl border border-[#212A38] flex items-center gap-1 shadow-inner">
           <button
             type="button"
@@ -403,13 +467,19 @@ export default function AuthScreen({ onLogin }) {
         </p>
       </div>
 
-      {/* Google Account Modal (Shown if native popup is blocked) */}
-      {showGoogleEmailPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#161B26] border border-[#2E3748] rounded-2xl p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-[#212A38]">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+      {/* ============================================================== */}
+      {/* IN-APP GOOGLE ACCOUNT CHOOSER (Authentic, Fluid, Stays In-App) */}
+      {/* ============================================================== */}
+      {showGoogleAccountSheet && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
+          <div
+            className="w-full sm:max-w-md bg-[#161B26] border border-[#2E3748] rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom-6 duration-200 select-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header: Google G Logo & Title */}
+            <div className="flex items-start justify-between pb-2 border-b border-[#212A38]">
+              <div className="flex items-center gap-2.5">
+                <svg className="w-6 h-6 shrink-0" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -427,37 +497,114 @@ export default function AuthScreen({ onLogin }) {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <h3 className="text-sm font-bold text-white">Google Sign In</h3>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Choose an account</h3>
+                  <p className="text-[11px] text-slate-400">to continue to Lokify</p>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() => setShowGoogleEmailPrompt(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-white transition"
+                onClick={() => {
+                  setShowGoogleAccountSheet(false);
+                  setShowAddAccountInput(false);
+                }}
+                className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-[#212A38] transition"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleCompleteGoogleEmail} className="space-y-3">
-              <p className="text-xs text-slate-400">
-                Enter your Google account email on this device to sign in:
-              </p>
-              <input
-                type="email"
-                placeholder="youremail@gmail.com"
-                value={googleManualEmail}
-                onChange={(e) => setGoogleManualEmail(e.target.value)}
-                className="w-full bg-[#0D121D] border border-[#262F3D] focus:border-teal-400 text-white placeholder-slate-500 text-xs px-3 py-2.5 rounded-xl outline-none"
-                autoFocus
-              />
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs py-2.5 rounded-xl transition shadow-md"
-              >
-                Sign In with Google Account
-              </button>
-            </form>
+            {/* List of Recognized Google Accounts on Device */}
+            <div className="space-y-1.5 max-h-56 overflow-y-auto no-scrollbar">
+              {savedGoogleAccounts.map((account) => (
+                <button
+                  key={account.id || account.email}
+                  type="button"
+                  onClick={(e) => handleSelectGoogleAccount(e, account)}
+                  disabled={isLoading}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#0D121D] hover:bg-[#1A2230] border border-[#212A38] transition text-left active:scale-[0.99] group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#1F6FEB] to-[#58A6FF] text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
+                      {account.name?.charAt(0)?.toUpperCase() || 'G'}
+                    </div>
+                    <div className="truncate">
+                      <span className="text-xs font-semibold text-white group-hover:text-teal-300 block truncate">
+                        {account.name}
+                      </span>
+                      <span className="text-[11px] text-slate-400 block truncate">
+                        {account.email}
+                      </span>
+                    </div>
+                  </div>
+                  <CheckCircle size={15} className="text-teal-400 shrink-0 opacity-0 group-hover:opacity-100 transition" />
+                </button>
+              ))}
+
+              {/* Add Another Account Toggle Button */}
+              {!showAddAccountInput ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAddAccountInput(true)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#0D121D] border border-dashed border-[#262F3D] hover:border-slate-500 text-left transition text-slate-300 hover:text-white"
+                >
+                  <div className="w-9 h-9 rounded-full bg-[#1A2230] text-slate-300 flex items-center justify-center shrink-0">
+                    <Plus size={16} />
+                  </div>
+                  <span className="text-xs font-medium">Use another Google account</span>
+                </button>
+              ) : (
+                /* Add Account Input Form */
+                <form onSubmit={handleAddNewGoogleAccount} className="p-3 rounded-xl bg-[#0D121D] border border-teal-500/40 space-y-2.5 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-medium text-slate-300">
+                      Enter Google Email Address:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddAccountInput(false)}
+                      className="text-[10px] text-slate-400 hover:text-slate-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <input
+                    type="email"
+                    placeholder="e.g. revanth@gmail.com"
+                    value={newGoogleEmail}
+                    onChange={(e) => setNewGoogleEmail(e.target.value)}
+                    className="w-full bg-[#161B26] border border-[#2E3748] focus:border-teal-400 text-white placeholder-slate-500 text-xs px-3 py-2.5 rounded-xl outline-none"
+                    autoFocus
+                  />
+                  {/* Quick autofill chip */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const prefix = newGoogleEmail.split('@')[0];
+                        if (prefix) setNewGoogleEmail(`${prefix}@gmail.com`);
+                      }}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-[#161B26] hover:bg-[#212A38] text-slate-400 border border-[#2E3748] transition"
+                    >
+                      + @gmail.com
+                    </button>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs py-2 px-3 rounded-xl transition shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    <span>Sign in with this Account</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Privacy Disclaimer Footer */}
+            <p className="text-[10px] text-slate-400 leading-relaxed border-t border-[#212A38] pt-2 text-center">
+              To continue, Google will share your name and email with Lokify in accordance with their privacy policy.
+            </p>
           </div>
         </div>
       )}

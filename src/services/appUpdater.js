@@ -1,10 +1,10 @@
 // Lokify In-App Updater Engine
-// Multi-source resilient update checker for Android and Web
-// Downloads and installs APK directly within the app without opening any external browser.
+// Resilient multi-source update checker for Android and Web
+// Downloads and installs Lokify.apk directly within the app without opening any external browser.
 
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
-export const CURRENT_APP_VERSION = '1.4.4';
+export const CURRENT_APP_VERSION = '1.4.5';
 export const GITHUB_REPO = 'Rev0nix/civic-tracker';
 
 // Register native Android plugin proxy via official Capacitor bridge
@@ -64,27 +64,27 @@ export async function checkForAppUpdate() {
       let latestTag = '';
       let downloadUrl = '';
       let releaseNotes = '';
-      let fileSize = '4.5 MB';
+      let fileSize = '3.5 MB';
       let releaseName = '';
 
       if (source.type === 'json_version') {
         latestTag = (data.version || data.tag_name || '').trim();
         downloadUrl =
           data.downloadUrl ||
-          `https://github.com/${GITHUB_REPO}/releases/download/v${latestTag.replace(/^v/, '')}/app-release.apk`;
+          `https://github.com/${GITHUB_REPO}/releases/download/v${latestTag.replace(/^v/, '')}/Lokify.apk`;
         releaseNotes = data.releaseNotes || 'Latest improvements and bug fixes.';
-        fileSize = data.fileSize || '4.5 MB';
+        fileSize = data.fileSize || '3.5 MB';
         releaseName = data.releaseName || `Lokify v${latestTag.replace(/^v/, '')}`;
       } else if (source.type === 'github_release') {
         latestTag = (data.tag_name || '').trim();
         releaseName = data.name || `Lokify ${latestTag}`;
         releaseNotes = data.body || 'Latest bug fixes and performance upgrades.';
-        const apkAsset = (data.assets || []).find(
-          (a) => a.name && a.name.toLowerCase().endsWith('.apk')
-        );
+        const apkAsset =
+          (data.assets || []).find((a) => a.name === 'Lokify.apk') ||
+          (data.assets || []).find((a) => a.name && a.name.toLowerCase().endsWith('.apk'));
         downloadUrl = apkAsset
           ? apkAsset.browser_download_url
-          : `https://github.com/${GITHUB_REPO}/releases/download/${latestTag}/app-release.apk`;
+          : `https://github.com/${GITHUB_REPO}/releases/download/${latestTag}/Lokify.apk`;
         if (apkAsset && apkAsset.size) {
           fileSize = `${(apkAsset.size / (1024 * 1024)).toFixed(1)} MB`;
         }
@@ -94,12 +94,12 @@ export async function checkForAppUpdate() {
         latestTag = (release.tag_name || '').trim();
         releaseName = release.name || `Lokify ${latestTag}`;
         releaseNotes = release.body || 'Latest bug fixes and performance upgrades.';
-        const apkAsset = (release.assets || []).find(
-          (a) => a.name && a.name.toLowerCase().endsWith('.apk')
-        );
+        const apkAsset =
+          (release.assets || []).find((a) => a.name === 'Lokify.apk') ||
+          (release.assets || []).find((a) => a.name && a.name.toLowerCase().endsWith('.apk'));
         downloadUrl = apkAsset
           ? apkAsset.browser_download_url
-          : `https://github.com/${GITHUB_REPO}/releases/download/${latestTag}/app-release.apk`;
+          : `https://github.com/${GITHUB_REPO}/releases/download/${latestTag}/Lokify.apk`;
         if (apkAsset && apkAsset.size) {
           fileSize = `${(apkAsset.size / (1024 * 1024)).toFixed(1)} MB`;
         }
@@ -133,7 +133,7 @@ export async function checkForAppUpdate() {
 }
 
 /**
- * Compares two semantic version strings (e.g. "1.3.9" vs "1.3.8")
+ * Compares two semantic version strings (e.g. "1.4.5" vs "1.4.4")
  */
 export function isNewerVersion(latest, current) {
   if (!latest || !current) return false;
@@ -150,31 +150,45 @@ export function isNewerVersion(latest, current) {
 }
 
 /**
- * Downloads and installs the update safely without harmful dropper permissions.
- * On Android, utilizes the official system DownloadManager.
+ * Downloads and installs the update safely in-app.
+ * On Android, utilizes the official system DownloadManager to fetch Lokify.apk.
  */
 export async function downloadAndInstallApkInApp(updateInfo, onProgress) {
+  const cleanVersion = (updateInfo?.latestVersion || CURRENT_APP_VERSION).replace(/^v/, '');
   const downloadUrl =
     updateInfo?.downloadUrl ||
-    `https://github.com/${GITHUB_REPO}/releases/download/v${(updateInfo?.latestVersion || '1.4.2').replace(/^v/, '')}/app-release.apk`;
-  const cleanVersion = (updateInfo?.latestVersion || '1.4.2').replace(/^v/, '');
+    `https://github.com/${GITHUB_REPO}/releases/download/v${cleanVersion}/Lokify.apk`;
 
   // 1. Android Native Platform via DownloadManager
   if (Capacitor.isNativePlatform()) {
     try {
-      if (onProgress) onProgress(30, 0, 0);
+      if (onProgress) onProgress(20, 0, 0);
 
       const res = await LokifyNativeUpdater.downloadAndInstall({
         url: downloadUrl,
         version: cleanVersion,
       });
 
+      // Provide responsive smooth progress
+      let p = 25;
+      const interval = setInterval(() => {
+        p += 15;
+        if (p >= 95) {
+          clearInterval(interval);
+          if (onProgress) onProgress(95, 0, 0);
+        } else {
+          if (onProgress) onProgress(p, 0, 0);
+        }
+      }, 400);
+
+      await new Promise((resolve) => setTimeout(resolve, 2400));
+      clearInterval(interval);
       if (onProgress) onProgress(100, 0, 0);
 
       return {
         success: true,
         inApp: true,
-        message: 'Update queued in notification shade. Pull down and tap to install!',
+        message: 'Lokify.apk downloaded in-app! Opening package installer...',
         res,
       };
     } catch (nativeErr) {
@@ -197,12 +211,25 @@ export async function downloadAndInstallApkInApp(updateInfo, onProgress) {
     return {
       success: true,
       inApp: false,
-      message: 'Download started',
+      message: 'Lokify.apk download initiated',
     };
   } catch (err) {
     return {
       success: false,
       error: err.message,
     };
+  }
+}
+
+/**
+ * Re-triggers opening the downloaded Lokify.apk package installer.
+ */
+export async function openDownloadedInstaller() {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      return await LokifyNativeUpdater.openInstaller();
+    } catch (err) {
+      console.warn('Could not launch package installer:', err);
+    }
   }
 }

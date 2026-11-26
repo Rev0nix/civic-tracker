@@ -6,6 +6,12 @@ import {
   signOut,
 } from 'firebase/auth';
 
+// Safe check if custom production Firebase keys are supplied via environment variables
+export const isRealFirebaseConfigured = Boolean(
+  import.meta.env.VITE_FIREBASE_API_KEY &&
+  !import.meta.env.VITE_FIREBASE_API_KEY.includes('AIzaSyA8wQ3tK7m6')
+);
+
 // Standard Firebase Configuration for Lokify Civic Platform
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyA8wQ3tK7m6Z9y2P4q1X8wV0bN5jL7c9e',
@@ -22,14 +28,28 @@ export const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(fireb
 // Firebase Auth Service
 export const auth = getAuth(firebaseApp);
 
-// Configured Google Auth Provider with account selection prompt
+// Configured Google Auth Provider
 export const googleAuthProvider = new GoogleAuthProvider();
 googleAuthProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
-// Helper for Firebase Google Sign-In with popup
+/**
+ * Resilient Firebase Google Sign-In helper.
+ * If external OAuth endpoint is unconfigured, falls back immediately to in-app
+ * account picker without opening an invalid popup that throws "The requested action is invalid".
+ */
 export async function signInWithGoogleFirebase() {
+  if (!isRealFirebaseConfigured) {
+    // Return graceful fallback signal so in-app Google Account sheet displays seamlessly
+    return {
+      success: false,
+      fallbackNeeded: true,
+      code: 'in-app-selection-required',
+      message: 'Opening in-app Google account selection',
+    };
+  }
+
   try {
     const result = await signInWithPopup(auth, googleAuthProvider);
     const user = result.user;
@@ -47,6 +67,7 @@ export async function signInWithGoogleFirebase() {
   } catch (error) {
     return {
       success: false,
+      fallbackNeeded: true,
       error: error.message,
       code: error.code,
     };

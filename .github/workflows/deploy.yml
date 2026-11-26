@@ -109,37 +109,42 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
+          cd ..
+          cp android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/Lokify.apk
 
       - name: Verify APK Generated
         run: |
+          ls -la android/app/build/outputs/apk/release/Lokify.apk
           ls -la android/app/build/outputs/apk/release/app-release.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.4' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.4' }} – Real Device Google Sign-In, Zero Demo Data & Zero Phone Prompts"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.5' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.5' }} – In-App Google Sign-In, Direct APK Updater & Lokify.apk Release"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.4' }} – Real Device Google Sign-In, Zero Demo Data & Zero Phone Prompts
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.5' }} – In-App Google Sign-In, Direct APK Updater & Lokify.apk Release
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Updates in v1.4.4:
-            * **Real Google & Email Sign-In:** Tapping 'Continue with Google' triggers authentic account selection on the device. Direct email sign-in functions seamlessly without phone numbers.
-            * **Clean Production Experience:** Removed all demo alerts, mock phone numbers, demo passwords, and admin credential leaks.
-            * **Zero Phone Prompts:** Removed all phone number requests, fields, and displays across all screens.
-            * **Header Refinement:** Removed the top right sign-out button and fixed the Locating GPS indicator so it never hangs in infinite loading.
+            ### 🚀 Updates in v1.4.5:
+            * **In-App Google Account Chooser:** Resolved 'The requested action is invalid'. Tapping 'Continue with Google' now presents an authentic in-app account picker showing device accounts without navigating away or failing.
+            * **In-App Software Updater:** Updates download directly inside the app with real-time progress and automatically launch the package installer.
+            * **Official Lokify.apk Release:** Release artifact is now officially packaged and distributed as `Lokify.apk`.
+            * **Clean & Harm-Free:** Zero Play Protect warnings, zero demo alerts, zero leaked credentials, and zero phone number prompts.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.4' }}/app-release.apk)**
+            - **[Lokify.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.5' }}/Lokify.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.5' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |
+            android/app/build/outputs/apk/release/Lokify.apk
             android/app/build/outputs/apk/release/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

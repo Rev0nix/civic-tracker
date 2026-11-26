@@ -7,8 +7,9 @@ import {
   AlertTriangle,
   Loader2,
   ShieldCheck,
+  PackageCheck,
 } from 'lucide-react';
-import { downloadAndInstallApkInApp } from '../services/appUpdater';
+import { downloadAndInstallApkInApp, openDownloadedInstaller } from '../services/appUpdater';
 
 export default function InAppUpdateModal({
   isOpen,
@@ -35,19 +36,19 @@ export default function InAppUpdateModal({
         (progress, downloadedBytes, totalBytes) => {
           setDownloadProgress(progress);
           if (progress < 40) {
-            setDownloadStatusText('Downloading package in-app...');
+            setDownloadStatusText('Downloading Lokify.apk in-app...');
           } else if (progress < 90) {
             if (totalBytes > 0 && downloadedBytes > 0) {
               const dlMb = (downloadedBytes / (1024 * 1024)).toFixed(1);
               const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
-              setDownloadStatusText(`Receiving package: ${dlMb} MB / ${totalMb} MB...`);
+              setDownloadStatusText(`Receiving Lokify.apk: ${dlMb} MB / ${totalMb} MB...`);
             } else {
-              setDownloadStatusText('Downloading update...');
+              setDownloadStatusText('Downloading Lokify.apk...');
             }
           } else if (progress < 100) {
             setDownloadStatusText('Verifying package integrity...');
           } else {
-            setDownloadStatusText('Launching installer on screen...');
+            setDownloadStatusText('Opening installer on screen...');
           }
         }
       );
@@ -56,7 +57,9 @@ export default function InAppUpdateModal({
         setDownloadProgress(100);
         setDownloading(false);
         setDownloadComplete(true);
-        setDownloadStatusText(result.message || 'Download started! Check notifications or Downloads folder to install.');
+        setDownloadStatusText(
+          result.message || 'Lokify.apk downloaded! Installer is opening on your screen.'
+        );
       } else {
         throw new Error(result?.error || 'Update failed to download');
       }
@@ -65,6 +68,10 @@ export default function InAppUpdateModal({
       setDownloading(false);
       setErrorMessage(err.message || 'Failed to complete update. Tap to retry.');
     }
+  };
+
+  const handleManualOpenInstaller = async () => {
+    await openDownloadedInstaller();
   };
 
   return (
@@ -112,8 +119,8 @@ export default function InAppUpdateModal({
             <span className="text-[#3FB950] font-semibold">{updateInfo.latestVersion}</span>
           </div>
           <div className="text-right">
-            <span className="text-[#8B949E] block text-[10px]">Size</span>
-            <span className="text-[#58A6FF] font-medium">{updateInfo.fileSize || '4.5 MB'}</span>
+            <span className="text-[#8B949E] block text-[10px]">Package</span>
+            <span className="text-[#58A6FF] font-medium">Lokify.apk</span>
           </div>
         </div>
 
@@ -134,7 +141,7 @@ export default function InAppUpdateModal({
             <div className="flex items-center justify-between text-xs">
               <span className="text-[#58A6FF] flex items-center gap-1.5 truncate text-[11px]">
                 <Loader2 size={11} className="animate-spin text-[#58A6FF] shrink-0" />
-                <span>{downloadStatusText || 'Downloading update...'}</span>
+                <span>{downloadStatusText || 'Downloading Lokify.apk...'}</span>
               </span>
               <span className="text-[#F0F6FC] font-bold shrink-0 ml-2 text-xs">{downloadProgress}%</span>
             </div>
@@ -165,13 +172,13 @@ export default function InAppUpdateModal({
           <div className="bg-[#238636]/10 border border-[#238636]/30 rounded-xl p-3 text-xs text-[#3FB950] flex items-start gap-2">
             <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-xs text-[#F0F6FC]">Update Downloaded</p>
+              <p className="font-semibold text-xs text-[#F0F6FC]">Lokify.apk Downloaded</p>
               <p className="text-[#8B949E] text-[11px] mt-0.5 leading-relaxed">
-                {downloadStatusText || 'The official update was downloaded. Check your notification bar or tap the downloaded APK in Downloads to install.'}
+                {downloadStatusText || 'The update package was saved to your device. The installer prompt will open automatically, or tap Install Lokify.apk below.'}
               </p>
               <div className="flex items-center gap-1 mt-1 text-[10px] text-[#58A6FF]">
                 <ShieldCheck size={11} />
-                <span>Verified Safe & Clean · No Play Protect Flags</span>
+                <span>Verified Safe & Clean · Official Lokify.apk Release</span>
               </div>
             </div>
           </div>
@@ -189,12 +196,21 @@ export default function InAppUpdateModal({
               <span>{downloading ? 'Downloading...' : 'Update Now (In-App)'}</span>
             </button>
           ) : (
-            <button
-              onClick={onClose}
-              className="w-full bg-[#1F6FEB] hover:bg-[#388BFD] text-white font-semibold text-xs py-2.5 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <span>OK</span>
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={handleManualOpenInstaller}
+                className="w-full bg-[#238636] hover:bg-[#2ea043] text-white font-semibold text-xs py-3 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm"
+              >
+                <PackageCheck size={16} />
+                <span>Install Lokify.apk</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="w-full bg-[#21262D] hover:bg-[#30363D] text-[#C9D1D9] font-semibold text-xs py-2 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <span>Done</span>
+              </button>
+            </div>
           )}
 
           {!downloadComplete && (
