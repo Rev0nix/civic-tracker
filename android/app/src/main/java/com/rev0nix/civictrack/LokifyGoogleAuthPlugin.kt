@@ -2,6 +2,7 @@ package com.rev0nix.civictrack
 
 import android.accounts.AccountManager
 import android.app.Activity
+import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.activity.result.ActivityResult
@@ -11,16 +12,12 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.ActivityCallback
 import com.getcapacitor.annotation.CapacitorPlugin
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
 
 /**
  * Authentic Android Native Google Account Sign-In Plugin.
- * Presents the system Google account chooser bottom sheet (like Amazon, Uber, Zomato)
- * to let the user select their real Google accounts registered on the phone.
+ * Presents Android OS native account chooser dialog EXACTLY ONCE
+ * to let the user select their real Google account on the device.
+ * Never displays duplicate prompts.
  */
 @CapacitorPlugin(name = "LokifyGoogleAuth")
 class LokifyGoogleAuthPlugin : Plugin() {
@@ -28,8 +25,6 @@ class LokifyGoogleAuthPlugin : Plugin() {
     companion object {
         private const val TAG = "LokifyGoogleAuth"
     }
-
-    private var googleSignInClient: GoogleSignInClient? = null
 
     @PluginMethod
     fun signIn(call: PluginCall) {
@@ -39,77 +34,7 @@ class LokifyGoogleAuthPlugin : Plugin() {
         }
 
         try {
-            Log.i(TAG, "Launching authentic Google Play Services account chooser")
-            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .requestProfile()
-                .build()
-
-            googleSignInClient = GoogleSignIn.getClient(activity, gso)
-            // Sign out first to ensure the account chooser is always displayed
-            googleSignInClient?.signOut()?.addOnCompleteListener {
-                try {
-                    val signInIntent = googleSignInClient?.signInIntent
-                    if (signInIntent != null) {
-                        startActivityForResult(call, signInIntent, "handleGoogleSignInResult")
-                    } else {
-                        trySystemAccountManager(call)
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to launch GoogleSignIn intent, trying AccountManager", e)
-                    trySystemAccountManager(call)
-                }
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "GoogleSignIn init error, falling back to system AccountManager", e)
-            trySystemAccountManager(call)
-        }
-    }
-
-    @ActivityCallback
-    private fun handleGoogleSignInResult(call: PluginCall, result: ActivityResult) {
-        val resultCode = result.resultCode
-        val data = result.data
-
-        if (resultCode == Activity.RESULT_OK && data != null) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                val account: GoogleSignInAccount? = task.getResult(ApiException::class.java)
-                if (account != null && !account.email.isNullOrEmpty()) {
-                    Log.i(TAG, "Google sign-in successful: ${account.email}")
-                    val displayName = account.displayName 
-                        ?: account.givenName 
-                        ?: account.email?.split("@")?.get(0)?.replaceFirstChar { it.uppercase() } 
-                        ?: "Citizen"
-
-                    val ret = JSObject().apply {
-                        put("success", true)
-                        put("email", account.email)
-                        put("displayName", displayName)
-                        put("id", account.id ?: ("g_" + System.currentTimeMillis()))
-                        put("photoUrl", account.photoUrl?.toString() ?: "https://ui-avatars.com/api/?name=${displayName.replace(" ", "+")}&background=1F6FEB&color=fff")
-                        put("authProvider", "firebase-google")
-                    }
-                    call.resolve(ret)
-                    return
-                }
-            } catch (apiErr: ApiException) {
-                Log.w(TAG, "GoogleSignIn API returned status code ${apiErr.statusCode}, falling back to AccountManager", apiErr)
-            }
-        }
-
-        // If GoogleSignIn dialog had issue or user dismissed, fallback to system AccountManager
-        trySystemAccountManager(call)
-    }
-
-    private fun trySystemAccountManager(call: PluginCall) {
-        val activity = activity ?: run {
-            call.reject("Activity context not available")
-            return
-        }
-
-        try {
-            Log.i(TAG, "Launching Android OS native AccountManager account chooser")
+            Log.i(TAG, "Launching Android OS native Google Account Chooser (single prompt)")
             val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 AccountManager.newChooseAccountIntent(
                     null,
@@ -154,6 +79,8 @@ class LokifyGoogleAuthPlugin : Plugin() {
                     part.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
                 }.ifEmpty { "Citizen" }
 
+                Log.i(TAG, "Single-prompt Google account successfully chosen: $email")
+
                 val ret = JSObject().apply {
                     put("success", true)
                     put("email", email)
@@ -166,6 +93,9 @@ class LokifyGoogleAuthPlugin : Plugin() {
                 return
             }
         }
+
+        // User dismissed the picker — do NOT ask a second time!
+        Log.i(TAG, "Google account selection cancelled by user")
         call.reject("Google account selection cancelled")
     }
 }

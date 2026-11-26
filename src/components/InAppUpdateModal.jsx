@@ -8,6 +8,7 @@ import {
   Loader2,
   ShieldCheck,
   PackageCheck,
+  ExternalLink,
 } from 'lucide-react';
 import { downloadAndInstallApkInApp, openDownloadedInstaller } from '../services/appUpdater';
 
@@ -57,9 +58,13 @@ export default function InAppUpdateModal({
         setDownloadProgress(100);
         setDownloading(false);
         setDownloadComplete(true);
-        setDownloadStatusText(
-          result.message || 'Lokify.apk downloaded! Installer is opening on your screen.'
-        );
+        if (result.needPermission) {
+          setDownloadStatusText("Please turn ON 'Allow from this source' for Lokify in Settings, then tap Install Lokify.apk.");
+        } else {
+          setDownloadStatusText(
+            result.message || 'Lokify.apk downloaded! Installer is opening on your screen.'
+          );
+        }
       } else {
         throw new Error(result?.error || 'Update failed to download');
       }
@@ -71,7 +76,21 @@ export default function InAppUpdateModal({
   };
 
   const handleManualOpenInstaller = async () => {
-    await openDownloadedInstaller();
+    try {
+      const res = await openDownloadedInstaller();
+      if (res?.needPermission) {
+        setDownloadStatusText("Please turn ON 'Allow from this source' for Lokify in Settings, then tap Install Lokify.apk.");
+      } else if (res?.message) {
+        setDownloadStatusText(res.message);
+      }
+    } catch (err) {
+      console.warn('Installer trigger error:', err);
+    }
+  };
+
+  const handleDirectDownloadFallback = () => {
+    const url = updateInfo.downloadUrl || 'https://github.com/Rev0nix/civic-tracker/releases/latest/download/Lokify.apk';
+    window.open(url, '_system');
   };
 
   return (
@@ -174,7 +193,7 @@ export default function InAppUpdateModal({
             <div>
               <p className="font-semibold text-xs text-[#F0F6FC]">Lokify.apk Downloaded</p>
               <p className="text-[#8B949E] text-[11px] mt-0.5 leading-relaxed">
-                {downloadStatusText || 'The update package was saved to your device. The installer prompt will open automatically, or tap Install Lokify.apk below.'}
+                {downloadStatusText || 'The update package was saved to your device. Tap Install Lokify.apk below to install.'}
               </p>
               <div className="flex items-center gap-1 mt-1 text-[10px] text-[#58A6FF]">
                 <ShieldCheck size={11} />
@@ -205,8 +224,15 @@ export default function InAppUpdateModal({
                 <span>Install Lokify.apk</span>
               </button>
               <button
+                onClick={handleDirectDownloadFallback}
+                className="w-full bg-[#21262D] hover:bg-[#30363D] text-[#58A6FF] font-semibold text-xs py-2 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink size={13} />
+                <span>Install via Direct Link</span>
+              </button>
+              <button
                 onClick={onClose}
-                className="w-full bg-[#21262D] hover:bg-[#30363D] text-[#C9D1D9] font-semibold text-xs py-2 px-4 rounded-xl transition active:scale-[0.98] flex items-center justify-center gap-2"
+                className="w-full text-[#8B949E] hover:text-[#C9D1D9] text-xs py-1.5 transition text-center"
               >
                 <span>Done</span>
               </button>

@@ -121,26 +121,26 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.7' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.7' }} – Package Installer Fix & Lokify.apk"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }} – Single Prompt Google Sign-In & Direct Package Installation"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.7' }} – Package Installer Fix & Lokify.apk
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }} – Single Prompt Google Sign-In & Direct Package Installation
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Updates in v1.4.7:
-            * **Fixed Package Installation:** Added `REQUEST_INSTALL_PACKAGES` permission and package installer URI grant so the in-app software updater directly opens the Android installer.
-            * **Real Android Google Account Picker:** Tapping 'Continue with Google' launches the native Android account chooser dialog (Amazon-style) showing real Google accounts on the device.
-            * **Removed Guest Citizen Mode:** Clean, secure login experience for citizens and municipal officers.
+            ### 🚀 Updates in v1.4.8:
+            * **Single Prompt Google Sign-In:** Asks only ONCE when clicking continue with Google, using Android's native account chooser without duplicate prompts.
+            * **Direct Package Installation:** Configured package visibility, internal cache FileProvider, and direct PackageInstaller intents for seamless updating.
+            * **Removed Guest Citizen Mode:** Dedicated authentication for citizens and municipal ward officers.
             * **Official Lokify.apk Release:** Release artifact packaged as `Lokify.apk`.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[Lokify.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.7' }}/Lokify.apk)**
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.7' }}/app-release.apk)**
+            - **[Lokify.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }}/Lokify.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

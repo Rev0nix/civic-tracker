@@ -24,8 +24,8 @@ import kotlin.concurrent.thread
 
 /**
  * Clean, safe native Android updater for Lokify.
- * Directly streams Lokify.apk in a background thread, writes to verified external files storage,
- * and automatically triggers the Android system package installer.
+ * Streams Lokify.apk in a background thread, writes to verified internal cache and public downloads,
+ * and launches the Android system package installer directly.
  */
 @CapacitorPlugin(name = "LokifyNativeUpdater")
 class LokifyNativeUpdaterPlugin : Plugin() {
@@ -55,8 +55,8 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             try {
                 Log.i(TAG, "Starting direct streaming download of Lokify.apk v$version from $downloadUrl")
 
-                val destDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: activity.cacheDir
-                val destFile = File(destDir, APK_FILENAME)
+                // Write to internal cacheDir (guaranteed accessible to FileProvider in sandbox)
+                val destFile = File(activity.cacheDir, APK_FILENAME)
                 if (destFile.exists()) {
                     destFile.delete()
                 }
@@ -112,7 +112,18 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                 inputStream.close()
                 connection.disconnect()
 
-                Log.i(TAG, "Lokify.apk successfully downloaded (${destFile.length()} bytes). Launching package installer!")
+                destFile.setReadable(true, false)
+                Log.i(TAG, "Lokify.apk downloaded successfully (${destFile.length()} bytes). Launching package installer!")
+
+                // Also copy to public Downloads folder as external backup
+                try {
+                    val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    val publicFile = File(publicDir, APK_FILENAME)
+                    destFile.copyTo(publicFile, overwrite = true)
+                    publicFile.setReadable(true, false)
+                } catch (copyErr: Exception) {
+                    Log.w(TAG, "Could not copy to public downloads: ${copyErr.message}")
+                }
 
                 // Launch package installer on UI thread
                 activity.runOnUiThread {
@@ -146,11 +157,9 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             return
         }
 
-        val destDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: activity.cacheDir
-        val destFile = File(destDir, APK_FILENAME)
-
-        if (destFile.exists() && destFile.length() > 0) {
-            launchInstallerForFile(activity, destFile, call)
+        val cacheFile = File(activity.cacheDir, APK_FILENAME)
+        if (cacheFile.exists() && cacheFile.length() > 0) {
+            launchInstallerForFile(activity, cacheFile, call)
             return
         }
 
@@ -159,6 +168,13 @@ class LokifyNativeUpdaterPlugin : Plugin() {
         val publicFile = File(publicDir, APK_FILENAME)
         if (publicFile.exists() && publicFile.length() > 0) {
             launchInstallerForFile(activity, publicFile, call)
+            return
+        }
+
+        // Try external files directory
+        val extFile = File(activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), APK_FILENAME)
+        if (extFile.exists() && extFile.length() > 0) {
+            launchInstallerForFile(activity, extFile, call)
             return
         }
 
@@ -181,13 +197,6 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                 return
             }
 
-            // Copy to public downloads as backup
-            try {
-                val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                val publicFile = File(publicDir, APK_FILENAME)
-                apkFile.copyTo(publicFile, overwrite = true)
-            } catch (_: Exception) {}
-
             // Check unknown sources installation permission on Android 8+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (!activity.packageManager.canRequestPackageInstalls()) {
@@ -200,11 +209,13 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                     call?.resolve(JSObject().apply {
                         put("success", true)
                         put("needPermission", true)
-                        put("message", "Please allow Lokify to install updates, then return and tap Install.")
+                        put("message", "Please enable 'Allow from this source' in Settings, then tap Install.")
                     })
                     return
                 }
             }
+
+            apkFile.setReadable(true, false)
 
             val contentUri = FileProvider.getUriForFile(
                 activity,
@@ -221,11 +232,15 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                 putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
             }
 
-            // Grant permission to all resolver activities
-            val resolveInfoList = activity.packageManager.queryIntentActivities(installIntent, 0)
-            for (resolveInfo in resolveInfoList) {
-                val pkg = resolveInfo.activityInfo.packageName
-                activity.grantUriPermission(pkg, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            // Explicitly grant URI read permissions to any intent resolvers
+            try {
+                val resolveInfoList = activity.packageManager.queryIntentActivities(installIntent, 0)
+                for (resolveInfo in resolveInfoList) {
+                    val pkg = resolveInfo.activityInfo.packageName
+                    activity.grantUriPermission(pkg, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            } catch (permErr: Exception) {
+                Log.w(TAG, "Could not grant explicit URI permission: ${permErr.message}")
             }
 
             activity.startActivity(installIntent)
@@ -233,10 +248,10 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             call?.resolve(JSObject().apply {
                 put("success", true)
                 put("installed", true)
-                put("message", "Package installer launched on screen!")
+                put("message", "Package installer opened on screen!")
             })
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to launch installer intent", e)
+            Log.e(TAG, "Failed to launch installer intent, trying downloads screen", e)
             try {
                 val viewDownloads = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
