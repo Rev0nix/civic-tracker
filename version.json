@@ -1,9 +1,9 @@
 {
-  "version": "1.4.5",
-  "versionCode": 10405,
-  "releaseName": "Lokify v1.4.5 – In-App Google Sign-In, Direct APK Updater & Lokify.apk Release",
-  "releaseNotes": "• In-App Google Account Chooser: Fixed 'The requested action is invalid'. Clean in-app account selection that never navigates away.\n• Direct In-App Software Updater: Downloads Lokify.apk in-app and launches the package installer automatically.\n• Released as Lokify.apk: Official release artifact packaged as Lokify.apk.\n• Clean Production Experience: Zero demo alerts, zero phone prompts, zero leaked credentials.",
-  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.5/Lokify.apk",
-  "fileSize": "3.5 MB",
-  "publishedAt": "2026-11-26T14:15:00Z"
+  "version": "1.4.6",
+  "versionCode": 10406,
+  "releaseName": "Lokify v1.4.6 – Native Android Google Sign-In, Zero Guest Mode & Direct In-App APK Updater",
+  "releaseNotes": "• Native Android Google Account Chooser: Shows user's real Google accounts on the device (like Amazon, Swiggy) with 1-tap sign in.\n• Removed Guest Citizen Mode: Clean, secure login experience for citizens and municipal officers.\n• Removed All Mock Accounts: Only authentic user Google accounts on the phone.\n• Direct In-App Streaming Updater: Streams Lokify.apk in the background and launches package installer automatically.",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.6/Lokify.apk",
+  "fileSize": "3.6 MB",
+  "publishedAt": "2026-11-26T14:35:00Z"
 }
