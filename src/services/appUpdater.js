@@ -151,7 +151,7 @@ export function isNewerVersion(latest, current) {
 
 /**
  * Downloads and installs the update safely in-app.
- * On Android, utilizes the official system DownloadManager to fetch Lokify.apk.
+ * Directly streams Lokify.apk and launches the installer when finished.
  */
 export async function downloadAndInstallApkInApp(updateInfo, onProgress) {
   const cleanVersion = (updateInfo?.latestVersion || CURRENT_APP_VERSION).replace(/^v/, '');
@@ -159,30 +159,29 @@ export async function downloadAndInstallApkInApp(updateInfo, onProgress) {
     updateInfo?.downloadUrl ||
     `https://github.com/${GITHUB_REPO}/releases/download/v${cleanVersion}/Lokify.apk`;
 
-  // 1. Android Native Platform via DownloadManager
+  // 1. Android Native Platform via Direct Native Downloader & Installer
   if (Capacitor.isNativePlatform()) {
     try {
       if (onProgress) onProgress(20, 0, 0);
+
+      // Start responsive progress animation while native background thread streams bytes
+      let p = 25;
+      const progressTimer = setInterval(() => {
+        p += 15;
+        if (p >= 90) {
+          clearInterval(progressTimer);
+          if (onProgress) onProgress(90, 0, 0);
+        } else {
+          if (onProgress) onProgress(p, 0, 0);
+        }
+      }, 400);
 
       const res = await LokifyNativeUpdater.downloadAndInstall({
         url: downloadUrl,
         version: cleanVersion,
       });
 
-      // Provide responsive smooth progress
-      let p = 25;
-      const interval = setInterval(() => {
-        p += 15;
-        if (p >= 95) {
-          clearInterval(interval);
-          if (onProgress) onProgress(95, 0, 0);
-        } else {
-          if (onProgress) onProgress(p, 0, 0);
-        }
-      }, 400);
-
-      await new Promise((resolve) => setTimeout(resolve, 2400));
-      clearInterval(interval);
+      clearInterval(progressTimer);
       if (onProgress) onProgress(100, 0, 0);
 
       return {
@@ -192,13 +191,13 @@ export async function downloadAndInstallApkInApp(updateInfo, onProgress) {
         res,
       };
     } catch (nativeErr) {
-      console.warn('Native download manager error, trying direct intent:', nativeErr);
+      console.warn('Native download error, opening direct intent:', nativeErr);
       window.open(downloadUrl, '_system');
       if (onProgress) onProgress(100, 0, 0);
       return {
         success: true,
         inApp: false,
-        message: 'Download started via system',
+        message: 'Download started via system browser',
       };
     }
   }

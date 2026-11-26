@@ -1,12 +1,9 @@
 package com.rev0nix.civictrack
 
 import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.util.Log
 import androidx.core.content.FileProvider
@@ -16,10 +13,15 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 
 /**
  * Clean, safe native Android updater for Lokify.
- * Downloads Lokify.apk directly via Android's official system DownloadManager
+ * Directly streams Lokify.apk in a background thread, writes to verified external files storage,
  * and automatically triggers the system package installer.
  */
 @CapacitorPlugin(name = "LokifyNativeUpdater")
@@ -45,119 +47,117 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             return
         }
 
-        try {
-            Log.i(TAG, "Queueing official Lokify.apk update download for v$version: $downloadUrl")
-
-            // Clean up any stale Lokify.apk in public downloads directory
+        // Run direct streaming download on background thread
+        thread {
             try {
-                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                val existingApk = File(downloadsDir, APK_FILENAME)
-                if (existingApk.exists()) {
-                    existingApk.delete()
+                Log.i(TAG, "Starting direct streaming download of Lokify.apk v$version from $downloadUrl")
+
+                val destDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: activity.cacheDir
+                val destFile = File(destDir, APK_FILENAME)
+                if (destFile.exists()) {
+                    destFile.delete()
                 }
-            } catch (cleanupErr: Exception) {
-                Log.w(TAG, "Could not delete existing $APK_FILENAME: ${cleanupErr.message}")
-            }
 
-            val downloadManager = activity.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
-            if (downloadManager == null) {
-                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl)).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                activity.startActivity(browserIntent)
-                call.resolve(JSObject().apply {
-                    put("success", true)
-                    put("method", "intent")
-                    put("message", "Download opened via system")
-                })
-                return
-            }
+                // Handle HTTP redirects up to 5 hops
+                var currentUrl = downloadUrl
+                var connection: HttpURLConnection
+                var redirectCount = 0
 
-            val request = DownloadManager.Request(Uri.parse(downloadUrl)).apply {
-                setTitle("Lokify Update v$version")
-                setDescription("Downloading official Lokify.apk update package...")
-                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, APK_FILENAME)
-                setMimeType("application/vnd.android.package-archive")
-            }
+                while (true) {
+                    val urlObj = URL(currentUrl)
+                    connection = urlObj.openConnection() as HttpURLConnection
+                    connection.instanceFollowRedirects = true
+                    connection.setRequestProperty("User-Agent", "Lokify-App-Updater")
+                    connection.connectTimeout = 20000
+                    connection.readTimeout = 40000
+                    connection.connect()
 
-            val downloadId = downloadManager.enqueue(request)
-            Log.i(TAG, "Enqueued download with ID: $downloadId for $APK_FILENAME")
-
-            // Register BroadcastReceiver to automatically trigger package installation when complete
-            val receiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context?, intent: Intent?) {
-                    val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L) ?: -1L
-                    if (id == downloadId) {
-                        try {
-                            activity.unregisterReceiver(this)
-                        } catch (_: Exception) {}
-
-                        try {
-                            val downloadUri = downloadManager.getUriForDownloadedFile(downloadId)
-                            Log.i(TAG, "Download complete! Opening package installer for URI: $downloadUri")
-
-                            if (downloadUri != null) {
-                                val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                                    setDataAndType(downloadUri, "application/vnd.android.package-archive")
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                activity.startActivity(installIntent)
-                                return
-                            }
-
-                            // Fallback using FileProvider
-                            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                            val apkFile = File(downloadsDir, APK_FILENAME)
-                            if (apkFile.exists()) {
-                                val contentUri = FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", apkFile)
-                                val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                                    setDataAndType(contentUri, "application/vnd.android.package-archive")
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                activity.startActivity(installIntent)
-                            }
-                        } catch (installErr: Exception) {
-                            Log.e(TAG, "Could not open installer directly from receiver", installErr)
-                            try {
-                                val viewDownloads = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                activity.startActivity(viewDownloads)
-                            } catch (_: Exception) {}
+                    val responseCode = connection.responseCode
+                    if (responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
+                        responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                        responseCode == 307 ||
+                        responseCode == 308) {
+                        val newUrl = connection.getHeaderField("Location")
+                        connection.disconnect()
+                        if (newUrl != null && redirectCount < 5) {
+                            currentUrl = newUrl
+                            redirectCount++
+                            continue
                         }
                     }
+                    break
                 }
-            }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                activity.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), Context.RECEIVER_EXPORTED)
-            } else {
-                activity.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-            }
-
-            call.resolve(JSObject().apply {
-                put("success", true)
-                put("downloadId", downloadId)
-                put("fileName", APK_FILENAME)
-                put("method", "download_manager")
-                put("message", "Downloading Lokify.apk in-app. Installer will open automatically when finished.")
-            })
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start download via DownloadManager", e)
-            try {
-                val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl)).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (connection.responseCode !in 200..299) {
+                    throw Exception("Server returned HTTP ${connection.responseCode}")
                 }
-                activity.startActivity(fallbackIntent)
-                call.resolve(JSObject().apply {
-                    put("success", true)
-                    put("method", "intent_fallback")
-                })
-            } catch (fallbackErr: Exception) {
-                call.reject("Failed to trigger update download: ${fallbackErr.message}")
+
+                val inputStream: InputStream = connection.inputStream
+                val outputStream = FileOutputStream(destFile)
+
+                val buffer = ByteArray(8192)
+                var bytesRead: Int
+                var downloadedBytes = 0L
+
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
+                    downloadedBytes += bytesRead
+                }
+
+                outputStream.flush()
+                outputStream.close()
+                inputStream.close()
+                connection.disconnect()
+
+                Log.i(TAG, "Lokify.apk successfully downloaded (${destFile.length()} bytes). Launching package installer!")
+
+                // Launch package installer on UI thread
+                activity.runOnUiThread {
+                    try {
+                        val contentUri = FileProvider.getUriForFile(
+                            activity,
+                            "${activity.packageName}.fileprovider",
+                            destFile
+                        )
+
+                        val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(contentUri, "application/vnd.android.package-archive")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        activity.startActivity(installIntent)
+
+                        call.resolve(JSObject().apply {
+                            put("success", true)
+                            put("downloaded", true)
+                            put("message", "Lokify.apk downloaded! Package installer launched.")
+                        })
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to launch package installer", e)
+                        call.resolve(JSObject().apply {
+                            put("success", true)
+                            put("downloaded", true)
+                            put("message", "Lokify.apk downloaded. Tap Install to proceed.")
+                        })
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Direct download failed, falling back to system intent: ${e.message}", e)
+                activity.runOnUiThread {
+                    try {
+                        val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl)).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        activity.startActivity(fallbackIntent)
+                        call.resolve(JSObject().apply {
+                            put("success", true)
+                            put("downloaded", false)
+                            put("message", "Downloading via system browser")
+                        })
+                    } catch (intentErr: Exception) {
+                        call.reject("Failed to download update: ${e.message}")
+                    }
+                }
             }
         }
     }
@@ -170,11 +170,15 @@ class LokifyNativeUpdaterPlugin : Plugin() {
         }
 
         try {
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val apkFile = File(downloadsDir, APK_FILENAME)
+            val destDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: activity.cacheDir
+            val destFile = File(destDir, APK_FILENAME)
 
-            if (apkFile.exists()) {
-                val contentUri = FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", apkFile)
+            if (destFile.exists() && destFile.length() > 0) {
+                val contentUri = FileProvider.getUriForFile(
+                    activity,
+                    "${activity.packageName}.fileprovider",
+                    destFile
+                )
                 val installIntent = Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(contentUri, "application/vnd.android.package-archive")
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
