@@ -11,21 +11,16 @@ import {
   LogOut,
   ChevronRight,
   Edit3,
-  Phone,
-  MessageSquare,
   DownloadCloud,
   User,
 } from 'lucide-react';
-import { getSmsHistory } from '../utils/smsService';
 
 export default function ProfileScreen({
   userEmail,
-  userPhone = '',
   userName = 'Citizen Reporter',
   userLocality = 'Bengaluru',
   issues = [],
   myIssuesCount = 0,
-  upvotesReceived = 0,
   isAdmin = false,
   onNavigateTab,
   onLogout,
@@ -33,13 +28,9 @@ export default function ProfileScreen({
   onUpdateProfile,
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [showSmsHistory, setShowSmsHistory] = useState(false);
   const [editName, setEditName] = useState(userName);
   const [editEmail, setEditEmail] = useState(userEmail || '');
-  const [editPhone, setEditPhone] = useState(userPhone || '');
   const [editLocality, setEditLocality] = useState(userLocality);
-
-  const smsLogs = getSmsHistory();
 
   const resolvedCount = issues.filter(
     (i) => i.status === 'Resolved' && (i.user_email === userEmail || !userEmail)
@@ -51,7 +42,6 @@ export default function ProfileScreen({
     onUpdateProfile({
       name: editName.trim() || (isAdmin ? 'Municipal Ward Officer' : 'Citizen Reporter'),
       email: editEmail.trim(),
-      phone: editPhone.trim(),
       locality: editLocality.trim(),
     });
     setIsEditing(false);
@@ -69,13 +59,6 @@ export default function ProfileScreen({
           onClick: () => onNavigateTab('my-issues'),
         },
         {
-          id: 'sms-logs',
-          label: 'SMS Dispatch Logs',
-          icon: MessageSquare,
-          subtitle: `${smsLogs.length} updates sent to your phone`,
-          onClick: () => setShowSmsHistory(true),
-        },
-        {
           id: 'saved-issues',
           label: 'Saved Issues',
           icon: Bookmark,
@@ -85,8 +68,8 @@ export default function ProfileScreen({
           id: 'notifications',
           label: 'Notifications',
           icon: Bell,
-          subtitle: `SMS alerts routed to ${userPhone || 'your registered number'}`,
-          onClick: () => alert(`SMS notifications are routed to ${userPhone || 'your registered number'}.`),
+          subtitle: 'Real-time issue status updates & alerts',
+          onClick: () => onNavigateTab('alerts'),
         },
       ],
     },
@@ -97,8 +80,8 @@ export default function ProfileScreen({
           id: 'software-update',
           label: 'Software Update',
           icon: DownloadCloud,
-          subtitle: 'Version 1.4.3 · Tap to check updates',
-          badge: 'v1.4.3',
+          subtitle: 'Version 1.4.4 · Tap to check updates',
+          badge: 'v1.4.4',
           onClick: onCheckUpdate,
         },
         {
@@ -119,10 +102,10 @@ export default function ProfileScreen({
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.4.3 · Civic Grievance Tracker',
+          subtitle: 'v1.4.4 · Civic Grievance Tracker',
           onClick: () =>
             alert(
-              'Lokify v1.4.3\nCivic Grievance & Municipal Issue Tracker\nClean, Harm-Free Native Android Release'
+              'Lokify v1.4.4\nCivic Grievance & Municipal Issue Redressal Platform\nClean, Harm-Free Native Android Release'
             ),
         },
       ],
@@ -159,7 +142,7 @@ export default function ProfileScreen({
                     <span className="w-2 h-2 rounded-full bg-[#58A6FF] animate-pulse" />
                   </div>
                   <p className="text-[11px] text-[#8B949E] mt-0.5 leading-tight">
-                    Official municipal control over report cards & SMS dispatch active
+                    Official municipal control over report cards active
                   </p>
                 </div>
               </div>
@@ -212,14 +195,7 @@ export default function ProfileScreen({
                     )}
                   </div>
 
-                  {userPhone && (
-                    <p className="text-xs text-[#8B949E] mt-1 flex items-center gap-1.5">
-                      <Phone size={12} className="text-[#58A6FF]" />
-                      <span>{userPhone}</span>
-                    </p>
-                  )}
-
-                  <p className="text-xs text-[#8B949E] mt-0.5 flex items-center gap-1.5">
+                  <p className="text-xs text-[#8B949E] mt-1 flex items-center gap-1.5">
                     <Mail size={12} className="text-[#58A6FF]" />
                     <span className="truncate max-w-[190px]">{userEmail || 'No email linked'}</span>
                   </p>
@@ -240,7 +216,7 @@ export default function ProfileScreen({
               </button>
             </div>
 
-            {/* Inline Edit Form */}
+            {/* Inline Edit Form (No phone numbers) */}
             {isEditing && (
               <div className="mt-4 pt-4 border-t border-[#30363D] animate-in fade-in duration-150">
                 <h4 className="text-xs font-semibold text-[#F0F6FC] mb-3">
@@ -257,15 +233,6 @@ export default function ProfileScreen({
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Phone Number (SMS)</label>
-                    <input
-                      type="tel"
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      className="w-full bg-[#0D1117] border border-[#30363D] text-xs text-[#F0F6FC] px-3 py-2 rounded-xl focus:outline-none focus:border-[#58A6FF]"
-                    />
-                  </div>
-                  <div>
                     <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Email</label>
                     <input
                       type="email"
@@ -275,7 +242,7 @@ export default function ProfileScreen({
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Locality / Ward</label>
+                    <label className="text-[11px] font-medium text-[#8B949E] block mb-1">Locality</label>
                     <input
                       type="text"
                       value={editLocality}
@@ -283,17 +250,17 @@ export default function ProfileScreen({
                       className="w-full bg-[#0D1117] border border-[#30363D] text-xs text-[#F0F6FC] px-3 py-2 rounded-xl focus:outline-none focus:border-[#58A6FF]"
                     />
                   </div>
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex items-center gap-2 pt-1">
                     <button
                       type="submit"
-                      className="bg-[#1F6FEB] hover:bg-[#388BFD] text-white font-medium text-xs px-4 py-2 rounded-xl transition active:scale-95"
+                      className="flex-1 bg-[#1F6FEB] hover:bg-[#388BFD] text-white text-xs font-semibold py-2 px-3 rounded-xl transition"
                     >
                       Save Changes
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsEditing(false)}
-                      className="bg-[#21262D] text-[#8B949E] hover:text-[#C9D1D9] text-xs px-3 py-2 rounded-xl transition active:scale-95"
+                      className="flex-1 bg-[#21262D] hover:bg-[#30363D] text-[#8B949E] text-xs font-semibold py-2 px-3 rounded-xl transition"
                     >
                       Cancel
                     </button>
@@ -301,48 +268,25 @@ export default function ProfileScreen({
                 </form>
               </div>
             )}
-          </section>
 
-          {/* Quick Stats Grid */}
-          <section className="grid grid-cols-2 gap-2.5">
-            <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-3.5 text-center">
-              <span className="text-[11px] font-medium text-[#8B949E] block">
-                Total Reports
-              </span>
-              <span className="text-xl font-bold text-[#F0F6FC] mt-0.5 block">
-                {myIssuesCount}
-              </span>
-            </div>
-
-            <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-3.5 text-center">
-              <span className="text-[11px] font-medium text-[#3FB950] block">
-                Resolved
-              </span>
-              <span className="text-xl font-bold text-[#3FB950] mt-0.5 block">
-                {resolvedCount}
-              </span>
-            </div>
-
-            <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-3.5 text-center">
-              <span className="text-[11px] font-medium text-[#58A6FF] block">
-                In Progress
-              </span>
-              <span className="text-xl font-bold text-[#58A6FF] mt-0.5 block">
-                {Math.max(0, activeCount)}
-              </span>
-            </div>
-
-            <div className="bg-[#161B22] border border-[#30363D] rounded-xl p-3.5 text-center">
-              <span className="text-[11px] font-medium text-[#D29922] block">
-                Support Received
-              </span>
-              <span className="text-xl font-bold text-[#F0F6FC] mt-0.5 block">
-                👍 {upvotesReceived}
-              </span>
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[#30363D]/60 text-center">
+              <div className="bg-[#0D1117]/60 p-2.5 rounded-xl border border-[#30363D]/40">
+                <span className="text-base font-bold text-[#F0F6FC] block">{myIssuesCount}</span>
+                <span className="text-[10px] text-[#8B949E] font-medium uppercase tracking-wider">Reports</span>
+              </div>
+              <div className="bg-[#0D1117]/60 p-2.5 rounded-xl border border-[#30363D]/40">
+                <span className="text-base font-bold text-[#3FB950] block">{resolvedCount}</span>
+                <span className="text-[10px] text-[#8B949E] font-medium uppercase tracking-wider">Resolved</span>
+              </div>
+              <div className="bg-[#0D1117]/60 p-2.5 rounded-xl border border-[#30363D]/40">
+                <span className="text-base font-bold text-[#D29922] block">{activeCount}</span>
+                <span className="text-[10px] text-[#8B949E] font-medium uppercase tracking-wider">Active</span>
+              </div>
             </div>
           </section>
 
-          {/* Menu Sections with Small Sleek Toggle Switch */}
+          {/* Menu Sections */}
           <div className="space-y-4">
             {menuSections.map((section) => (
               <div key={section.title}>
@@ -359,11 +303,7 @@ export default function ProfileScreen({
                         className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-[#1C2128] transition text-left group"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
-                            item.id === 'admin-mode' && isAdmin
-                              ? 'bg-[#1F6FEB]/20 border-[#388BFD] text-[#58A6FF]'
-                              : 'bg-[#21262D] border-[#30363D] text-[#58A6FF]'
-                          }`}>
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border bg-[#21262D] border-[#30363D] text-[#58A6FF]">
                             <Icon size={15} />
                           </div>
                           <div className="min-w-0">
@@ -371,9 +311,7 @@ export default function ProfileScreen({
                               {item.label}
                             </span>
                             {item.subtitle && (
-                              <span className={`text-[11px] block truncate max-w-[210px] sm:max-w-xs ${
-                                item.id === 'admin-mode' && isAdmin ? 'text-[#58A6FF] font-medium' : 'text-[#8B949E]'
-                              }`}>
+                              <span className="text-[11px] block truncate max-w-[210px] sm:max-w-xs text-[#8B949E]">
                                 {item.subtitle}
                               </span>
                             )}
@@ -381,20 +319,7 @@ export default function ProfileScreen({
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          {/* Small iOS-style Toggle Switch */}
-                          {item.isToggle ? (
-                            <div
-                              className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center ${
-                                item.toggleValue ? 'bg-[#238636]' : 'bg-[#30363D]'
-                              }`}
-                            >
-                              <div
-                                className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-200 ease-in-out ${
-                                  item.toggleValue ? 'translate-x-4' : 'translate-x-0'
-                                }`}
-                              />
-                            </div>
-                          ) : item.badge ? (
+                          {item.badge ? (
                             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#21262D] text-[#58A6FF] border border-[#30363D]">
                               {item.badge}
                             </span>
@@ -410,7 +335,7 @@ export default function ProfileScreen({
             ))}
           </div>
 
-          {/* Sign Out Button */}
+          {/* Sign Out Button (Cleanly in Settings) */}
           <div className="pt-2">
             <button
               onClick={onLogout}
@@ -421,52 +346,6 @@ export default function ProfileScreen({
             </button>
           </div>
         </div>
-
-        {/* SMS Logs Modal */}
-        {showSmsHistory && (
-          <div
-            className="fixed inset-0 z-50 bg-[#0D1117]/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
-            onClick={() => setShowSmsHistory(false)}
-          >
-            <div
-              className="bg-[#161B22] border border-[#30363D] rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-5 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-[#30363D] mb-4">
-                <div>
-                  <h3 className="text-base font-bold text-[#F0F6FC]">SMS History</h3>
-                  <p className="text-xs text-[#8B949E]">Updates dispatched to your phone</p>
-                </div>
-                <button
-                  onClick={() => setShowSmsHistory(false)}
-                  className="p-1 rounded-lg text-[#8B949E] hover:text-[#F0F6FC] hover:bg-[#21262D] transition"
-                >
-                  &times;
-                </button>
-              </div>
-
-              <div className="space-y-2.5">
-                {smsLogs.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-[#8B949E]">
-                    No SMS notifications sent yet.
-                  </div>
-                ) : (
-                  smsLogs.map((log) => (
-                    <div key={log.id} className="bg-[#0D1117] border border-[#30363D] p-3 rounded-xl text-xs">
-                      <div className="flex items-center justify-between mb-1 text-[11px]">
-                        <span className="text-[#58A6FF] font-medium">To: {log.toPhone}</span>
-                        <span className="text-[#8B949E]">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      <p className="text-[#F0F6FC] leading-relaxed mt-1">
-                        {log.message}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

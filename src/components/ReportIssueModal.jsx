@@ -13,7 +13,6 @@ import {
   Waves,
   ShieldAlert,
   HelpCircle,
-  Phone,
   Mail,
   LocateFixed,
 } from 'lucide-react';
@@ -44,13 +43,11 @@ export default function ReportIssueModal({
   currentLocation,
   onRefreshLocation,
   initialEmail = '',
-  initialPhone = '',
 }) {
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState('1');
   const [description, setDescription] = useState('');
   const [userEmail, setUserEmail] = useState(initialEmail);
-  const [userPhone, setUserPhone] = useState(initialPhone);
   const [file, setFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [validationError, setValidationError] = useState('');
@@ -224,7 +221,6 @@ export default function ReportIssueModal({
         categoryId,
         description: description.trim(),
         userEmail: userEmail.trim() || initialEmail,
-        userPhone: userPhone.trim() || initialPhone,
         file,
         location: finalLocation,
       });
@@ -398,35 +394,19 @@ export default function ReportIssueModal({
             />
           </div>
 
-          {/* 5. Contact Info for Updates */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div>
-              <label className="text-xs font-medium text-[#8B949E] block mb-1 flex items-center gap-1">
-                <Phone size={11} className="text-[#58A6FF]" />
-                <span>Phone (SMS Updates)</span>
-              </label>
-              <input
-                type="tel"
-                placeholder="Mobile number for SMS"
-                value={userPhone}
-                onChange={(e) => setUserPhone(e.target.value)}
-                className="w-full bg-[#0D1117] border border-[#30363D] focus:border-[#58A6FF] text-xs text-[#F0F6FC] placeholder-[#8B949E] px-3 py-2 rounded-xl focus:outline-none transition font-medium"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-[#8B949E] block mb-1 flex items-center gap-1">
-                <Mail size={11} className="text-[#58A6FF]" />
-                <span>Email (Optional)</span>
-              </label>
-              <input
-                type="email"
-                placeholder="Email address"
-                value={userEmail}
-                onChange={(e) => setUserEmail(e.target.value)}
-                className="w-full bg-[#0D1117] border border-[#30363D] focus:border-[#58A6FF] text-xs text-[#F0F6FC] placeholder-[#8B949E] px-3 py-2 rounded-xl focus:outline-none transition font-medium"
-              />
-            </div>
+          {/* 5. Contact Email for Updates (No phone numbers) */}
+          <div>
+            <label className="text-xs font-medium text-[#8B949E] block mb-1 flex items-center gap-1">
+              <Mail size={11} className="text-[#58A6FF]" />
+              <span>Email (Optional for status notifications)</span>
+            </label>
+            <input
+              type="email"
+              placeholder="Email address for notifications"
+              value={userEmail}
+              onChange={(e) => setUserEmail(e.target.value)}
+              className="w-full bg-[#0D1117] border border-[#30363D] focus:border-[#58A6FF] text-xs text-[#F0F6FC] placeholder-[#8B949E] px-3 py-2 rounded-xl focus:outline-none transition font-medium"
+            />
           </div>
 
           {/* 6. Issue Location & Satellite Map */}

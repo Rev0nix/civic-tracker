@@ -8,12 +8,10 @@ import {
   CheckCircle2,
   ShieldCheck,
   ExternalLink,
-  Phone,
   Trash2,
   Clock,
   AlertTriangle,
   RotateCcw,
-  Send,
   RefreshCw,
 } from 'lucide-react';
 import {
@@ -149,9 +147,6 @@ export default function IssueDetailModal({
       setStatusUpdating(false);
     }
   };
-
-  const citizenPhone = issue.user_phone || '+91 98451 23456';
-  const cleanPhone = citizenPhone.replace(/\s+/g, '');
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0D1117]/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
@@ -359,30 +354,13 @@ export default function IssueDetailModal({
                 </div>
               </div>
 
-              {/* Citizen Direct Contact Strip */}
-              <div className="mt-3 pt-2.5 border-t border-[#30363D] flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-1.5 text-[#8B949E]">
-                  <span>Citizen:</span>
-                  <span className="text-[#F0F6FC] font-medium">{citizenPhone}</span>
+              {/* Citizen Email Contact (if available) */}
+              {issue.user_email && (
+                <div className="mt-3 pt-2.5 border-t border-[#30363D] flex items-center justify-between gap-2 text-xs">
+                  <span className="text-[#8B949E]">Reported by:</span>
+                  <span className="text-[#F0F6FC] font-medium">{issue.user_email}</span>
                 </div>
-
-                <div className="flex items-center gap-1.5">
-                  <a
-                    href={`tel:${cleanPhone}`}
-                    className="flex items-center gap-1 bg-[#161B22] hover:bg-[#21262D] border border-[#30363D] text-[#58A6FF] px-2.5 py-1 rounded-lg transition"
-                  >
-                    <Phone size={11} />
-                    <span>Call</span>
-                  </a>
-                  <a
-                    href={`sms:${cleanPhone}?body=Regarding Lokify Report ${formattedId} (${issue.title}): `}
-                    className="flex items-center gap-1 bg-[#161B22] hover:bg-[#21262D] border border-[#30363D] text-[#58A6FF] px-2.5 py-1 rounded-lg transition"
-                  >
-                    <Send size={11} />
-                    <span>SMS</span>
-                  </a>
-                </div>
-              </div>
+              )}
             </section>
           )}
 

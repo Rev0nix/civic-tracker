@@ -37,9 +37,8 @@ export async function signInWithGoogleFirebase() {
       success: true,
       user: {
         id: user.uid,
-        name: user.displayName || 'Google Citizen',
+        name: user.displayName || user.email?.split('@')[0] || 'Citizen',
         email: user.email,
-        phone: user.phoneNumber || '+91 98451 23456',
         avatarUrl: user.photoURL,
         role: 'citizen',
         authProvider: 'firebase-google',

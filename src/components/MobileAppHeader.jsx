@@ -1,11 +1,10 @@
-import { MapPin, RefreshCw, LogOut, AlertTriangle, MapPinOff, Loader2, Bell } from 'lucide-react';
+import { MapPin, RefreshCw, AlertTriangle, MapPinOff, Loader2, Bell } from 'lucide-react';
 import AppLogo from './AppLogo';
 
 export default function MobileAppHeader({
   currentLocality,
   locationState = 'found',
   onRefreshLocation,
-  onLogout,
   onOpenAlerts,
   unreadAlertsCount = 0,
 }) {
@@ -49,7 +48,7 @@ export default function MobileAppHeader({
 
           <span className="truncate">
             {locationState === 'locating'
-              ? 'Locating...'
+              ? 'Updating...'
               : locationState === 'permission_denied'
               ? 'Permission needed'
               : locationState === 'unavailable'
@@ -60,7 +59,7 @@ export default function MobileAppHeader({
           <RefreshCw size={10} className="shrink-0 text-[#8B949E]" />
         </button>
 
-        {/* Right: Alerts & Logout */}
+        {/* Right: Alerts only (Sign out button removed from top right as requested) */}
         <div className="flex items-center gap-1.5">
           {onOpenAlerts && (
             <button
@@ -76,14 +75,6 @@ export default function MobileAppHeader({
               )}
             </button>
           )}
-
-          <button
-            onClick={onLogout}
-            className="p-1.5 rounded-lg bg-[#161B22] hover:bg-[#21262D] border border-[#30363D] hover:border-[#F85149]/40 text-[#8B949E] hover:text-[#F85149] active:scale-95 transition"
-            title="Sign out"
-          >
-            <LogOut size={15} />
-          </button>
         </div>
       </div>
     </header>

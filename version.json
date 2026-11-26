@@ -1,9 +1,9 @@
 {
-  "version": "1.4.3",
-  "versionCode": 10403,
-  "releaseName": "Lokify v1.4.3 – In-App Firebase Google Account Chooser & Pure Citizen Mode",
-  "releaseNotes": "• In-App Google Account Chooser: Tap Continue with Google to view and select your Google account directly in-app via Firebase without external redirects.\n• Pure Citizen Mode: Fully stripped admin controls, banners, and toggles from citizen mode. Ward Officer access is now exclusively accessed via the Login screen using Email ID and Password.\n• Human Figma Craftsmanship: Refined segmented control tabs, smooth elevation styling, and clean inputs.",
-  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.3/app-release.apk",
+  "version": "1.4.4",
+  "versionCode": 10404,
+  "releaseName": "Lokify v1.4.4 – Real Device Google Sign-In, Zero Demo Data & Zero Phone Prompts",
+  "releaseNotes": "• Real Google & Email Sign-In: Tapping Continue with Google triggers authentic account selection. Direct email sign-in functions seamlessly without phone numbers.\n• Clean Production Experience: Removed all demo alerts, mock phone numbers, demo passwords, and admin credential leaks.\n• Zero Phone Prompts: Removed all phone number requests, fields, and displays across all screens.\n• Header Refinement: Removed the top right sign-out button and fixed the Locating GPS indicator so it never hangs in infinite loading.",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.4/app-release.apk",
   "fileSize": "3.5 MB",
-  "publishedAt": "2026-11-25T18:30:00Z"
+  "publishedAt": "2026-11-26T13:30:00Z"
 }

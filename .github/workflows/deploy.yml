@@ -118,25 +118,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.3' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.3' }} – In-App Firebase Google Account Chooser & Pure Citizen Mode"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.4' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.4' }} – Real Device Google Sign-In, Zero Demo Data & Zero Phone Prompts"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.3' }} – In-App Firebase Google Account Chooser & Pure Citizen Mode
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.4' }} – Real Device Google Sign-In, Zero Demo Data & Zero Phone Prompts
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Updates in v1.4.3:
-            * **In-App Google Account Chooser via Firebase:** Tapping 'Continue with Google' now brings up the user's Google accounts directly in-app, allowing seamless 1-click Google authentication via Firebase without leaving the app.
-            * **Pure Citizen Mode:** Fully removed all admin mode entry points, switch buttons, and toggles from citizen mode. Citizen mode is now completely dedicated to citizens with zero admin clutter.
-            * **Secure Officer Access on Login:** Ward Officers now log in directly from the dedicated 'Ward Officer' tab on the login screen using their Email ID and Password.
-            * **Human-Crafted Figma UI/UX:** Refined segmented tabs, polished elevation shadows, and clean inputs.
+            ### 🚀 Updates in v1.4.4:
+            * **Real Google & Email Sign-In:** Tapping 'Continue with Google' triggers authentic account selection on the device. Direct email sign-in functions seamlessly without phone numbers.
+            * **Clean Production Experience:** Removed all demo alerts, mock phone numbers, demo passwords, and admin credential leaks.
+            * **Zero Phone Prompts:** Removed all phone number requests, fields, and displays across all screens.
+            * **Header Refinement:** Removed the top right sign-out button and fixed the Locating GPS indicator so it never hangs in infinite loading.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.3' }}/app-release.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.4' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

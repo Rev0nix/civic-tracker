@@ -10,7 +10,6 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Download,
-  Phone,
 } from 'lucide-react';
 import {
   CATEGORIES,
@@ -387,7 +386,7 @@ export default function FeedScreen({
                                   <span>Tap card to manage report</span>
                                 </span>
                                 <span className="text-[10px] text-slate-300">
-                                  {issue.user_phone ? issue.user_phone : 'SMS Ready'}
+                                  Officer Control
                                 </span>
                               </div>
                             </div>
@@ -418,17 +417,9 @@ export default function FeedScreen({
                           )}
 
                           {/* Citizen info snippet for officer */}
-                          {isAdmin && (issue.user_phone || issue.user_email) && (
+                          {isAdmin && issue.user_email && (
                             <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-2 border-t border-[#30363D]">
-                              {issue.user_email && (
-                                <span className="truncate max-w-[170px]">By: {issue.user_email}</span>
-                              )}
-                              {issue.user_phone && (
-                                <span className="flex items-center gap-1 text-teal-300">
-                                  <Phone size={10} />
-                                  <span>{issue.user_phone}</span>
-                                </span>
-                              )}
+                              <span className="truncate max-w-[200px]">By: {issue.user_email}</span>
                             </div>
                           )}
                         </div>

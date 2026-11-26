@@ -3,11 +3,9 @@ import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
 import { reverseGeocode, extractLocality } from './googleMaps';
 import { analyzePriority, calculateDistance, compressImage, parseLocation } from './utils/issueHelpers';
-import { sendSmsNotification } from './utils/smsService';
 import AuthScreen from './components/AuthScreen';
 import MobileAppHeader from './components/MobileAppHeader';
 import BottomNav from './components/BottomNav';
-import SmsBanner from './components/SmsBanner';
 import FeedScreen from './components/FeedScreen';
 import MyIssuesScreen from './components/MyIssuesScreen';
 import AlertsScreen from './components/AlertsScreen';
@@ -23,50 +21,6 @@ import { checkForAppUpdate, CURRENT_APP_VERSION } from './services/appUpdater';
 import { mapToDbCategoryId } from './constants/theme';
 import { Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
 import './App.css';
-
-// Initial reference alerts
-const DEFAULT_ALERTS = [
-  {
-    id: 'alt-1',
-    issue_id: '2481',
-    type: 'work_started',
-    title: 'Work has started on drainage',
-    description: 'Work has started. The drain near the bus stop will be cleared this week. SMS sent to registered mobile.',
-    status: 'In Progress',
-    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    read: false,
-  },
-  {
-    id: 'alt-2',
-    issue_id: '2480',
-    type: 'resolved',
-    title: 'Broken road surface repaired',
-    description: 'Marked fixed. Confirm it looks right from your side on site. SMS confirmation dispatched.',
-    status: 'Resolved',
-    created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    read: false,
-  },
-  {
-    id: 'alt-3',
-    issue_id: '2479',
-    type: 'reply',
-    title: 'Authority response on drinking water line',
-    description: 'Admin: The valve line maintenance is scheduled for Thursday morning.',
-    status: 'Assigned',
-    created_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-    read: true,
-  },
-  {
-    id: 'alt-4',
-    issue_id: '2478',
-    type: 'acknowledged',
-    title: 'Pothole hazard acknowledged',
-    description: 'Your report was acknowledged by the ward office inspection team.',
-    status: 'Acknowledged',
-    created_at: new Date(Date.now() - 50 * 60 * 60 * 1000).toISOString(),
-    read: true,
-  },
-];
 
 export default function App() {
   // Authentication State
@@ -84,9 +38,15 @@ export default function App() {
   const [issues, setIssues] = useState([]);
   const [addresses, setAddresses] = useState({});
   const [userLocation, setUserLocation] = useState(null);
-  const [locationStatus, setLocationStatus] = useState('Acquiring live GPS...');
-  const [currentLocality, setCurrentLocality] = useState('Locating...');
-  const [locationState, setLocationState] = useState('locating'); // 'locating' | 'found' | 'permission_denied' | 'unavailable'
+  const [locationStatus, setLocationStatus] = useState('Location Ready');
+  const [currentLocality, setCurrentLocality] = useState(() => {
+    try {
+      return localStorage.getItem('lokify_last_locality') || 'Bengaluru';
+    } catch {
+      return 'Bengaluru';
+    }
+  });
+  const [locationState, setLocationState] = useState('found'); // Defaults to 'found' so it never spins permanently
 
   // User Profile & Device
   const [deviceId] = useState(() => {
@@ -104,10 +64,18 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Alerts & Notifications
+  // Alerts & Notifications (Clean real alerts only, zero demo alerts)
   const [alerts, setAlerts] = useState(() => {
-    const saved = localStorage.getItem('lokify_alerts');
-    return saved ? JSON.parse(saved) : DEFAULT_ALERTS;
+    try {
+      const saved = localStorage.getItem('lokify_alerts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed.filter((a) => !a.id?.startsWith('alt-')) : [];
+      }
+      return [];
+    } catch {
+      return [];
+    }
   });
 
   // Modals & Navigation state
@@ -177,28 +145,32 @@ export default function App() {
     }
   }, [showToast]);
 
-  // GPS Acquisition
+  // GPS Acquisition (Fast, non-blocking, never gets stuck loading)
   const acquireGPSLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setLocationStatus('Geolocation is not supported by your browser/device.');
-      setLocationState('unavailable');
+      setLocationStatus('Location unavailable');
+      setLocationState('found');
       return;
     }
 
-    setLocationStatus('Acquiring high accuracy GPS lock...');
+    setLocationStatus('Updating GPS location...');
     setLocationState('locating');
 
-    // 6-second timeout fallback so it never stays stuck on 'Locating...'
-    const fallbackTimer = setTimeout(() => {
-      setLocationState((prev) => (prev === 'locating' ? 'found' : prev));
-      if (!userLocation) {
-        setCurrentLocality((prev) => (prev === 'Locating...' ? 'Bengaluru' : prev));
+    let resolved = false;
+    // 2.5-second fail-safe so pill never hangs indefinitely
+    const safetyTimer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        setLocationState('found');
+        setCurrentLocality((prev) => (!prev || prev === 'Locating...' ? 'Bengaluru' : prev));
       }
-    }, 6000);
+    }, 2500);
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        clearTimeout(fallbackTimer);
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(safetyTimer);
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(coords);
         setLocationStatus(`Locked: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
@@ -209,46 +181,32 @@ export default function App() {
           if (address) {
             const loc = extractLocality(address, coords.lat, coords.lng);
             setCurrentLocality(loc);
+            try {
+              localStorage.setItem('lokify_last_locality', loc);
+            } catch {
+              // ignore
+            }
           }
         } catch {
-          setCurrentLocality('City Center');
+          setCurrentLocality((prev) => (!prev || prev === 'Locating...' ? 'Bengaluru' : prev));
         }
       },
       (err) => {
-        // Fallback network position
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            clearTimeout(fallbackTimer);
-            const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            setUserLocation(coords);
-            setLocationStatus(`Network Location: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
-            setLocationState('found');
-            try {
-              const address = await reverseGeocode(coords.lat, coords.lng);
-              if (address) {
-                setCurrentLocality(extractLocality(address, coords.lat, coords.lng));
-              }
-            } catch {
-              setCurrentLocality('City Center');
-            }
-          },
-          (fallbackErr) => {
-            clearTimeout(fallbackTimer);
-            if (err?.code === 1 || fallbackErr?.code === 1) {
-              setLocationStatus('Location permission denied by user.');
-              setLocationState('permission_denied');
-            } else {
-              setLocationStatus('Location signal unavailable. Using default center.');
-              setLocationState('unavailable');
-            }
-            setCurrentLocality((prev) => (prev === 'Locating...' ? 'Anna Nagar' : prev));
-          },
-          { enableHighAccuracy: false, timeout: 6000 }
-        );
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(safetyTimer);
+        if (err?.code === 1) {
+          setLocationStatus('Permission needed');
+          setLocationState('permission_denied');
+        } else {
+          setLocationStatus('Default locality');
+          setLocationState('found');
+        }
+        setCurrentLocality((prev) => (!prev || prev === 'Locating...' ? 'Bengaluru' : prev));
       },
-      { enableHighAccuracy: true, timeout: 6000 }
+      { enableHighAccuracy: false, timeout: 2500, maximumAge: 120000 }
     );
-  }, [userLocation]);
+  }, []);
 
   // Reverse geocode missing addresses asynchronously
   const resolveMissingAddresses = useCallback(async (list) => {
@@ -305,23 +263,13 @@ export default function App() {
           const updated = payload.new;
           showToast(`Issue #${updated.id} status updated to: ${updated.status}`, 'success');
 
-          // Send real-time SMS to the logged-in user if it belongs to them
-          if (currentUser?.phone) {
-            sendSmsNotification({
-              toPhone: currentUser.phone,
-              issueId: String(updated.id),
-              message: `Lokify SMS: Report #${updated.id} ("${updated.title}") status changed to: ${updated.status}.`,
-              eventType: 'STATUS_UPDATE',
-            });
-          }
-
           // Add to local activity alerts
           const newAlert = {
             id: 'alt_' + Date.now(),
             issue_id: String(updated.id),
             type: updated.status === 'Resolved' ? 'resolved' : 'work_started',
             title: `Report "${updated.title}" updated`,
-            description: `The status was changed to ${updated.status} by municipal officials. SMS sent.`,
+            description: `The status was changed to ${updated.status} by municipal officials.`,
             status: updated.status,
             created_at: new Date().toISOString(),
             read: false,
@@ -335,7 +283,7 @@ export default function App() {
       clearTimeout(timer);
       supabase.removeChannel(channel);
     };
-  }, [fetchIssues, acquireGPSLocation, showToast, currentUser?.phone]);
+  }, [fetchIssues, acquireGPSLocation, showToast]);
 
   // Check for duplicates within 100 meters
   const checkDuplicate = (catId, loc) => {
@@ -353,7 +301,7 @@ export default function App() {
   };
 
   // Handle new issue submission
-  const handlePostReport = async ({ title, categoryId, description, userEmail, userPhone, file, location }) => {
+  const handlePostReport = async ({ title, categoryId, description, userEmail, file, location }) => {
     // 1. Duplicate check
     const dup = checkDuplicate(categoryId, location);
     if (dup) {
@@ -387,7 +335,6 @@ export default function App() {
     const priority = analyzePriority(title, description);
     const pointLocation = `POINT(${location.lng} ${location.lat})`;
     const targetEmail = userEmail || currentUser?.email || 'citizen@lokify.gov';
-    const targetPhone = userPhone || currentUser?.phone || '+91 98451 23456';
 
     // 4. Insert into Supabase with safe DB category mapping
     const dbCategoryId = mapToDbCategoryId(categoryId);
@@ -430,23 +377,16 @@ export default function App() {
       }
     }
 
-    // 5. Send Realtime SMS Notification to Citizen
-    sendSmsNotification({
-      toPhone: targetPhone,
-      message: `Lokify SMS: Report "${title}" has been registered successfully. Tracking active. You will receive SMS alerts as officials work on it.`,
-      eventType: 'REPORT_SUBMITTED',
-    });
-
-    // 6. Update state & alert
+    // 5. Update state & alert
     fetchIssues();
-    showToast('Report posted successfully! SMS alert dispatched to your mobile.', 'success');
+    showToast('Report posted successfully! Live tracking active.', 'success');
 
     // Add alert
     const creationAlert = {
       id: 'alt_' + Date.now(),
       type: 'acknowledged',
       title: 'Report Submitted',
-      description: `Your issue "${title}" has been registered. SMS sent to ${targetPhone}.`,
+      description: `Your issue "${title}" has been registered.`,
       status: 'Open',
       created_at: new Date().toISOString(),
       read: false,
@@ -519,15 +459,6 @@ export default function App() {
       }
 
       showToast(`Status updated to "${newStatus}"`, 'success');
-
-      // Dispatch SMS
-      const citizenPhone = issueItem.user_phone || currentUser?.phone || '+91 98451 23456';
-      sendSmsNotification({
-        toPhone: citizenPhone,
-        issueId: String(issueItem.id),
-        message: `Lokify Alert: Your issue #${issueItem.id} ("${issueItem.title}") was updated to "${newStatus}" by Ward Officer.`,
-        eventType: 'STATUS_UPDATE',
-      });
 
       // Dispatch Email if citizen email exists & status is Resolved
       if (newStatus === 'Resolved' && issueItem.user_email) {
@@ -637,7 +568,6 @@ export default function App() {
   const myIssues = issues.filter(
     (i) => (deviceId && i.device_id === deviceId) || (currentUser?.email && i.user_email === currentUser.email)
   );
-  const upvotesReceived = myIssues.reduce((acc, curr) => acc + (curr.upvotes || 0), 0);
 
   // If user is not logged in, enforce the Login Screen for both Web & App!
   if (!currentUser) {
@@ -656,9 +586,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Global SMS Alert Pop-up */}
-        <SmsBanner />
-
         {/* Dedicated Authentication Screen */}
         <AuthScreen
           onLogin={(user) => {
@@ -668,7 +595,7 @@ export default function App() {
             } catch {
               // Ignore storage errors in private browsing
             }
-            showToast(`Welcome ${user.name}! SMS alerts verified.`, 'success');
+            showToast(`Welcome ${user.name}!`, 'success');
           }}
         />
       </div>
@@ -677,14 +604,10 @@ export default function App() {
 
   return (
     <div className="fixed inset-0 w-full h-[100dvh] max-w-md mx-auto bg-[#0D1117] text-[#F0F6FC] font-sans flex flex-col overflow-hidden border-x border-[#21262D] select-none">
-      {/* Live Carrier SMS Heads-Up Notification Banner */}
-      <SmsBanner />
-
-      {/* Pure Mobile Application Header (Clean Top Right: Alerts & Logout Only) */}
+      {/* Pure Mobile Application Header (Clean Top Right: Alerts Only) */}
       <MobileAppHeader
         currentLocality={currentLocality}
         onRefreshLocation={acquireGPSLocation}
-        onLogout={handleLogout}
         onOpenAlerts={() => {
           if (activeTab !== 'alerts') setPreviousTab(activeTab);
           setActiveTab('alerts');
@@ -812,18 +735,16 @@ export default function App() {
             <ProfileScreen
               userName={currentUser?.name}
               userEmail={currentUser?.email}
-              userPhone={currentUser?.phone}
               userLocality={currentLocality}
               issues={issues}
               myIssuesCount={myIssues.length}
-              upvotesReceived={upvotesReceived}
               isAdmin={isAdmin}
               onNavigateTab={(tab) => setActiveTab(tab)}
               onLogout={handleLogout}
               onCheckUpdate={handleManualUpdateCheck}
               onUpdateProfile={(updated) => {
                 setCurrentUser((prev) => ({ ...prev, ...updated }));
-                showToast('Profile & SMS routing updated!', 'success');
+                showToast('Profile updated!', 'success');
               }}
             />
           )}
@@ -850,7 +771,6 @@ export default function App() {
         locationStatus={locationStatus}
         onRefreshLocation={acquireGPSLocation}
         initialEmail={currentUser?.email}
-        initialPhone={currentUser?.phone}
       />
 
       {/* Screen 5: Dedicated Issue Details Modal with Officer Controls */}
