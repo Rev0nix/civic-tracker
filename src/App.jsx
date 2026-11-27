@@ -19,6 +19,7 @@ import InAppUpdateModal from './components/InAppUpdateModal';
 import CivicMap from './components/CivicMap';
 import AppLogo from './components/AppLogo';
 import { checkForAppUpdate, CURRENT_APP_VERSION } from './services/appUpdater';
+import { checkFirebaseRedirectResult } from './firebase';
 import { mapToDbCategoryId } from './constants/theme';
 import { Bell, CheckCircle2, AlertTriangle } from 'lucide-react';
 import './App.css';
@@ -108,6 +109,16 @@ export default function App() {
     }, 2500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Check for completed Firebase Google Sign-In redirect on page load
+  useEffect(() => {
+    checkFirebaseRedirectResult().then((user) => {
+      if (user) {
+        setCurrentUser(user);
+        showToast(`Signed in as ${user.name}`, 'success');
+      }
+    });
+  }, [showToast]);
 
   // Auto-dismiss splash screen after 1.8s
   useEffect(() => {

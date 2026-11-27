@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { registerPlugin, Capacitor } from '@capacitor/core';
 import {
   Shield,
   ShieldCheck,
@@ -12,7 +13,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import AppLogo from './AppLogo';
-import GoogleAccountChooserSheet from './GoogleAccountChooserSheet';
+import { signInWithGoogleFirebase } from '../firebase';
+
+// Native Android Google Auth Plugin
+const LokifyGoogleAuth = registerPlugin('LokifyGoogleAuth');
 
 export default function AuthScreen({ onLogin }) {
   // 'citizen' | 'officer'
@@ -30,38 +34,69 @@ export default function AuthScreen({ onLogin }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Amazon / Google One-Tap Account Chooser Bottom Sheet State
-  const [showGoogleChooserSheet, setShowGoogleChooserSheet] = useState(false);
-
-  // 1. Citizen Google Sign-In (Opens Amazon-style Google Account Chooser Bottom Sheet)
-  const handleGoogleSignIn = () => {
-    setErrorMessage('');
-    setShowGoogleChooserSheet(true);
-  };
-
-  // Called when user selects an account in the Amazon / Google One-Tap Bottom Sheet
-  const handleGoogleAccountSelected = (account) => {
-    setShowGoogleChooserSheet(false);
+  // 1. Citizen Google Sign-In (Official Google Account Chooser & Auth Flow)
+  const handleGoogleSignIn = async () => {
+    if (isLoading) return; // Prevent duplicate login requests
     setIsLoading(true);
+    setErrorMessage('');
 
-    setTimeout(() => {
-      const timestamp = Date.now();
-      const displayName = account.displayName || account.email.split('@')[0];
-      const googleUser = {
-        id: account.id || 'usr_g_' + timestamp.toString(36),
-        name: displayName,
-        email: account.email,
-        role: 'citizen',
-        authProvider: 'firebase-google',
-        avatarUrl:
-          account.photoUrl ||
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1F6FEB&color=fff`,
-        token: 'firebase_google_session_' + timestamp,
-        loginTime: new Date(timestamp).toISOString(),
-      };
+    // 1. On Android Native Device: use official Android OS Google Account Chooser
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const res = await LokifyGoogleAuth.signIn();
+        if (res && res.success && res.email) {
+          const timestamp = Date.now();
+          const googleUser = {
+            id: res.id || 'usr_g_' + timestamp.toString(36),
+            name: res.displayName || 'Citizen',
+            email: res.email,
+            role: 'citizen',
+            authProvider: 'firebase-google',
+            avatarUrl:
+              res.photoUrl ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(res.displayName || 'Citizen')}&background=1F6FEB&color=fff`,
+            token: 'firebase_google_session_' + timestamp,
+            loginTime: new Date(timestamp).toISOString(),
+          };
+          setIsLoading(false);
+          onLogin(googleUser);
+          return;
+        }
+      } catch (nativeErr) {
+        setIsLoading(false);
+        const errStr = (nativeErr?.message || '').toLowerCase();
+        // If user cancelled, return cleanly to login without showing an error
+        if (!errStr.includes('cancel')) {
+          setErrorMessage('Could not sign in with Google account. Please try again.');
+        }
+        return;
+      }
+    }
+
+    // 2. On Web / Desktop Browsers: use official Google Sign-In with popup / redirect
+    try {
+      const res = await signInWithGoogleFirebase();
+      if (res.pendingRedirect) {
+        // Browser is redirecting to accounts.google.com, maintain loading state
+        return;
+      }
+      if (res.success && res.user) {
+        setIsLoading(false);
+        onLogin(res.user);
+        return;
+      }
       setIsLoading(false);
-      onLogin(googleUser);
-    }, 150);
+      if (res.cancelled) {
+        // User closed Google Sign-In without selecting — return to login with zero error
+        return;
+      }
+      if (res.error) {
+        setErrorMessage(res.error);
+      }
+    } catch (err) {
+      setIsLoading(false);
+      setErrorMessage(err.message || 'An error occurred during Google Sign-In.');
+    }
   };
 
   // 2. Citizen Direct Email Sign-In (No phone numbers)
@@ -358,13 +393,6 @@ export default function AuthScreen({ onLogin }) {
           Lokify Civic Infrastructure · Protected by Municipal Encryption
         </p>
       </div>
-
-      {/* Amazon / Google One-Tap Account Chooser Bottom Sheet */}
-      <GoogleAccountChooserSheet
-        isOpen={showGoogleChooserSheet}
-        onClose={() => setShowGoogleChooserSheet(false)}
-        onSelectAccount={handleGoogleAccountSelected}
-      />
     </div>
   );
 }
