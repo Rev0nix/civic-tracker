@@ -12,7 +12,8 @@ class MainActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         registerPlugin(LokifyNativeUpdaterPlugin::class.java)
         registerPlugin(LokifyGoogleAuthPlugin::class.java)
+        registerPlugin(LokifyNativeLocationPlugin::class.java)
         super.onCreate(savedInstanceState)
-        Log.i(TAG, "Lokify CivicTrack Native Android Engine initialized with Native Google Sign-In & In-App Updater.")
+        Log.i(TAG, "Lokify CivicTrack Native Android Engine initialized with Native Location, Google Sign-In & In-App Updater.")
     }
 }

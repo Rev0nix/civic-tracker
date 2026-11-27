@@ -45,7 +45,7 @@ export default function DesktopHeader({
               </span>
             </div>
             <p className="text-[11px] font-mono text-[#758588] truncate max-w-[200px]">
-              {currentLocality || 'Bengaluru Municipal Area'}
+              {currentLocality || 'Municipal Ward Area'}
             </p>
           </div>
         </div>

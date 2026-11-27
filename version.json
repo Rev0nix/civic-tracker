@@ -1,9 +1,15 @@
 {
-  "version": "1.4.8",
-  "versionCode": 10408,
-  "releaseName": "Lokify v1.4.8 – Single Prompt Google Sign-In & Direct Package Installation",
-  "releaseNotes": "• Single Prompt Google Sign-In: Asks only ONCE when clicking continue with Google, using Android's native account chooser without duplicate prompts.\n• Direct Package Installation: Configured package visibility, internal cache FileProvider, and direct PackageInstaller intents for seamless updating.\n• Removed Guest Citizen Mode: Dedicated authentication for citizens and municipal ward officers.\n• Released as Lokify.apk: Official release artifact packaged as Lokify.apk.",
-  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.8/Lokify.apk",
-  "fileSize": "4.1 MB",
-  "publishedAt": "2026-11-26T15:05:00Z"
+  "version": "1.4.9",
+  "versionCode": 10409,
+  "releaseName": "Lokify v1.4.9 – High Accuracy Hardware GPS & Amazon-Style Google Account Sign-In",
+  "releaseDate": "2026-11-27",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.4.9/Lokify.apk",
+  "minRequiredVersion": "1.0.0",
+  "changelog": [
+    "High-Accuracy GPS & Locality: Added native Android hardware GPS & native Geocoder service. Real-time satellite fix with accurate neighborhood, ward, and city locality (no hardcoded fallback).",
+    "Amazon-Style Google Sign-In: Sleek, human-crafted Google Account Chooser bottom sheet showing real Google accounts registered on device with instant 1-tap sign-in and 'Use another account' option.",
+    "Eliminated Coarse / Stale Location: Replaced Webview timeout limitations with direct Android LocationManager and multi-provider reverse geocoding engine.",
+    "Official Lokify.apk: Signed standalone Android release package with direct in-app package installer integration."
+  ],
+  "forceUpdate": false
 }

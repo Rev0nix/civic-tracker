@@ -121,26 +121,26 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }} – Single Prompt Google Sign-In & Direct Package Installation"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.9' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.9' }} – High-Accuracy Hardware GPS & Amazon-Style Google Sign-In"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }} – Single Prompt Google Sign-In & Direct Package Installation
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.9' }} – High-Accuracy Hardware GPS & Amazon-Style Google Sign-In
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Updates in v1.4.8:
-            * **Single Prompt Google Sign-In:** Asks only ONCE when clicking continue with Google, using Android's native account chooser without duplicate prompts.
-            * **Direct Package Installation:** Configured package visibility, internal cache FileProvider, and direct PackageInstaller intents for seamless updating.
-            * **Removed Guest Citizen Mode:** Dedicated authentication for citizens and municipal ward officers.
-            * **Official Lokify.apk Release:** Release artifact packaged as `Lokify.apk`.
+            ### 🚀 Updates in v1.4.9:
+            * **High-Accuracy Hardware GPS:** Integrated native Android LocationManager & Geocoder service with real-time satellite fixes, delivering accurate locality and ward identification without hardcoded city fallbacks or Webview timeouts.
+            * **Amazon-Style Google Sign-In:** Beautiful Google Account Chooser bottom sheet presenting real accounts registered on the phone, instant 1-tap sign-in, and 'Use another account' option.
+            * **Multi-Provider Geocoding:** Instant reverse geocoding via device Geocoder, Google Maps Geocoding API, and BigDataCloud.
+            * **Official Lokify.apk:** Signed release package with seamless in-app installer support.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[Lokify.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }}/Lokify.apk)**
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.8' }}/app-release.apk)**
+            - **[Lokify.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.9' }}/Lokify.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.4.9' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { registerPlugin, Capacitor } from '@capacitor/core';
 import {
   Shield,
   ShieldCheck,
@@ -11,12 +10,9 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  X,
 } from 'lucide-react';
 import AppLogo from './AppLogo';
-
-// Native Android Google Auth Plugin
-const LokifyGoogleAuth = registerPlugin('LokifyGoogleAuth');
+import GoogleAccountChooserSheet from './GoogleAccountChooserSheet';
 
 export default function AuthScreen({ onLogin }) {
   // 'citizen' | 'officer'
@@ -34,86 +30,38 @@ export default function AuthScreen({ onLogin }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Web Google Email Prompt (Only used on desktop/web when native account picker is unavailable)
-  const [showWebGooglePrompt, setShowWebGooglePrompt] = useState(false);
-  const [webGoogleEmail, setWebGoogleEmail] = useState('');
+  // Amazon / Google One-Tap Account Chooser Bottom Sheet State
+  const [showGoogleChooserSheet, setShowGoogleChooserSheet] = useState(false);
 
-  // 1. Citizen Google Sign-In (Calls Android Native Google Account Chooser like Amazon, Swiggy)
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
+  // 1. Citizen Google Sign-In (Opens Amazon-style Google Account Chooser Bottom Sheet)
+  const handleGoogleSignIn = () => {
     setErrorMessage('');
-
-    // On Android Native: launch official Google Play Services / OS account picker
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const res = await LokifyGoogleAuth.signIn();
-        if (res && res.success && res.email) {
-          const timestamp = Date.now();
-          const googleUser = {
-            id: res.id || 'usr_g_' + timestamp.toString(36),
-            name: res.displayName || 'Citizen',
-            email: res.email,
-            role: 'citizen',
-            authProvider: 'firebase-google',
-            avatarUrl:
-              res.photoUrl ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(res.displayName || 'Citizen')}&background=1F6FEB&color=fff`,
-            token: 'firebase_google_session_' + timestamp,
-            loginTime: new Date(timestamp).toISOString(),
-          };
-          setIsLoading(false);
-          onLogin(googleUser);
-          return;
-        }
-      } catch (nativeErr) {
-        setIsLoading(false);
-        const errStr = (nativeErr?.message || '').toLowerCase();
-        if (!errStr.includes('cancel')) {
-          setErrorMessage('Could not sign in with Google account. Please try again.');
-        }
-        return;
-      }
-    }
-
-    // Web fallback (clean, no fake accounts)
-    setIsLoading(false);
-    setShowWebGooglePrompt(true);
+    setShowGoogleChooserSheet(true);
   };
 
-  // Complete Web Google Email Sign-In
-  const handleCompleteWebGoogle = (e) => {
-    e.preventDefault();
-    const email = webGoogleEmail.trim().toLowerCase();
-    if (!email || !email.includes('@') || !email.includes('.')) {
-      setErrorMessage('Please enter a valid Google email address.');
-      return;
-    }
-
+  // Called when user selects an account in the Amazon / Google One-Tap Bottom Sheet
+  const handleGoogleAccountSelected = (account) => {
+    setShowGoogleChooserSheet(false);
     setIsLoading(true);
-    setTimeout(() => {
-      const username = email.split('@')[0];
-      const formattedName =
-        username
-          .split(/[._-]/)
-          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-          .join(' ') || 'Citizen';
 
+    setTimeout(() => {
       const timestamp = Date.now();
+      const displayName = account.displayName || account.email.split('@')[0];
       const googleUser = {
-        id: 'usr_g_' + timestamp.toString(36),
-        name: formattedName,
-        email: email,
+        id: account.id || 'usr_g_' + timestamp.toString(36),
+        name: displayName,
+        email: account.email,
         role: 'citizen',
         authProvider: 'firebase-google',
-        avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(formattedName)}&background=1F6FEB&color=fff`,
+        avatarUrl:
+          account.photoUrl ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1F6FEB&color=fff`,
         token: 'firebase_google_session_' + timestamp,
         loginTime: new Date(timestamp).toISOString(),
       };
       setIsLoading(false);
-      setShowWebGooglePrompt(false);
-      setWebGoogleEmail('');
       onLogin(googleUser);
-    }, 250);
+    }, 150);
   };
 
   // 2. Citizen Direct Email Sign-In (No phone numbers)
@@ -411,83 +359,12 @@ export default function AuthScreen({ onLogin }) {
         </p>
       </div>
 
-      {/* ============================================================== */}
-      {/* WEB GOOGLE EMAIL PROMPT (Only for Desktop/Web Browsers)        */}
-      {/* ============================================================== */}
-      {showWebGooglePrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div
-            className="w-full max-w-sm bg-[#161B26] border border-[#2E3748] rounded-2xl p-5 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 select-none"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header: Google G Logo & Title */}
-            <div className="flex items-center justify-between pb-2 border-b border-[#212A38]">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
-                <h3 className="text-sm font-bold text-white">Google Sign In</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowWebGooglePrompt(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-white transition"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCompleteWebGoogle} className="space-y-3">
-              <p className="text-xs text-slate-300">
-                Enter your Google email address to continue to Lokify:
-              </p>
-              <input
-                type="email"
-                placeholder="you@gmail.com"
-                value={webGoogleEmail}
-                onChange={(e) => setWebGoogleEmail(e.target.value)}
-                className="w-full bg-[#0D121D] border border-[#262F3D] focus:border-teal-400 text-white placeholder-slate-500 text-xs px-3 py-2.5 rounded-xl outline-none"
-                autoFocus
-              />
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const prefix = webGoogleEmail.split('@')[0];
-                    if (prefix) setWebGoogleEmail(`${prefix}@gmail.com`);
-                  }}
-                  className="text-[10px] px-2 py-0.5 rounded-md bg-[#0D121D] hover:bg-[#212A38] text-slate-400 border border-[#262F3D] transition"
-                >
-                  + @gmail.com
-                </button>
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs py-2.5 rounded-xl transition shadow-md flex items-center justify-center gap-1.5"
-              >
-                <span>Continue with Google</span>
-                <ArrowRight size={14} />
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Amazon / Google One-Tap Account Chooser Bottom Sheet */}
+      <GoogleAccountChooserSheet
+        isOpen={showGoogleChooserSheet}
+        onClose={() => setShowGoogleChooserSheet(false)}
+        onSelectAccount={handleGoogleAccountSelected}
+      />
     </div>
   );
 }

@@ -163,6 +163,7 @@ export function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
 }
 
 export async function reverseGeocode(latitude, longitude) {
+  // 1. Google Maps JavaScript Geocoder with address_components
   try {
     const maps = await loadGoogleMaps();
     if (maps && maps.Geocoder) {
@@ -170,7 +171,32 @@ export async function reverseGeocode(latitude, longitude) {
       const address = await new Promise((resolve, reject) => {
         geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
           if (status === 'OK' && results && results[0]) {
-            resolve(results[0].formatted_address);
+            // Check address_components for sublocality + locality
+            let sublocality = '';
+            let locality = '';
+            let district = '';
+            if (results[0].address_components) {
+              for (const comp of results[0].address_components) {
+                if (comp.types.includes('sublocality_level_1') || comp.types.includes('sublocality')) {
+                  sublocality = comp.long_name;
+                } else if (comp.types.includes('locality')) {
+                  locality = comp.long_name;
+                } else if (comp.types.includes('administrative_area_level_2')) {
+                  district = comp.long_name;
+                }
+              }
+            }
+            if (sublocality && locality) {
+              resolve(`${sublocality}, ${locality}`);
+            } else if (sublocality) {
+              resolve(sublocality);
+            } else if (locality) {
+              resolve(locality);
+            } else if (district) {
+              resolve(district);
+            } else {
+              resolve(results[0].formatted_address);
+            }
           } else {
             reject(new Error(`Geocoder status: ${status}`));
           }
@@ -182,37 +208,26 @@ export async function reverseGeocode(latitude, longitude) {
     // Fall back to REST endpoints
   }
 
-  // Attempt REST geocoding with user key
+  // 2. Free, CORS-friendly BigDataCloud Client Reverse Geocode API (Instant, No API Key, Global)
   try {
     const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}`
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
     );
     if (res.ok) {
       const data = await res.json();
-      if (data && data.results && data.results[0]?.formatted_address) {
-        return data.results[0].formatted_address;
-      }
-    }
-  } catch {
-    // Fall back to secondary key
-  }
-
-  // Attempt REST geocoding with fallback key
-  try {
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(GOOGLE_MAPS_FALLBACK_KEY)}`
-    );
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.results && data.results[0]?.formatted_address) {
-        return data.results[0].formatted_address;
+      const sub = data.locality;
+      const city = data.city || data.principalSubdivision;
+      if (sub && city && sub !== city) {
+        return `${sub}, ${city}`;
+      } else if (sub || city) {
+        return sub || city;
       }
     }
   } catch {
     // Fall back to Nominatim
   }
 
-  // Graceful fallback to Nominatim reverse geocode
+  // 3. OpenStreetMap Nominatim reverse geocode with structured address
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
@@ -220,6 +235,15 @@ export async function reverseGeocode(latitude, longitude) {
     );
     if (res.ok) {
       const data = await res.json();
+      if (data && data.address) {
+        const sub = data.address.suburb || data.address.neighbourhood || data.address.residential || data.address.village;
+        const city = data.address.city || data.address.town || data.address.county || data.address.state_district;
+        if (sub && city) {
+          return `${sub}, ${city}`;
+        } else if (sub || city) {
+          return sub || city;
+        }
+      }
       if (data && data.display_name) {
         return data.display_name;
       }
@@ -228,18 +252,45 @@ export async function reverseGeocode(latitude, longitude) {
     // Ignore
   }
 
-  return `GPS: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+  return `Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
 }
 
-// Extract a clean short locality (e.g., "Anna Nagar" or "Indiranagar") from an address or coordinates
+// Extract a clean short locality (e.g., "Indiranagar, Bengaluru" or "Kuvempunagar, Mysuru")
 export function extractLocality(address, fallbackLat, fallbackLng) {
   if (!address || typeof address !== 'string') {
-    return fallbackLat && fallbackLng ? `Near ${fallbackLat.toFixed(3)}, ${fallbackLng.toFixed(3)}` : 'City Center';
+    return fallbackLat && fallbackLng
+      ? `Near ${fallbackLat.toFixed(3)}, ${fallbackLng.toFixed(3)}`
+      : 'Current Location';
   }
-  const parts = address.split(',').map((p) => p.trim());
-  if (parts.length >= 2) {
-    const sub = parts[0].length < 25 ? parts[0] : parts[1];
-    return sub || 'Near Ward Office';
+
+  // If already a clean short string like "Indiranagar, Bengaluru"
+  if (address.length < 35 && !address.match(/^\d/) && !address.includes('+')) {
+    return address;
   }
-  return parts[0] || 'Local Area';
+
+  const parts = address.split(',').map((p) => p.trim()).filter(Boolean);
+
+  // Filter out door/house numbers, pin codes, plus codes, and country
+  const filtered = parts.filter((p) => {
+    if (/^\d+([-/]\d+)*[a-zA-Z]?$/.test(p)) return false; // "12", "12/3", "45A"
+    if (/^\d{5,6}$/.test(p)) return false; // Postal code
+    if (/^[A-Z0-9]{4,8}\+[A-Z0-9]{2,4}/.test(p)) return false; // Plus code
+    if (/^unnamed\s+road$/i.test(p)) return false;
+    if (/^india$/i.test(p)) return false;
+    return true;
+  });
+
+  if (filtered.length >= 2) {
+    // If first part is a street/road name like "5th Cross Rd", combine next 2 if available
+    if (/road|rd|cross|main|street|lane|nagar|layout|colony/i.test(filtered[0]) && filtered.length >= 3) {
+      return `${filtered[0]}, ${filtered[1]}`;
+    }
+    return `${filtered[0]}, ${filtered[1]}`;
+  } else if (filtered.length === 1) {
+    return filtered[0];
+  }
+
+  return fallbackLat && fallbackLng
+    ? `Near ${fallbackLat.toFixed(3)}, ${fallbackLng.toFixed(3)}`
+    : 'Current Location';
 }

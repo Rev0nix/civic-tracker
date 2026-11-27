@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 import emailjs from '@emailjs/browser';
-import { reverseGeocode, extractLocality } from './googleMaps';
+import { reverseGeocode } from './googleMaps';
+import { getAccurateLocation } from './services/locationService';
 import { analyzePriority, calculateDistance, compressImage, parseLocation } from './utils/issueHelpers';
 import AuthScreen from './components/AuthScreen';
 import MobileAppHeader from './components/MobileAppHeader';
@@ -41,9 +42,9 @@ export default function App() {
   const [locationStatus, setLocationStatus] = useState('Location Ready');
   const [currentLocality, setCurrentLocality] = useState(() => {
     try {
-      return localStorage.getItem('lokify_last_locality') || 'Bengaluru';
+      return localStorage.getItem('lokify_last_locality') || 'Current Location';
     } catch {
-      return 'Bengaluru';
+      return 'Current Location';
     }
   });
   const [locationState, setLocationState] = useState('found'); // Defaults to 'found' so it never spins permanently
@@ -145,67 +146,34 @@ export default function App() {
     }
   }, [showToast]);
 
-  // GPS Acquisition (Fast, non-blocking, never gets stuck loading)
-  const acquireGPSLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setLocationStatus('Location unavailable');
-      setLocationState('found');
-      return;
-    }
-
-    setLocationStatus('Updating GPS location...');
+  // High-Accuracy GPS Acquisition (Native Android GPS & Geocoder with Web fallback)
+  const acquireGPSLocation = useCallback(async () => {
+    setLocationStatus('Acquiring high-accuracy GPS...');
     setLocationState('locating');
 
-    let resolved = false;
-    // 2.5-second fail-safe so pill never hangs indefinitely
-    const safetyTimer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        setLocationState('found');
-        setCurrentLocality((prev) => (!prev || prev === 'Locating...' ? 'Bengaluru' : prev));
-      }
-    }, 2500);
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(safetyTimer);
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    try {
+      const res = await getAccurateLocation();
+      if (res && typeof res.lat === 'number' && typeof res.lng === 'number') {
+        const coords = { lat: res.lat, lng: res.lng };
         setUserLocation(coords);
-        setLocationStatus(`Locked: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`);
+        setLocationStatus(`Locked: ${res.locality || coords.lat.toFixed(4) + ', ' + coords.lng.toFixed(4)}`);
         setLocationState('found');
-
-        try {
-          const address = await reverseGeocode(coords.lat, coords.lng);
-          if (address) {
-            const loc = extractLocality(address, coords.lat, coords.lng);
-            setCurrentLocality(loc);
-            try {
-              localStorage.setItem('lokify_last_locality', loc);
-            } catch {
-              // ignore
-            }
-          }
-        } catch {
-          setCurrentLocality((prev) => (!prev || prev === 'Locating...' ? 'Bengaluru' : prev));
+        if (res.locality) {
+          setCurrentLocality(res.locality);
         }
-      },
-      (err) => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(safetyTimer);
-        if (err?.code === 1) {
-          setLocationStatus('Permission needed');
-          setLocationState('permission_denied');
-        } else {
-          setLocationStatus('Default locality');
-          setLocationState('found');
-        }
-        setCurrentLocality((prev) => (!prev || prev === 'Locating...' ? 'Bengaluru' : prev));
-      },
-      { enableHighAccuracy: false, timeout: 2500, maximumAge: 120000 }
-    );
+        return;
+      }
+    } catch (err) {
+      console.warn('GPS location acquisition error:', err);
+      if (err?.code === 1 || err?.message?.toLowerCase().includes('denied')) {
+        setLocationStatus('Location permission needed');
+        setLocationState('permission_denied');
+      } else {
+        setLocationStatus('Location ready');
+        setLocationState('found');
+      }
+      setCurrentLocality((prev) => (!prev || prev === 'Locating...' || prev === 'Bengaluru' ? 'Current Location' : prev));
+    }
   }, []);
 
   // Reverse geocode missing addresses asynchronously

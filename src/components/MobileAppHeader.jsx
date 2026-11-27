@@ -48,12 +48,12 @@ export default function MobileAppHeader({
 
           <span className="truncate">
             {locationState === 'locating'
-              ? 'Updating...'
+              ? 'Acquiring GPS...'
               : locationState === 'permission_denied'
               ? 'Permission needed'
               : locationState === 'unavailable'
               ? 'Retry Location'
-              : currentLocality || 'Bengaluru'}
+              : currentLocality || 'Current Location'}
           </span>
 
           <RefreshCw size={10} className="shrink-0 text-[#8B949E]" />

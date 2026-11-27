@@ -2,10 +2,10 @@ package com.rev0nix.civictrack
 
 import android.accounts.AccountManager
 import android.app.Activity
-import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.activity.result.ActivityResult
+import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -14,10 +14,10 @@ import com.getcapacitor.annotation.ActivityCallback
 import com.getcapacitor.annotation.CapacitorPlugin
 
 /**
- * Authentic Android Native Google Account Sign-In Plugin.
- * Presents Android OS native account chooser dialog EXACTLY ONCE
- * to let the user select their real Google account on the device.
- * Never displays duplicate prompts.
+ * Authentic Android Native Google Account Authentication Plugin.
+ * Supports:
+ * 1. getDeviceAccounts() - Discovers Google accounts registered on device to populate Amazon/One-Tap account picker
+ * 2. signIn() - Android native account chooser fallback
  */
 @CapacitorPlugin(name = "LokifyGoogleAuth")
 class LokifyGoogleAuthPlugin : Plugin() {
@@ -26,6 +26,60 @@ class LokifyGoogleAuthPlugin : Plugin() {
         private const val TAG = "LokifyGoogleAuth"
     }
 
+    /**
+     * Retrieve the list of Google accounts registered on the phone.
+     * Used by the Amazon-style Account Chooser Bottom Sheet.
+     */
+    @PluginMethod
+    fun getDeviceAccounts(call: PluginCall) {
+        val ctx = context ?: run {
+            call.reject("Context unavailable")
+            return
+        }
+
+        try {
+            val am = AccountManager.get(ctx)
+            val accounts = am.getAccountsByType("com.google")
+            val list = JSArray()
+
+            for (acc in accounts) {
+                val email = acc.name
+                if (!email.isNullOrBlank() && email.contains("@")) {
+                    val username = email.split("@")[0]
+                    val nameParts = username.split(".", "_", "-")
+                    val displayName = nameParts.joinToString(" ") { part ->
+                        part.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                    }.ifEmpty { "Citizen" }
+
+                    val item = JSObject().apply {
+                        put("email", email)
+                        put("displayName", displayName)
+                        put("id", "g_" + Math.abs(email.hashCode()))
+                        put("photoUrl", "https://ui-avatars.com/api/?name=${displayName.replace(" ", "+")}&background=1F6FEB&color=fff")
+                    }
+                    list.put(item)
+                }
+            }
+
+            Log.i(TAG, "Discovered ${list.length()} Google account(s) on device")
+            val ret = JSObject().apply {
+                put("accounts", list)
+                put("count", list.length())
+            }
+            call.resolve(ret)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not query device accounts", e)
+            val ret = JSObject().apply {
+                put("accounts", JSArray())
+                put("count", 0)
+            }
+            call.resolve(ret)
+        }
+    }
+
+    /**
+     * System account chooser fallback.
+     */
     @PluginMethod
     fun signIn(call: PluginCall) {
         val activity = activity ?: run {
@@ -34,7 +88,7 @@ class LokifyGoogleAuthPlugin : Plugin() {
         }
 
         try {
-            Log.i(TAG, "Launching Android OS native Google Account Chooser (single prompt)")
+            Log.i(TAG, "Launching Android OS native Google Account Chooser")
             val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 AccountManager.newChooseAccountIntent(
                     null,
@@ -79,7 +133,7 @@ class LokifyGoogleAuthPlugin : Plugin() {
                     part.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
                 }.ifEmpty { "Citizen" }
 
-                Log.i(TAG, "Single-prompt Google account successfully chosen: $email")
+                Log.i(TAG, "Google account successfully chosen: $email")
 
                 val ret = JSObject().apply {
                     put("success", true)
@@ -94,7 +148,6 @@ class LokifyGoogleAuthPlugin : Plugin() {
             }
         }
 
-        // User dismissed the picker — do NOT ask a second time!
         Log.i(TAG, "Google account selection cancelled by user")
         call.reject("Google account selection cancelled")
     }

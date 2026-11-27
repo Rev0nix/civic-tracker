@@ -18,7 +18,7 @@ import {
 export default function ProfileScreen({
   userEmail,
   userName = 'Citizen Reporter',
-  userLocality = 'Bengaluru',
+  userLocality = 'Current Location',
   issues = [],
   myIssuesCount = 0,
   isAdmin = false,
@@ -80,8 +80,8 @@ export default function ProfileScreen({
           id: 'software-update',
           label: 'Software Update',
           icon: DownloadCloud,
-          subtitle: 'Version 1.4.8 · Tap to check updates',
-          badge: 'v1.4.8',
+          subtitle: 'Version 1.4.9 · Tap to check updates',
+          badge: 'v1.4.9',
           onClick: onCheckUpdate,
         },
         {
@@ -102,10 +102,10 @@ export default function ProfileScreen({
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.4.8 · Civic Grievance Tracker',
+          subtitle: 'v1.4.9 · Civic Grievance Tracker',
           onClick: () =>
             alert(
-              'Lokify v1.4.8\nCivic Grievance & Municipal Issue Redressal Platform\nClean, Harm-Free Native Android Release'
+              'Lokify v1.4.9\nCivic Grievance & Municipal Issue Redressal Platform\nClean, Harm-Free Native Android Release'
             ),
         },
       ],
