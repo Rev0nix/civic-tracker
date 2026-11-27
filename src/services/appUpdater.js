@@ -4,7 +4,7 @@
 
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
-export const CURRENT_APP_VERSION = '1.5.1';
+export const CURRENT_APP_VERSION = '1.5.2';
 export const GITHUB_REPO = 'Rev0nix/civic-tracker';
 
 // Register native Android plugin proxy via official Capacitor bridge

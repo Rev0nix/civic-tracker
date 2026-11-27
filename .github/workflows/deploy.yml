@@ -121,27 +121,27 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.1' }}
-          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.1' }} – Direct Native Package Installer & Dynamic Settings Version"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.2' }}
+          name: "Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.2' }} – Direct Satellite Map View by Default"
           make_latest: true
           body: |
-            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.1' }} – Direct Native Package Installer & Dynamic Settings Version
+            ## 📱 Lokify ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.2' }} – Direct Satellite Map View by Default
 
             Official Android Mobile release of **Lokify**, the pure mobile municipal grievance redressal and spatial tracking platform.
 
-            ### 🚀 Updates in v1.5.1:
+            ### 🚀 Updates in v1.5.2:
+            * **Direct Satellite Map View:** Map page and GIS views now open directly in high-resolution aerial satellite view with street & place label overlays.
             * **Direct Native Package Installer:** Fixed in-app APK installer with external files directory storage, `ClipData` URI grants, and multi-OEM installer support (Google, Samsung, Xiaomi, ColorOS).
             * **Dynamic Settings Versioning:** Pinned settings screen and about dialog to dynamic package inspection (`getAppVersion()`), resolving stale version display.
             * **Official Google Account Chooser:** Seamless 1-tap sign-in with Google's official account selector dialog on Web (`select_account`) and native Android system account picker (`AccountManager.newChooseAccountIntent`).
-            * **Clean Authentication Flow:** Removed redundant prompts, smooth dismissal when closing dialogs without error alerts, and duplicate request protection.
             * **Official Lokify.apk:** Signed release package with seamless in-app updater and installer support.
 
             ---
 
             ### 📲 Mobile App Download:
             Download the official signed Android release APK below:
-            - **[Lokify.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.1' }}/Lokify.apk)**
-            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.1' }}/app-release.apk)**
+            - **[Lokify.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.2' }}/Lokify.apk)**
+            - **[app-release.apk](https://github.com/Rev0nix/civic-tracker/releases/download/${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.5.2' }}/app-release.apk)**
 
             🌐 **Mobile Web App:** [https://rev0nix.github.io/civic-tracker](https://rev0nix.github.io/civic-tracker)
           files: |

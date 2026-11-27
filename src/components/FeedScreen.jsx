@@ -282,6 +282,7 @@ export default function FeedScreen({
               onSelectIssue={onSelectIssue}
               onRefreshLocation={onRefreshLocation}
               height="h-full"
+              defaultLayer="satellite"
             />
           </div>
         ) : (

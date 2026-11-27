@@ -1,15 +1,14 @@
 {
-  "version": "1.5.1",
-  "versionCode": 10501,
-  "releaseName": "Lokify v1.5.1 – Direct Native Package Installer & Dynamic Settings Version",
+  "version": "1.5.2",
+  "versionCode": 10502,
+  "releaseName": "Lokify v1.5.2 – Direct Satellite Map View by Default",
   "releaseDate": "2026-11-27",
-  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.5.1/Lokify.apk",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.5.2/Lokify.apk",
   "minRequiredVersion": "1.0.0",
   "changelog": [
-    "Native Package Installer Fix: Streamlined APK storage in external files directory with ClipData URI permission routing, ensuring Android PackageInstaller opens reliably across all Android OS versions.",
-    "Dynamic Settings Version: Fixed Settings screen display to query actual installed version dynamically rather than showing cached strings.",
-    "Official Google Account Chooser: Seamless 1-tap sign-in with Google official account selector dialog on Web and native Android AccountManager chooser.",
-    "Clean Authentication: Removed double email prompt, cancellation dismisses smoothly without error banners, and duplicate request protection."
+    "Direct Satellite View: Map page and feed map now open directly in high-resolution satellite view with crisp street and landmark overlays.",
+    "Native Package Installer: In-app installer writes to external files directory with ClipData URI permission routing for seamless 1-tap installation.",
+    "Dynamic Settings Version: Pinned settings screen and about dialog to dynamic package inspection directly from Android OS."
   ],
   "forceUpdate": false
 }

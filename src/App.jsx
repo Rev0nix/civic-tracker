@@ -678,6 +678,7 @@ export default function App() {
                 onSelectIssue={(issue) => setSelectedIssue(issue)}
                 onRefreshLocation={acquireGPSLocation}
                 height="h-full"
+                defaultLayer="satellite"
               />
             </div>
           )}

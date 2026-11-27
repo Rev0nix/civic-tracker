@@ -45,6 +45,7 @@ export const MAP_LAYERS: Record<string, MapLayerConfig> = {
     name: 'Satellite',
     subtitle: 'High-res aerial imagery',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    overlayUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
     maxZoom: 19,
     badge: 'SATELLITE',

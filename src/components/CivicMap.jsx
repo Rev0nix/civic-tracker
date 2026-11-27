@@ -65,11 +65,14 @@ export default function CivicMap({
   onSelectIssue,
   onRefreshLocation,
   height = 'h-full',
+  defaultLayer = 'satellite',
 }) {
   const mapElement = useRef(null);
 
-  // Layer State
-  const [activeLayerId, setActiveLayerId] = useState('standard');
+  // Layer State - Default directly to high-res satellite view as requested
+  const [activeLayerId, setActiveLayerId] = useState(() => {
+    return localStorage.getItem('lokify_map_layer') || defaultLayer || 'satellite';
+  });
   const [isLayerSheetOpen, setIsLayerSheetOpen] = useState(false);
   const [tileError, setTileError] = useState(false);
 
@@ -119,6 +122,11 @@ export default function CivicMap({
   // Layer switching helper
   const switchLayer = useCallback((layerId) => {
     setActiveLayerId(layerId);
+    try {
+      localStorage.setItem('lokify_map_layer', layerId);
+    } catch {
+      // Ignore localStorage exceptions in restricted environments
+    }
     setTileError(false);
     fallbackUsedRef.current = false;
     const config = MAP_LAYERS[layerId];
@@ -190,7 +198,7 @@ export default function CivicMap({
       // Add subtle attribution in corner
       L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
 
-      const config = MAP_LAYERS[activeLayerId] || MAP_LAYERS.standard;
+      const config = MAP_LAYERS[activeLayerId] || MAP_LAYERS.satellite;
       const tileLayer = L.tileLayer(config.url, {
         subdomains: config.subdomains || ['a', 'b', 'c'],
         attribution: config.attribution,
