@@ -4,7 +4,10 @@
 # ==============================================================================
 set -euo pipefail
 
-API_KEY="${1:-016089-E20F62-171E41}"
+API_KEY="${1:-${VITE_GOOGLE_MAPS_API_KEY:-}}"
+if [ -z "$API_KEY" ]; then
+  echo -e "\033[1;33mNotice: No API key passed. Testing using VITE_GOOGLE_MAPS_API_KEY or supply via: ./scripts/test_maps.sh <API_KEY>\033[0m"
+fi
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

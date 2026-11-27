@@ -1,26 +1,30 @@
-// The Google Maps Platform API key provided by the user
+// Google Maps Platform configuration via Vite environment variables
 export const GOOGLE_MAPS_API_KEY =
-  import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
-  document.querySelector('meta[name="google-maps-api-key"]')?.content ||
-  'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_MAPS_API_KEY) ||
+  (typeof document !== 'undefined' && document.querySelector('meta[name="google-maps-api-key"]')?.content) ||
+  '';
 
-export const GOOGLE_MAPS_FALLBACK_KEY = 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc';
+export const GOOGLE_MAPS_FALLBACK_KEY =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_MAPS_FALLBACK_KEY) ||
+  '';
 
 export const GOOGLE_MAPS_MAP_ID =
-  import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ||
-  document.querySelector('meta[name="google-maps-map-id"]')?.content ||
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GOOGLE_MAPS_MAP_ID) ||
+  (typeof document !== 'undefined' && document.querySelector('meta[name="google-maps-map-id"]')?.content) ||
   '016089-E20F62-171E41';
 
 let googleMapsPromise = null;
 
-// Catch and notify on Google Maps authentication errors
+// Catch and notify on Google Maps authentication errors (without leaking credentials in logs)
 if (typeof window !== 'undefined') {
   window.gm_authFailure = () => {
-    console.warn(`Google Maps Platform authentication failure for key: ${GOOGLE_MAPS_API_KEY}`);
+    console.warn(
+      'Google Maps Platform authentication failure. Please verify HTTP referrer and API restrictions in Google Cloud Console.'
+    );
     window.dispatchEvent(
       new CustomEvent('lokify:map_auth_error', {
         detail: {
-          message: `Google Maps key "${GOOGLE_MAPS_API_KEY}" reported authentication restriction. Fallback engine activated.`,
+          message: 'Google Maps reported an authentication restriction. Fallback engine activated.',
         },
       })
     );
@@ -101,6 +105,14 @@ export const LOKIFY_DARK_MAP_STYLES = [
 export function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
   if (window.google?.maps) return Promise.resolve(window.google.maps);
 
+  if (!apiKey) {
+    return Promise.reject(
+      new Error(
+        'Google Maps Platform API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY in your environment configuration.'
+      )
+    );
+  }
+
   if (!googleMapsPromise) {
     googleMapsPromise = new Promise((resolve, reject) => {
       const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
@@ -118,6 +130,10 @@ export function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
       }
 
       function injectScript(key, onFail) {
+        if (!key) {
+          if (onFail) onFail();
+          return;
+        }
         const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&map_ids=${encodeURIComponent(GOOGLE_MAPS_MAP_ID)}`;
         script.async = true;
@@ -143,10 +159,10 @@ export function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
         document.head.appendChild(script);
       }
 
-      // Try primary key requested by user ("016089-E20F62-171E41"), then fallback key
+      // Try primary key, then fallback key if configured
       injectScript(apiKey, () => {
-        if (apiKey !== GOOGLE_MAPS_FALLBACK_KEY) {
-          console.warn(`Primary key "${apiKey}" did not initialize; attempting fallback key "${GOOGLE_MAPS_FALLBACK_KEY}".`);
+        if (GOOGLE_MAPS_FALLBACK_KEY && apiKey !== GOOGLE_MAPS_FALLBACK_KEY) {
+          console.warn('Primary Google Maps key did not initialize; attempting fallback key.');
           injectScript(GOOGLE_MAPS_FALLBACK_KEY, () => {
             googleMapsPromise = null;
             reject(new Error('Google Maps failed to load; using Leaflet Dark GIS.'));

@@ -3,7 +3,7 @@
 # ==============================================================================
 [CmdletBinding()]
 param(
-    [string]$ApiKey = "016089-E20F62-171E41"
+    [string]$ApiKey = $env:VITE_GOOGLE_MAPS_API_KEY
 )
 
 Write-Host "============================================================" -ForegroundColor Cyan

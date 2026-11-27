@@ -144,19 +144,21 @@ export async function reverseGeocodeUnified(latitude: number, longitude: number)
     // Proceed to next fallback
   }
 
-  // Layer 2: Google Maps REST endpoint
-  try {
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}`
-    );
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.results && data.results[0]?.formatted_address) {
-        return data.results[0].formatted_address;
+  // Layer 2: Google Maps REST endpoint (if API key is configured)
+  if (GOOGLE_MAPS_API_KEY) {
+    try {
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.results && data.results[0]?.formatted_address) {
+          return data.results[0].formatted_address;
+        }
       }
+    } catch {
+      // Proceed to next fallback
     }
-  } catch {
-    // Proceed to next fallback
   }
 
   // Layer 3: OpenStreetMap Nominatim reverse geocode (always active & free)

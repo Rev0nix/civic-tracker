@@ -41,8 +41,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc'
-          VITE_GOOGLE_MAPS_MAP_ID: '016089-E20F62-171E41'
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          VITE_GOOGLE_MAPS_MAP_ID: ${{ secrets.VITE_GOOGLE_MAPS_MAP_ID || '016089-E20F62-171E41' }}
 
       - name: Deploy to gh-pages branch (backup)
         uses: peaceiris/actions-gh-pages@v4
@@ -98,8 +98,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_MAPS_API_KEY: 'AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc'
-          VITE_GOOGLE_MAPS_MAP_ID: '016089-E20F62-171E41'
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          VITE_GOOGLE_MAPS_MAP_ID: ${{ secrets.VITE_GOOGLE_MAPS_MAP_ID || '016089-E20F62-171E41' }}
 
       - name: Sync Capacitor Android Project
         run: npx cap sync android

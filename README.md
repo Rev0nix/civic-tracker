@@ -25,7 +25,7 @@ Lokify is architected across specialized programming languages for optimal perfo
 ## 🗺️ Resilient Dual-Engine Map Architecture
 
 Lokify implements a zero-downtime dual-engine mapping system:
-1. **Primary Engine – Google Maps JavaScript API:** Configured with API key `AIzaSyBfjn5u-jwEe8_FR_P2P_y8FbZItDFAowc` and custom Lokify Dark GIS vector styles.
+1. **Primary Engine – Google Maps JavaScript API:** Configured via `VITE_GOOGLE_MAPS_API_KEY` environment variable with custom Lokify Dark GIS vector styles.
 2. **Fallback Engine – Leaflet & OpenStreetMap / CartoDB Dark:** If Google Maps API is unactivated, quota-limited, or blocked by domain rules, Lokify **instantly and automatically falls back to Leaflet** with high-contrast CartoDB dark tiles.
 3. **On-the-Fly Engine Switcher:** Users can manually toggle between `Google Maps` and `Leaflet GIS` with 1 click in the top map toolbar.
 4. **Interactive Pin Picker:** Click or drag pins in both engines within the Report Issue modal.
