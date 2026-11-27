@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Mail,
   MapPin,
@@ -14,6 +14,7 @@ import {
   DownloadCloud,
   User,
 } from 'lucide-react';
+import { CURRENT_APP_VERSION, getInstalledVersion } from '../services/appUpdater';
 
 export default function ProfileScreen({
   userEmail,
@@ -31,6 +32,13 @@ export default function ProfileScreen({
   const [editName, setEditName] = useState(userName);
   const [editEmail, setEditEmail] = useState(userEmail || '');
   const [editLocality, setEditLocality] = useState(userLocality);
+  const [appVersion, setAppVersion] = useState(CURRENT_APP_VERSION);
+
+  useEffect(() => {
+    getInstalledVersion().then((ver) => {
+      if (ver) setAppVersion(ver);
+    });
+  }, []);
 
   const resolvedCount = issues.filter(
     (i) => i.status === 'Resolved' && (i.user_email === userEmail || !userEmail)
@@ -80,8 +88,8 @@ export default function ProfileScreen({
           id: 'software-update',
           label: 'Software Update',
           icon: DownloadCloud,
-          subtitle: 'Version 1.4.9 · Tap to check updates',
-          badge: 'v1.4.9',
+          subtitle: `Version ${appVersion} · Tap to check updates`,
+          badge: `v${appVersion}`,
           onClick: onCheckUpdate,
         },
         {
@@ -102,10 +110,10 @@ export default function ProfileScreen({
           id: 'about',
           label: 'About Lokify',
           icon: Info,
-          subtitle: 'v1.4.9 · Civic Grievance Tracker',
+          subtitle: `v${appVersion} · Civic Grievance Tracker`,
           onClick: () =>
             alert(
-              'Lokify v1.4.9\nCivic Grievance & Municipal Issue Redressal Platform\nClean, Harm-Free Native Android Release'
+              `Lokify v${appVersion}\nCivic Grievance & Municipal Issue Redressal Platform\nClean, Harm-Free Native Android Release`
             ),
         },
       ],

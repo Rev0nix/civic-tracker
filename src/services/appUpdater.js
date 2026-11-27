@@ -4,18 +4,37 @@
 
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
-export const CURRENT_APP_VERSION = '1.5.0';
+export const CURRENT_APP_VERSION = '1.5.1';
 export const GITHUB_REPO = 'Rev0nix/civic-tracker';
 
 // Register native Android plugin proxy via official Capacitor bridge
 export const LokifyNativeUpdater = registerPlugin('LokifyNativeUpdater');
 
 /**
+ * Returns the actual installed package version on Android native,
+ * falling back to the compile-time CURRENT_APP_VERSION on Web.
+ */
+export async function getInstalledVersion() {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await LokifyNativeUpdater.getAppVersion();
+      if (res?.versionName) {
+        return res.versionName;
+      }
+    } catch (e) {
+      console.warn('Could not read native package version from device:', e);
+    }
+  }
+  return CURRENT_APP_VERSION;
+}
+
+/**
  * Checks multiple endpoints (raw GitHub, jsDelivr, GitHub API) to guarantee
  * update detection even if GitHub API is rate-limited or cached.
  */
 export async function checkForAppUpdate() {
-  const cleanCurrent = CURRENT_APP_VERSION.replace(/^v/, '');
+  const installedVer = await getInstalledVersion();
+  const cleanCurrent = (installedVer || CURRENT_APP_VERSION).replace(/^v/, '');
   const timestamp = Date.now();
 
   const sources = [
@@ -187,7 +206,8 @@ export async function downloadAndInstallApkInApp(updateInfo, onProgress) {
       return {
         success: true,
         inApp: true,
-        message: 'Lokify.apk downloaded in-app! Opening package installer...',
+        needPermission: res?.needPermission === true,
+        message: res?.message || 'Lokify.apk downloaded in-app! Opening package installer...',
         res,
       };
     } catch (nativeErr) {
@@ -226,9 +246,16 @@ export async function downloadAndInstallApkInApp(updateInfo, onProgress) {
 export async function openDownloadedInstaller() {
   if (Capacitor.isNativePlatform()) {
     try {
-      return await LokifyNativeUpdater.openInstaller();
+      const res = await LokifyNativeUpdater.openInstaller();
+      return {
+        success: res?.success === true,
+        needPermission: res?.needPermission === true,
+        message: res?.message,
+        res,
+      };
     } catch (err) {
       console.warn('Could not launch package installer:', err);
+      return { success: false, error: err.message };
     }
   }
 }

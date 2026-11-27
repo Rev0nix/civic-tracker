@@ -58,8 +58,8 @@ export default function InAppUpdateModal({
         setDownloadProgress(100);
         setDownloading(false);
         setDownloadComplete(true);
-        if (result.needPermission) {
-          setDownloadStatusText("Please turn ON 'Allow from this source' for Lokify in Settings, then tap Install Lokify.apk.");
+        if (result.needPermission || result.res?.needPermission) {
+          setDownloadStatusText("Permission needed: Please enable 'Allow from this source' for Lokify in Settings, then tap Install Lokify.apk.");
         } else {
           setDownloadStatusText(
             result.message || 'Lokify.apk downloaded! Installer is opening on your screen.'
@@ -78,8 +78,8 @@ export default function InAppUpdateModal({
   const handleManualOpenInstaller = async () => {
     try {
       const res = await openDownloadedInstaller();
-      if (res?.needPermission) {
-        setDownloadStatusText("Please turn ON 'Allow from this source' for Lokify in Settings, then tap Install Lokify.apk.");
+      if (res?.needPermission || res?.res?.needPermission) {
+        setDownloadStatusText("Permission needed: Please turn ON 'Allow from this source' for Lokify in Settings, then tap Install Lokify.apk again.");
       } else if (res?.message) {
         setDownloadStatusText(res.message);
       }

@@ -1,15 +1,15 @@
 {
-  "version": "1.5.0",
-  "versionCode": 10500,
-  "releaseName": "Lokify v1.5.0 – Official Google Account Chooser & Secure Architecture",
+  "version": "1.5.1",
+  "versionCode": 10501,
+  "releaseName": "Lokify v1.5.1 – Direct Native Package Installer & Dynamic Settings Version",
   "releaseDate": "2026-11-27",
-  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.5.0/Lokify.apk",
+  "downloadUrl": "https://github.com/Rev0nix/civic-tracker/releases/download/v1.5.1/Lokify.apk",
   "minRequiredVersion": "1.0.0",
   "changelog": [
+    "Native Package Installer Fix: Streamlined APK storage in external files directory with ClipData URI permission routing, ensuring Android PackageInstaller opens reliably across all Android OS versions.",
+    "Dynamic Settings Version: Fixed Settings screen display to query actual installed version dynamically rather than showing cached strings.",
     "Official Google Account Chooser: Seamless 1-tap sign-in with Google official account selector dialog on Web and native Android AccountManager chooser.",
-    "Clean Authentication: Removed double email prompt, cancellation dismisses smoothly without error banners, and duplicate request protection.",
-    "High-Accuracy GPS: Hardware GPS location provider with real-time satellite fixes and multi-provider geocoding.",
-    "Security Hardening: Removed exposed API keys and migrated to secure environment configuration."
+    "Clean Authentication: Removed double email prompt, cancellation dismisses smoothly without error banners, and duplicate request protection."
   ],
   "forceUpdate": false
 }

@@ -2,8 +2,10 @@ package com.rev0nix.civictrack
 
 import android.app.Activity
 import android.app.DownloadManager
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -24,8 +26,9 @@ import kotlin.concurrent.thread
 
 /**
  * Clean, safe native Android updater for Lokify.
- * Streams Lokify.apk in a background thread, writes to verified internal cache and public downloads,
- * and launches the Android system package installer directly.
+ * Streams Lokify.apk in a background thread, writes to external app files directory
+ * (guaranteed readable by system package installer across all Android versions),
+ * and launches the Android system package installer directly with ClipData and URI permissions.
  */
 @CapacitorPlugin(name = "LokifyNativeUpdater")
 class LokifyNativeUpdaterPlugin : Plugin() {
@@ -33,6 +36,44 @@ class LokifyNativeUpdaterPlugin : Plugin() {
     companion object {
         private const val TAG = "LokifyNativeUpdater"
         private const val APK_FILENAME = "Lokify.apk"
+    }
+
+    private fun getTargetApkFile(activity: Activity): File {
+        val extDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+        return if (extDir != null) {
+            File(extDir, APK_FILENAME)
+        } else {
+            File(activity.cacheDir, APK_FILENAME)
+        }
+    }
+
+    @PluginMethod
+    fun getAppVersion(call: PluginCall) {
+        val activity = activity ?: run {
+            call.reject("Activity context not available")
+            return
+        }
+        try {
+            val pInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                activity.packageManager.getPackageInfo(activity.packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                activity.packageManager.getPackageInfo(activity.packageName, 0)
+            }
+            val versionName = pInfo.versionName ?: "1.5.1"
+            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                pInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                pInfo.versionCode.toLong()
+            }
+            call.resolve(JSObject().apply {
+                put("versionName", versionName)
+                put("versionCode", versionCode)
+            })
+        } catch (e: Exception) {
+            call.reject("Failed to get app version: ${e.message}")
+        }
     }
 
     @PluginMethod
@@ -55,8 +96,7 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             try {
                 Log.i(TAG, "Starting direct streaming download of Lokify.apk v$version from $downloadUrl")
 
-                // Write to internal cacheDir (guaranteed accessible to FileProvider in sandbox)
-                val destFile = File(activity.cacheDir, APK_FILENAME)
+                val destFile = getTargetApkFile(activity)
                 if (destFile.exists()) {
                     destFile.delete()
                 }
@@ -113,16 +153,15 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                 connection.disconnect()
 
                 destFile.setReadable(true, false)
-                Log.i(TAG, "Lokify.apk downloaded successfully (${destFile.length()} bytes). Launching package installer!")
+                Log.i(TAG, "Lokify.apk downloaded successfully (${destFile.length()} bytes) to ${destFile.absolutePath}. Launching package installer!")
 
-                // Also copy to public Downloads folder as external backup
+                // Also copy to cacheDir as fallback source
                 try {
-                    val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                    val publicFile = File(publicDir, APK_FILENAME)
-                    destFile.copyTo(publicFile, overwrite = true)
-                    publicFile.setReadable(true, false)
+                    val cacheBackup = File(activity.cacheDir, APK_FILENAME)
+                    destFile.copyTo(cacheBackup, overwrite = true)
+                    cacheBackup.setReadable(true, false)
                 } catch (copyErr: Exception) {
-                    Log.w(TAG, "Could not copy to public downloads: ${copyErr.message}")
+                    Log.w(TAG, "Could not copy cache backup: ${copyErr.message}")
                 }
 
                 // Launch package installer on UI thread
@@ -157,6 +196,12 @@ class LokifyNativeUpdaterPlugin : Plugin() {
             return
         }
 
+        val primaryFile = getTargetApkFile(activity)
+        if (primaryFile.exists() && primaryFile.length() > 0) {
+            launchInstallerForFile(activity, primaryFile, call)
+            return
+        }
+
         val cacheFile = File(activity.cacheDir, APK_FILENAME)
         if (cacheFile.exists() && cacheFile.length() > 0) {
             launchInstallerForFile(activity, cacheFile, call)
@@ -168,13 +213,6 @@ class LokifyNativeUpdaterPlugin : Plugin() {
         val publicFile = File(publicDir, APK_FILENAME)
         if (publicFile.exists() && publicFile.length() > 0) {
             launchInstallerForFile(activity, publicFile, call)
-            return
-        }
-
-        // Try external files directory
-        val extFile = File(activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), APK_FILENAME)
-        if (extFile.exists() && extFile.length() > 0) {
-            launchInstallerForFile(activity, extFile, call)
             return
         }
 
@@ -209,7 +247,7 @@ class LokifyNativeUpdaterPlugin : Plugin() {
                     call?.resolve(JSObject().apply {
                         put("success", true)
                         put("needPermission", true)
-                        put("message", "Please enable 'Allow from this source' in Settings, then tap Install.")
+                        put("message", "Please enable 'Allow from this source' for Lokify in Settings, then tap Install.")
                     })
                     return
                 }
@@ -227,14 +265,34 @@ class LokifyNativeUpdaterPlugin : Plugin() {
 
             val installIntent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(contentUri, "application/vnd.android.package-archive")
+                clipData = ClipData.newRawUri("Lokify.apk", contentUri)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
             }
 
-            // Explicitly grant URI read permissions to any intent resolvers
+            // Explicitly grant URI read permissions to any known package installers
+            val installerPackages = arrayOf(
+                "com.google.android.packageinstaller",
+                "com.android.packageinstaller",
+                "com.samsung.android.packageinstaller",
+                "com.miui.packageinstaller",
+                "com.coloros.packageinstaller"
+            )
+            for (pkg in installerPackages) {
+                try {
+                    activity.grantUriPermission(pkg, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (_: Exception) {}
+            }
+
             try {
-                val resolveInfoList = activity.packageManager.queryIntentActivities(installIntent, 0)
+                val resolveInfoList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    activity.packageManager.queryIntentActivities(installIntent, PackageManager.ResolveInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    activity.packageManager.queryIntentActivities(installIntent, 0)
+                }
                 for (resolveInfo in resolveInfoList) {
                     val pkg = resolveInfo.activityInfo.packageName
                     activity.grantUriPermission(pkg, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
