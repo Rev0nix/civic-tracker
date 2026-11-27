@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#132B2F" />
+      <stop offset="50%" stop-color="#0E1E21" />
+      <stop offset="100%" stop-color="#080F0F" />
+    </linearGradient>
+    <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A3DCE3" />
+      <stop offset="60%" stop-color="#43C88A" />
+      <stop offset="100%" stop-color="#28616A" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#A3DCE3" />
+      <stop offset="100%" stop-color="#43C88A" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Outer Squircle / Shield Container -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#shieldGrad)" stroke="#28616A" stroke-width="10" />
+
+  <!-- Inner Ambient Glow Circle -->
+  <circle cx="256" cy="256" r="160" fill="#132B2F" opacity="0.6" filter="url(#glow)" />
+
+  <!-- Radar Rings -->
+  <circle cx="256" cy="230" r="140" fill="none" stroke="#28616A" stroke-width="4" stroke-dasharray="8 8" opacity="0.4" />
+  <circle cx="256" cy="230" r="100" fill="none" stroke="#315C60" stroke-width="5" stroke-dasharray="6 6" opacity="0.6" />
+  <circle cx="256" cy="230" r="60" fill="none" stroke="#A3DCE3" stroke-width="6" opacity="0.8" />
+
+  <!-- Center Pin / Hexagonal Core -->
+  <g filter="url(#glow)">
+    <!-- Geo Pin Shape -->
+    <path d="M 256 120 
+             C 200 120 156 164 156 220
+             C 156 280 236 370 256 390
+             C 276 370 356 280 356 220
+             C 356 164 312 120 256 120 Z" 
+          fill="url(#neonGrad)" />
+    
+    <!-- Pin Inner Core (Dark Cutout) -->
+    <circle cx="256" cy="216" r="44" fill="#080F0F" stroke="#132B2F" stroke-width="6" />
+
+    <!-- Pulsing Radar Center Signal Dot -->
+    <circle cx="256" cy="216" r="22" fill="#A3DCE3" />
+    <circle cx="256" cy="216" r="10" fill="#FFFFFF" />
+  </g>
+
+  <!-- Modern Tech Circuit Accents -->
+  <line x1="100" y1="256" x2="156" y2="256" stroke="#43C88A" stroke-width="6" stroke-linecap="round" opacity="0.8" />
+  <circle cx="94" cy="256" r="6" fill="#43C88A" />
+
+  <line x1="412" y1="256" x2="356" y2="256" stroke="#A3DCE3" stroke-width="6" stroke-linecap="round" opacity="0.8" />
+  <circle cx="418" cy="256" r="6" fill="#A3DCE3" />
+
+  <!-- Base Location Pulse Arc -->
+  <ellipse cx="256" cy="420" rx="60" ry="16" fill="none" stroke="#43C88A" stroke-width="5" opacity="0.7" />
+  <ellipse cx="256" cy="420" rx="30" ry="8" fill="none" stroke="#A3DCE3" stroke-width="4" opacity="0.9" />
+</svg>
